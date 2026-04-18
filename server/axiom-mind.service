@@ -1,0 +1,21 @@
+[Unit]
+Description=AxiomMind v2 — Autonomous Blockchain AI Guardian
+After=network.target axiom-node.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/axiom-mind
+EnvironmentFile=-/opt/axiom-mind/.env
+ExecStart=/opt/axiom-mind/venv/bin/python /opt/axiom-mind/axiom_mind.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=axiom-mind
+# Never OOM-kill the guardian
+OOMScoreAdjust=-500
+
+[Install]
+WantedBy=multi-user.target

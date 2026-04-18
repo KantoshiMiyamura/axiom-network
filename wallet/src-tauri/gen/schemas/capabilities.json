@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Core IPC access for the wallet window","local":true,"windows":["main"],"permissions":["core:default"]}}

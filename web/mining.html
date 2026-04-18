@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mining | Axiom Network</title>
+  <meta name="description" content="Mine AXM with your CPU using SHA3-256 proof of work. 30-second blocks, LWMA difficulty adjustment, smooth reward decay from 50 AXM. No special hardware required.">
+  <meta property="og:title" content="Mining | Axiom Network">
+  <meta property="og:description" content="CPU mining with SHA3-256. 30-second blocks, fair distribution, no special hardware.">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="container">
+    <div class="max-w-3">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>Mining</h1>
+        <p>CPU-friendly proof of work with SHA3-256. No GPUs, no ASICs, no special hardware. Download and start mining.</p>
+      </div>
+
+      <!-- Overview Cards -->
+      <section class="section">
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">&#9881;</div>
+            <h3>CPU Mining</h3>
+            <p>SHA3-256 proof of work. Mine with any CPU, no specialized hardware required. Fair access for everyone from day one.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">&#9889;</div>
+            <h3>30s Blocks</h3>
+            <p>LWMA difficulty adjustment recalculates every block to maintain 30-second intervals regardless of hashrate changes.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">&#9733;</div>
+            <h3>Smooth Decay</h3>
+            <p>Block reward starts at 50 AXM and decays smoothly with no abrupt halvings. Predictable, gradual emission schedule.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Prerequisites -->
+      <section class="section">
+        <h2 class="section-title">Prerequisites</h2>
+        <p class="section-sub">Complete these steps before you start mining.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Install Axiom</h3>
+              <p>Download and install the Axiom binary for your platform. See <a href="downloads.html" class="text-accent">Downloads</a>.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Sync your node</h3>
+              <p>Initialize and start your node. Let it fully sync with the network before mining.</p>
+              <div class="code-block mt-2"><pre><code>axiom init
+axiom start</code></pre><button class="copy-btn">copy</button></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Create a wallet</h3>
+              <p>Create a wallet to receive mining rewards. See <a href="wallet.html" class="text-accent">Wallet</a> for details.</p>
+              <div class="code-block mt-2"><pre><code>axiom wallet create</code></pre><button class="copy-btn">copy</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Start Mining -->
+      <section class="section">
+        <h2 class="section-title">Start Mining</h2>
+        <p class="section-sub">Two ways to start mining depending on your setup.</p>
+
+        <h3 class="text-sm mb-1">Option 1: Start node with mining enabled</h3>
+        <p class="text-sm text-muted mb-2">Starts the node and miner together in a single process.</p>
+        <div class="code-block mb-4"><pre><code>axiom start --mine</code></pre><button class="copy-btn">copy</button></div>
+
+        <h3 class="text-sm mb-1">Option 2: Run the mining worker separately</h3>
+        <p class="text-sm text-muted mb-2">Start the miner in a separate terminal while the node is already running.</p>
+        <div class="code-block"><pre><code>axiom worker start</code></pre><button class="copy-btn">copy</button></div>
+      </section>
+
+      <!-- Mining Configuration -->
+      <section class="section">
+        <h2 class="section-title">Mining Configuration</h2>
+        <p class="section-sub">Configure mining options in your <code>axiom.conf</code> file.</p>
+        <div class="code-block">
+          <div class="code-header"><span>axiom.conf</span></div>
+          <pre><code># Enable mining on node start
+mine=true
+
+# Number of mining threads (0 = use all available cores)
+mining_threads=0
+
+# Mining reward address (uses default wallet address if not set)
+# mining_address=axm1...</code></pre><button class="copy-btn">copy</button>
+        </div>
+      </section>
+
+      <!-- Reward Schedule -->
+      <section class="section">
+        <h2 class="section-title">Reward Schedule</h2>
+        <p class="section-sub">Block rewards decay smoothly from 50 AXM to a floor of 0.0001 AXM.</p>
+
+        <div class="code-block mb-3"><pre><code>reward(h) = 50 * 0.99999^h</code></pre><button class="copy-btn">copy</button></div>
+
+        <div class="table-wrap mb-3">
+          <table>
+            <thead>
+              <tr>
+                <th>Block Height</th>
+                <th>Reward</th>
+                <th>Milestone</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">0</td>
+                <td class="mono accent">50 AXM</td>
+                <td>Genesis</td>
+              </tr>
+              <tr>
+                <td class="mono">10,000</td>
+                <td class="mono accent">47.581 AXM</td>
+                <td>~3.5 days</td>
+              </tr>
+              <tr>
+                <td class="mono">100,000</td>
+                <td class="mono accent">18.394 AXM</td>
+                <td>~35 days</td>
+              </tr>
+              <tr>
+                <td class="mono">500,000</td>
+                <td class="mono accent">0.335 AXM</td>
+                <td>~174 days</td>
+              </tr>
+              <tr>
+                <td class="mono">1,000,000</td>
+                <td class="mono accent">0.002 AXM</td>
+                <td>~347 days</td>
+              </tr>
+              <tr>
+                <td class="mono">1,312,000</td>
+                <td class="mono accent">0.0001 AXM</td>
+                <td>~455 days (floor)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="text-sm mb-1">View the full reward table</h3>
+        <div class="code-block"><pre><code>axiom rewards --table 10</code></pre><button class="copy-btn">copy</button></div>
+      </section>
+
+      <!-- Hardware -->
+      <section class="section">
+        <h2 class="section-title">Hardware</h2>
+        <p class="section-sub">Expected mining performance by hardware class.</p>
+        <div class="table-wrap mb-3">
+          <table>
+            <thead>
+              <tr>
+                <th>Hardware</th>
+                <th>Cores / Threads</th>
+                <th>Relative Performance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Laptop</td>
+                <td class="mono">4c / 8t</td>
+                <td class="mono">Baseline</td>
+              </tr>
+              <tr>
+                <td>Desktop</td>
+                <td class="mono">8c / 16t</td>
+                <td class="mono">~2x</td>
+              </tr>
+              <tr>
+                <td>Server</td>
+                <td class="mono">16+ cores</td>
+                <td class="mono">~4x+</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm text-muted">Mining is CPU-bound using SHA3-256. Performance scales linearly with core count. GPU and ASIC hardware provide no advantage over general-purpose CPUs.</p>
+      </section>
+
+      <!-- Fairness -->
+      <section class="section">
+        <h2 class="section-title">Fairness</h2>
+        <div class="info-box security">
+          <div class="icon">&#128737;</div>
+          <div>
+            <strong>Designed for fair distribution</strong>
+            <p>LWMA (Linearly Weighted Moving Average) adjusts difficulty every block using a window of recent block timestamps. This prevents timestamp manipulation, eliminates difficulty oscillation attacks, and ensures consistent 30-second block intervals even during large hashrate swings. Smooth reward decay means no halving events to speculate on. Every miner earns rewards proportional to their contributed work.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Links -->
+      <section class="section">
+        <div class="gap-4">
+          <a href="tokenomics.html" class="link-arrow">Tokenomics &rarr;</a>
+          <a href="docs.html" class="link-arrow">Documentation &rarr;</a>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+# ============================================================
+# Axiom Network — .gitignore
+# ============================================================
+
+# ── Rust build artifacts ──────────────────────────────────
+/target/
+**/*.rs.bk
+
+# ── Cargo generated ──────────────────────────────────────
+# Keep Cargo.lock for reproducible builds of binary crates
+# Cargo.lock  ← intentionally NOT ignored for a blockchain node
+
+# ── Blockchain data ───────────────────────────────────────
+# Local chain state — never commit chain data
+/data/
+/data_*/
+/mainnet-data/
+/testnet/
+/testnet-*/
+/tmp-*/
+/test-*/
+*.dat
+*.sst
+*.fjall
+
+# ── Secrets and credentials ───────────────────────────────
+*.env
+*.env.local
+*.env.production
+*.env.staging
+.env*
+!.env.example
+wallet.json
+*-wallet.json
+*_wallet.json
+seeds.json
+seeds_*.json
+
+# ── IDE and editor files ─────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Dev tool configs (not needed by contributors) ─────────
+.claude/
+.kiro/
+.zencoder/
+.zenflow/
+
+# ── Logs ──────────────────────────────────────────────────
+*.log
+logs/
+/stress/logs/
+/stress/pids/
+/stress/results/
+/stress/data/
+
+# ── Test output artifacts ─────────────────────────────────
+test_*.txt
+test-*.txt
+test_*.hex
+test-*.ps1
+*_output.txt
+*_results.txt
+
+# ── Web frontend ──────────────────────────────────────────
+/web/node_modules/
+/web/.next/
+/web/.env.local
+/web/.env.production
+
+# ── Desktop wallet (Tauri) frontend ───────────────────────
+/wallet/node_modules/
+/wallet/dist/
+/wallet/src-tauri/target/
+
+# ── Release artifacts (published via GitHub Releases, not committed) ──
+/web/downloads/**/*.zip
+/web/downloads/**/*.tar.gz
+/web/downloads/**/*.msi
+/web/downloads/**/*.AppImage
+/web/downloads/**/*.deb
+/web/downloads/**/*.dmg
+/release/
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# ── OS generated ──────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+/web/.vercel/
+*.crash

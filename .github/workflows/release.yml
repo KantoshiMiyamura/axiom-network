@@ -1,0 +1,352 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)build (e.g. v1.0.0). Must already exist and be signed.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Node CLI binaries — 4 platforms
+  # ──────────────────────────────────────────────────────────────────────────
+  build-node:
+    name: Node ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: x86_64-pc-windows-msvc
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+          - name: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+          - name: aarch64-apple-darwin
+            os: macos-14
+            target: aarch64-apple-darwin
+            archive: tar.gz
+          - name: x86_64-apple-darwin
+            os: macos-13
+            target: x86_64-apple-darwin
+            archive: tar.gz
+
+    steps:
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*|v[0-9]*.[0-9]*.[0-9]*-*) ;;
+            *) echo "::error::invalid tag '$TAG'"; exit 1 ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.tag.outputs.tag }}
+
+      - name: Verify tag points to HEAD and is annotated
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -eu
+          TAG_COMMIT=$(git rev-list -n 1 "$TAG")
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+            echo "::error::Tag $TAG ($TAG_COMMIT) does not match HEAD ($HEAD_COMMIT)"
+            exit 1
+          fi
+          TYPE=$(git cat-file -t "$TAG")
+          if [ "$TYPE" != "tag" ]; then
+            echo "::error::Tag $TAG is not annotated (type=$TYPE). Use: git tag -s $TAG -m ..."
+            exit 1
+          fi
+
+      - name: Install Rust toolchain (pinned)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.93.1'
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binaries
+        shell: bash
+        run: |
+          cargo build --release --target ${{ matrix.target }} \
+            -p axiom-cli \
+            -p axiom-node \
+            -p axiom-keygen \
+            -p axiom-sign \
+            -p axiom-bump-fee
+
+      - name: Run tests
+        shell: bash
+        run: cargo test --release --workspace --lib --target ${{ matrix.target }}
+
+      - name: Stage artifacts
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -eu
+          VERSION="${TAG#v}"
+          STAGE="axiom-v${VERSION}-${{ matrix.name }}"
+          mkdir -p "$STAGE"
+          EXT=""
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then EXT=".exe"; fi
+
+          for bin in axiom axiom-node axiom-keygen axiom-sign axiom-bump-fee; do
+            src="target/${{ matrix.target }}/release/${bin}${EXT}"
+            if [ -f "$src" ]; then
+              cp "$src" "$STAGE/"
+            else
+              echo "::error::missing binary: $src"
+              exit 1
+            fi
+          done
+
+          cat > "$STAGE/README.txt" <<EOF
+          Axiom Network ${TAG}
+          Target: ${{ matrix.target }}
+          Commit: ${GITHUB_SHA}
+          Built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+
+          echo "STAGE=$STAGE" >> "$GITHUB_ENV"
+
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:STAGE/*" -DestinationPath "$env:STAGE.zip" -Force
+
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: tar -czf "${STAGE}.tar.gz" "${STAGE}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-${{ matrix.name }}
+          path: |
+            axiom-v*-${{ matrix.name }}.zip
+            axiom-v*-${{ matrix.name }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Desktop wallet installers — Tauri
+  # ──────────────────────────────────────────────────────────────────────────
+  build-wallet:
+    name: Wallet ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-msi
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundle: msi
+          - name: linux-appimage
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundle: appimage
+          - name: linux-deb
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundle: deb
+          - name: macos-dmg
+            os: macos-14
+            target: aarch64-apple-darwin
+            bundle: dmg
+
+    steps:
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.tag.outputs.tag }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.93.1'
+          targets: ${{ matrix.target }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: wallet/package-lock.json
+
+      - name: Install Linux bundler deps
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev patchelf
+
+      - name: Install Tauri CLI
+        run: cargo install --locked --version ^2 tauri-cli
+
+      - name: Install wallet dependencies
+        working-directory: wallet
+        run: npm ci
+
+      - name: Build wallet installer (${{ matrix.bundle }})
+        working-directory: wallet
+        shell: bash
+        run: cargo tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
+
+      - name: Collect installer
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -eu
+          VERSION="${TAG#v}"
+          OUT="wallet-installers"
+          mkdir -p "$OUT"
+          BUNDLE_ROOT="target/${{ matrix.target }}/release/bundle"
+          case "${{ matrix.bundle }}" in
+            msi)      find "$BUNDLE_ROOT/msi"      -name "*.msi"      -exec cp {} "$OUT/" \; ;;
+            appimage) find "$BUNDLE_ROOT/appimage" -name "*.AppImage" -exec cp {} "$OUT/" \; ;;
+            deb)      find "$BUNDLE_ROOT/deb"      -name "*.deb"      -exec cp {} "$OUT/" \; ;;
+            dmg)      find "$BUNDLE_ROOT/dmg"      -name "*.dmg"      -exec cp {} "$OUT/" \; ;;
+          esac
+          ls -lh "$OUT/"
+          if [ -z "$(ls -A "$OUT")" ]; then
+            echo "::error::no installer produced for ${{ matrix.bundle }}"
+            exit 1
+          fi
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: wallet-${{ matrix.name }}
+          path: wallet-installers/*
+          if-no-files-found: error
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Aggregate: download all artifacts, produce SHA256SUMS, sign, upload release
+  # ──────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish GitHub Release
+    needs: [build-node, build-wallet]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-raw
+
+      - name: Flatten artifact tree
+        run: |
+          set -eu
+          mkdir -p dist
+          find dist-raw -type f -exec cp -v {} dist/ \;
+          ls -lh dist/
+
+      - name: Generate SHA256SUMS
+        working-directory: dist
+        run: |
+          set -eu
+          # Hash every regular file except any prior SHA256SUMS to avoid self-reference.
+          rm -f SHA256SUMS SHA256SUMS.minisig
+          sha256sum * | sort -k 2 > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Sign SHA256SUMS with minisign
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+          MINISIGN_PASSWORD:   ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          set -eu
+          if [ -z "${MINISIGN_SECRET_KEY:-}" ] || [ -z "${MINISIGN_PASSWORD:-}" ]; then
+            echo "::error::MINISIGN_SECRET_KEY and MINISIGN_PASSWORD must be configured as repo secrets"
+            exit 1
+          fi
+          sudo apt-get update
+          sudo apt-get install -y minisign
+          # Write the secret key to a file with strict permissions, never to stdout.
+          KEYFILE="$(mktemp)"
+          chmod 600 "$KEYFILE"
+          printf '%s' "$MINISIGN_SECRET_KEY" > "$KEYFILE"
+          # Feed passphrase on stdin; keep ::add-mask:: behavior by never printing it.
+          printf '%s\n' "$MINISIGN_PASSWORD" | minisign -S -s "$KEYFILE" -m dist/SHA256SUMS
+          # Best-effort wipe of the key file; GitHub also destroys the runner after.
+          if command -v shred >/dev/null 2>&1; then shred -u "$KEYFILE" || rm -f "$KEYFILE"; else rm -f "$KEYFILE"; fi
+          ls -lh dist/SHA256SUMS*
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/*

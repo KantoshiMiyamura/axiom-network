@@ -1,0 +1,81 @@
+[package]
+name = "axiom-community-server"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Axiom Community Platform server — authentication, messaging, and jobs"
+
+[dependencies]
+# Shared library
+axiom-community-shared = { path = "../shared" }
+
+# Web framework
+axum = "0.7"
+tokio = { workspace = true, features = ["full"] }
+tokio-util = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+hyper = "1.1"
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "uuid", "chrono", "migrate"] }
+postgres = "0.19"
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Cryptography & hashing
+sha3 = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+
+# JWT
+jsonwebtoken = "9.2"
+
+# Logging & tracing
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+
+# Configuration
+dotenv = "0.15"
+config = { version = "0.13", features = ["toml"] }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Async utilities
+async-trait = { workspace = true }
+futures = "0.3"
+
+# DateTime
+chrono = { workspace = true, features = ["serde"] }
+
+# UUID
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+# Rate limiting
+governor = "0.6"
+
+# Misc
+base64 = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+proptest = { workspace = true }
+ml-dsa = { workspace = true }
+rand_core = { workspace = true }
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

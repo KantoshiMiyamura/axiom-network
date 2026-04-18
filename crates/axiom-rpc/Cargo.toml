@@ -1,0 +1,36 @@
+[package]
+name = "axiom-rpc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+axiom-primitives.workspace = true
+axiom-protocol.workspace = true
+axiom-consensus.workspace = true
+axiom-storage.workspace = true
+axiom-crypto.workspace = true
+axiom-node = { path = "../axiom-node" }
+axiom-wallet = { path = "../axiom-wallet" }
+axiom-ai = { path = "../axiom-ai" }
+axiom-guard = { path = "../axiom-guard" }
+axiom-monitor = { path = "../axiom-monitor" }
+axum = { version = "0.7", features = ["ws"] }
+tower-http = { version = "0.5", features = ["cors"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+hex = "0.4"
+bincode.workspace = true
+tracing = "0.1"
+rand_core.workspace = true
+base64 = "0.22"
+subtle = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.4", features = ["util"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"

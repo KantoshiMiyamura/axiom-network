@@ -1,0 +1,19 @@
+[package]
+name = "axiom-ai"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Axiom Network — AI model registry and inference payment layer"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+bincode.workspace = true
+thiserror = "1"
+fjall = "2"
+sha2 = "0.10"
+hex = "0.4"
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+tempfile = "3"

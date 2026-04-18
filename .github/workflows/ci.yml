@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTFLAGS: -D warnings
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Lint: fmt + clippy on a single runner — fast feedback
+  # ──────────────────────────────────────────────────────────────────────────
+  lint:
+    name: fmt + clippy
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (pinned)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.93.1'
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-lint-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Build + test matrix — same targets as release.yml so CI catches
+  # platform-specific breakage before a tag is cut
+  # ──────────────────────────────────────────────────────────────────────────
+  test:
+    name: test ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - name: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - name: macos-aarch64
+            os: macos-14
+            target: aarch64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (pinned)
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.93.1'
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-test-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: cargo build
+        shell: bash
+        run: cargo build --workspace --target ${{ matrix.target }}
+
+      - name: cargo test
+        shell: bash
+        run: cargo test --workspace --lib --target ${{ matrix.target }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Audit: flag known-vulnerable dependencies — advisory, not blocking
+  # ──────────────────────────────────────────────────────────────────────────
+  audit:
+    name: cargo audit
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.93.1'
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+      - name: Run audit
+        run: cargo audit

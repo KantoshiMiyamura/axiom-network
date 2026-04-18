@@ -1,0 +1,21 @@
+[package]
+name = "axiom-signer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+axiom-primitives = { path = "../axiom-primitives" }
+axiom-wallet = { path = "../axiom-wallet" }
+axiom-protocol = { path = "../axiom-protocol" }
+zeroize = { version = "1.6", features = ["zeroize_derive"] }
+thiserror.workspace = true
+hex = "0.4"
+
+[[bin]]
+name = "axiom-sign"
+path = "src/bin/sign-cli.rs"
+
+[dev-dependencies]
+# For testing

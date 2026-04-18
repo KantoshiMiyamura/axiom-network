@@ -1,0 +1,17 @@
+[package]
+name = "axiom-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+axiom-primitives.workspace = true
+axiom-crypto.workspace = true
+axiom-ct = { path = "../axiom-ct" }
+serde.workspace = true
+thiserror.workspace = true
+
+[features]
+# Enable confidential transaction support via axiom-ct
+axiom-ct = []

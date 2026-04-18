@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axiom Network — Post-Quantum Blockchain</title>
+  <meta name="description" content="Layer 1 proof-of-work blockchain built in Rust with ML-DSA-87 post-quantum signatures. 30-second blocks, smooth reward decay, fair distribution.">
+  <meta property="og:title" content="Axiom Network — Post-Quantum Blockchain">
+  <meta property="og:description" content="Layer 1 proof-of-work blockchain built in Rust with ML-DSA-87 post-quantum signatures.">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge"><span class="dot"></span> v1.0.0 — Mainnet Launch</div>
+        <h1>Post-quantum<br><span class="accent">blockchain.</span></h1>
+        <p>Layer 1 proof-of-work chain built in Rust. ML-DSA-87 signatures protect every transaction against both classical and quantum attacks. 30-second blocks. Fair launch. No pre-mine.</p>
+        <div class="hero-btns">
+          <a href="downloads.html" class="btn btn-primary">&#11015; Download Node</a>
+          <a href="downloads.html#wallet" class="btn btn-outline">&#128274; Desktop Wallet</a>
+          <a href="run-node.html" class="btn btn-outline">&#9654; Run a Node</a>
+          <a href="docs.html" class="btn btn-outline">&#128214; Docs</a>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="label">Block Time</div><div class="value">30s</div></div>
+        <div class="stat-card"><div class="label">Max Supply</div><div class="value">~5M AXM</div></div>
+        <div class="stat-card"><div class="label">Signatures</div><div class="value">ML-DSA-87</div></div>
+        <div class="stat-card"><div class="label">Block Size</div><div class="value">4 MB</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Axiom -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">Why Axiom</h2>
+      <p class="section-sub">Designed for a post-quantum world with engineering discipline, not marketing hype.</p>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">&#128737;</div>
+          <h3>Quantum-Resistant Signatures</h3>
+          <p>ML-DSA-87 (FIPS 204) provides NIST Category 5 security. Every transaction signature is safe against quantum computing attacks today and in the future.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9881;</div>
+          <h3>Proof of Work</h3>
+          <p>SHA3-256 mining with LWMA difficulty adjustment. Fair distribution through computational work, no staking cartels or validator committees.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9889;</div>
+          <h3>30-Second Blocks</h3>
+          <p>Fast confirmation times without sacrificing security. LWMA adjusts difficulty every block for stable intervals regardless of hashrate fluctuations.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128274;</div>
+          <h3>Desktop Wallet</h3>
+          <p>Native desktop wallet with OS-level key protection, encrypted local cache, clipboard security, and air-gapped signing. Built with Tauri + Rust.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9733;</div>
+          <h3>Fair Distribution</h3>
+          <p>No pre-mine, no ICO, no team allocation. Every AXM enters circulation through proof-of-work mining. Smooth reward decay from 50 AXM to 0.0001 AXM floor.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9744;</div>
+          <h3>Built in Rust</h3>
+          <p>Memory-safe systems language with zero-cost abstractions. Modular crate architecture for consensus, networking, storage, wallet, and RPC.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">Get started in 60 seconds</h2>
+      <p class="section-sub">Download, initialize, and start mining.</p>
+      <div class="max-w-3 steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Initialize your node</h3>
+            <div class="code-block"><pre><code>axiom init</code></pre><button class="copy-btn">copy</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Create a wallet</h3>
+            <div class="code-block"><pre><code>axiom wallet create</code></pre><button class="copy-btn">copy</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Start the node with mining</h3>
+            <div class="code-block"><pre><code>axiom start --mine</code></pre><button class="copy-btn">copy</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4"><a href="docs.html" class="link-arrow">Read the full documentation &rarr;</a></div>
+    </div>
+  </section>
+
+  <!-- Architecture Preview -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">Architecture</h2>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon" style="font-size:1.25rem">&#62;&gt;_</div>
+          <h3>Unified CLI</h3>
+          <p>Single <code>axiom</code> binary handles wallet management, node control, mining, and network status.</p>
+          <ul style="margin-top:0.75rem;list-style:none;font-family:var(--mono);font-size:0.75rem;color:var(--text-3)">
+            <li>axiom start</li><li>axiom wallet create</li><li>axiom worker start</li><li>axiom rewards</li><li>axiom status</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9638;</div>
+          <h3>Modular Crates</h3>
+          <p>Clean separation of concerns across purpose-built Rust crates. Each module is independently testable and auditable.</p>
+          <ul style="margin-top:0.75rem;list-style:none;font-family:var(--mono);font-size:0.75rem;color:var(--text-3)">
+            <li>axiom-consensus</li><li>axiom-crypto</li><li>axiom-wallet</li><li>axiom-node</li><li>axiom-rpc</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128737;</div>
+          <h3>Security Model</h3>
+          <p>Defense in depth from cryptographic primitives through network protocol to operational deployment.</p>
+          <ul style="margin-top:0.75rem;list-style:none;font-family:var(--mono);font-size:0.75rem;color:var(--text-3)">
+            <li>ML-DSA-87 (FIPS 204)</li><li>SHA3-256 PoW</li><li>Argon2id KDF</li><li>XChaCha20-Poly1305</li><li>OS-level key protection</li>
+          </ul>
+        </div>
+      </div>
+      <div class="mt-4"><a href="architecture.html" class="link-arrow">Deep dive into the architecture &rarr;</a></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section-lg">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Ready to run a node?</h2>
+        <p>Download the binary for your platform, initialize, and join the network. Full node setup takes under two minutes.</p>
+        <div class="cta-btns">
+          <a href="downloads.html" class="btn btn-primary">&#11015; Download v1.0.0</a>
+          <a href="downloads.html#wallet" class="btn btn-outline">&#128274; Desktop Wallet</a>
+          <a href="run-node.html" class="btn btn-outline">Setup Guide &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

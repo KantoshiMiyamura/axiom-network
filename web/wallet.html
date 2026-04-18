@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wallet | Axiom Network</title>
+  <meta name="description" content="Axiom wallet uses BIP39 seed phrases, ML-DSA-87 post-quantum signatures, and Argon2id + XChaCha20-Poly1305 encryption. Keys never leave your device.">
+  <meta property="og:title" content="Wallet | Axiom Network">
+  <meta property="og:description" content="Post-quantum wallet with ML-DSA-87 signatures and encrypted local keystore.">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="container">
+    <div class="max-w-3">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1>Wallet</h1>
+        <p>Post-quantum encrypted wallet with ML-DSA-87 signatures. Your keys never leave your device.</p>
+      </div>
+
+      <!-- How the Wallet Works -->
+      <section class="section">
+        <h2 class="section-title">How the Wallet Works</h2>
+        <p class="section-sub">Three layers of security from key generation to storage.</p>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">&#128273;</div>
+            <h3>Key Generation</h3>
+            <p>BIP39 24-word mnemonic seed phrase with 256-bit entropy. Keys are derived using ML-DSA-87 (FIPS 204 Category 5) for post-quantum signature security.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">&#128274;</div>
+            <h3>Encryption</h3>
+            <p>Private keys are encrypted with Argon2id key derivation (256 MB memory, 4 iterations) and XChaCha20-Poly1305 authenticated encryption with a 256-bit key.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">&#128190;</div>
+            <h3>Storage</h3>
+            <p>Encrypted keystore is stored locally on your device as a JSON file. No cloud storage, no remote servers. You control your keys entirely.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Get the Wallet -->
+      <section class="section">
+        <h2 class="section-title">Get the Wallet</h2>
+        <p class="text-sm text-muted mb-3">The wallet is included in every Axiom download. There is no separate wallet application to install. Download the Axiom binary and the wallet is ready to use.</p>
+        <a href="downloads.html" class="btn btn-primary">&#11015; Download Axiom</a>
+      </section>
+
+      <!-- Create a Wallet -->
+      <section class="section">
+        <h2 class="section-title">Create a Wallet</h2>
+        <div class="code-block mb-3"><pre><code>axiom wallet create</code></pre><button class="copy-btn">copy</button></div>
+        <p class="text-sm text-muted mb-3">This command performs the following steps:</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Generate mnemonic</h3>
+              <p>A cryptographically secure 24-word BIP39 mnemonic is generated with 256 bits of entropy.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Display seed phrase</h3>
+              <p>The 24-word seed phrase is displayed on screen. This is the only time it will be shown.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Prompt for password</h3>
+              <p>You are prompted to enter a password that will be used to encrypt the keystore file.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h3>Derive ML-DSA-87 keypair</h3>
+              <p>A post-quantum ML-DSA-87 signing keypair is derived from the seed. This provides NIST Category 5 security.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h3>Encrypt keystore</h3>
+              <p>The private key is encrypted using Argon2id key derivation and XChaCha20-Poly1305 authenticated encryption, then saved to a local JSON keystore file.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">6</div>
+            <div class="step-body">
+              <h3>Show address</h3>
+              <p>Your Axiom wallet address is displayed. This is your public address for receiving AXM.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seed Phrase Security -->
+      <section class="section">
+        <h2 class="section-title">Seed Phrase Security</h2>
+        <div class="info-box warn">
+          <div class="icon">&#9888;</div>
+          <div>
+            <strong>Your seed phrase is the master key to your wallet</strong>
+            <p>Anyone with access to your 24-word seed phrase can reconstruct your private key and spend your funds. There is no recovery mechanism if your seed phrase is lost.</p>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p class="text-sm text-muted mb-2">Best practices:</p>
+          <ul class="bullet-list warn">
+            <li>Write your seed phrase on paper with a pen. Do not print it.</li>
+            <li>Store the paper in a secure, fireproof location such as a safe or safety deposit box.</li>
+            <li>Consider splitting the phrase across multiple secure locations using a scheme like Shamir's Secret Sharing.</li>
+            <li>Never share your seed phrase with anyone. No legitimate software or person will ever ask for it.</li>
+            <li>Never store your seed phrase digitally on a computer, phone, cloud drive, or email.</li>
+            <li>Never take a screenshot or photograph of your seed phrase.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Wallet Operations -->
+      <section class="section">
+        <h2 class="section-title">Wallet Operations</h2>
+
+        <h3 class="text-sm mb-1 mt-3">Show your wallet address</h3>
+        <div class="code-block mb-3"><pre><code>axiom wallet address</code></pre><button class="copy-btn">copy</button></div>
+
+        <h3 class="text-sm mb-1 mt-3">Check your balance</h3>
+        <div class="code-block mb-3"><pre><code>axiom wallet balance</code></pre><button class="copy-btn">copy</button></div>
+
+        <h3 class="text-sm mb-1 mt-3">Import an existing wallet from a seed phrase</h3>
+        <div class="code-block"><pre><code>axiom wallet import</code></pre><button class="copy-btn">copy</button></div>
+      </section>
+
+      <!-- Encryption Details -->
+      <section class="section">
+        <h2 class="section-title">Encryption Details</h2>
+        <p class="section-sub">Full specification of the cryptographic primitives used in the wallet.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Algorithm</th>
+                <th>Parameters</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Key Derivation</td>
+                <td class="mono">Argon2id</td>
+                <td class="mono">memory=256 MB, iterations=4</td>
+              </tr>
+              <tr>
+                <td>Encryption</td>
+                <td class="mono">XChaCha20-Poly1305</td>
+                <td class="mono">256-bit key</td>
+              </tr>
+              <tr>
+                <td>Signature</td>
+                <td class="mono">ML-DSA-87</td>
+                <td class="mono">FIPS 204, Category 5</td>
+              </tr>
+              <tr>
+                <td>Mnemonic</td>
+                <td class="mono">BIP39</td>
+                <td class="mono">24 words, 256-bit entropy</td>
+              </tr>
+              <tr>
+                <td>Keystore</td>
+                <td class="mono">JSON</td>
+                <td class="mono">Encrypted on disk</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Links -->
+      <section class="section">
+        <div class="gap-4">
+          <a href="docs.html" class="link-arrow">Documentation &rarr;</a>
+          <a href="security.html" class="link-arrow">Security Model &rarr;</a>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

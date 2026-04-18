@@ -1,0 +1,45 @@
+[package]
+name = "axiom-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "axiom-node"
+path = "src/main.rs"
+
+[[bin]]
+name = "axiom-keygen"
+path = "src/keygen.rs"
+
+[[bin]]
+name = "axiom-bump-fee"
+path = "src/bump_fee.rs"
+
+[[bin]]
+name = "axiom"
+path = "src/bin/axiom.rs"
+
+[dependencies]
+axiom-primitives = { path = "../axiom-primitives" }
+axiom-protocol = { path = "../axiom-protocol" }
+axiom-consensus = { path = "../axiom-consensus" }
+axiom-node = { path = "../axiom-node" }
+axiom-rpc = { path = "../axiom-rpc" }
+axiom-wallet = { path = "../axiom-wallet" }
+axiom-ai = { path = "../axiom-ai" }
+axiom-crypto = { path = "../axiom-crypto" }
+axiom-guard = { path = "../axiom-guard" }
+axiom-monitor = { path = "../axiom-monitor" }
+tokio = { version = "1", features = ["full", "signal"] }
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hex = "0.4"
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+dirs-next = "2"
+rpassword = "7"
+zeroize = { workspace = true }

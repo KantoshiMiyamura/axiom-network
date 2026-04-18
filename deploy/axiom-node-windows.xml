@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Axiom Network Node — Windows Service configuration
+  Uses WinSW (Windows Service Wrapper) to run axiom-node.exe as a Windows service.
+
+  REQUIREMENTS:
+    Download WinSW from: https://github.com/winsw/winsw/releases
+    Rename it to:        axiom-node-service.exe
+    Place it next to:    axiom-node.xml (this file)
+
+  INSTALLATION (run as Administrator in PowerShell):
+    .\axiom-node-service.exe install
+    .\axiom-node-service.exe start
+
+  UNINSTALL:
+    .\axiom-node-service.exe stop
+    .\axiom-node-service.exe uninstall
+
+  LOGS:
+    .\axiom-node-service.out.log  (stdout)
+    .\axiom-node-service.err.log  (stderr)
+    .\axiom-node-service.wrapper.log  (WinSW events)
+-->
+<service>
+  <!-- Service identity -->
+  <id>axiom-node</id>
+  <name>Axiom Network Node</name>
+  <description>Axiom Network blockchain node — post-quantum PoW chain</description>
+
+  <!-- Executable and arguments -->
+  <executable>C:\axiom-node\axiom-node.exe</executable>
+  <arguments>
+    --network mainnet
+    --data-dir C:\axiom-node\data
+    --rpc-bind 127.0.0.1:8332
+    --p2p-bind 0.0.0.0:9000
+    --log-level info
+  </arguments>
+
+  <!-- Working directory -->
+  <workingdirectory>C:\axiom-node</workingdirectory>
+
+  <!-- Environment variables -->
+  <env name="RUST_BACKTRACE" value="1"/>
+  <env name="RUST_LOG" value="axiom_node=info,axiom_rpc=info"/>
+
+  <!-- Auto-restart on failure -->
+  <!--
+    WinSW restartDelay: wait this many ms before restarting after a crash.
+    5000 ms = 5 seconds (matches Linux RestartSec=5s).
+  -->
+  <onfailure action="restart" delay="5 sec"/>
+  <resetfailure>1 min</resetfailure>
+
+  <!-- Log rotation: keep last 10 log files, max 10 MB each -->
+  <logmode>rotate</logmode>
+  <logpath>C:\axiom-node\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>10</keepFiles>
+  </log>
+
+  <!-- Graceful shutdown: send Ctrl+C and wait 60 seconds before killing -->
+  <stopparentprocessfirst>false</stopparentprocessfirst>
+  <waithint>60000</waithint>
+  <killonsessionchange>false</killonsessionchange>
+
+  <!-- Service startup type: automatic (start on boot) -->
+  <startmode>Automatic</startmode>
+
+  <!-- Depend on network being available -->
+  <depend>Tcpip</depend>
+  <depend>Dnscache</depend>
+</service>

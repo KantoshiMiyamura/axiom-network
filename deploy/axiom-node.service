@@ -1,0 +1,97 @@
+# ============================================================
+# Axiom Network Node — systemd service unit
+# ============================================================
+#
+# INSTALLATION:
+#   sudo cp axiom-node.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now axiom-node
+#
+# LOGS:
+#   journalctl -u axiom-node -f
+#
+# STATUS:
+#   systemctl status axiom-node
+#
+# STOP / START:
+#   sudo systemctl stop  axiom-node
+#   sudo systemctl start axiom-node
+#
+# ============================================================
+
+[Unit]
+Description=Axiom Network Blockchain Node
+Documentation=https://github.com/axiom-network/axiom-node
+After=network-online.target
+Wants=network-online.target
+
+# If a Tor proxy or VPN service is present, wait for it too.
+# After=tor.service openvpn@client.service
+# Wants=tor.service
+
+[Service]
+# ── Security hardening ─────────────────────────────────────
+# Run as a dedicated unprivileged user.  Create with:
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin axiom
+User=axiom
+Group=axiom
+
+# Prevent privilege escalation
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/axiom-node
+
+# Network access
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=any
+
+# Limit file descriptors and processes
+LimitNOFILE=65536
+LimitNPROC=512
+
+# ── Process ────────────────────────────────────────────────
+Type=simple
+WorkingDirectory=/var/lib/axiom-node
+ExecStart=/usr/local/bin/axiom-node \
+    --network mainnet \
+    --data-dir /var/lib/axiom-node \
+    --rpc-bind 0.0.0.0:8332 \
+    --p2p-bind 0.0.0.0:9000 \
+    --log-level info
+
+# ── Auto-restart on failure ────────────────────────────────
+#
+# Restart=always  means: restart on ANY exit, including clean exits.
+# This is better than `on-failure` for a blockchain node because we
+# NEVER want the node to stop running — even a clean exit (e.g., from
+# an unexpected OOM kill that returned 0) should trigger a restart.
+#
+Restart=always
+RestartSec=5s
+
+# Burst protection: if the node crashes more than 5 times in 60 seconds,
+# systemd stops restarting it (prevents a panic loop from spamming disk I/O).
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Give the node up to 60 seconds to shut down gracefully before SIGKILL.
+TimeoutStopSec=60
+
+# ── Environment ────────────────────────────────────────────
+# RUST_BACKTRACE=1 ensures full stack traces are captured in journald
+# when the node panics — critical for post-mortem debugging.
+Environment=RUST_BACKTRACE=1
+Environment=RUST_LOG=axiom_node=info,axiom_rpc=info
+
+# ── Logging ────────────────────────────────────────────────
+# All stdout/stderr goes to journald.  Use `journalctl -u axiom-node -f`
+# to follow logs in real time.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=axiom-node
+
+[Install]
+WantedBy=multi-user.target

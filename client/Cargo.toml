@@ -1,0 +1,71 @@
+[package]
+name = "axiom-community-client"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Axiom Community Platform CLI/TUI client"
+
+[dependencies]
+# Shared library
+axiom-community-shared = { path = "../shared" }
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { workspace = true, features = ["full"] }
+
+# TUI framework
+ratatui = "0.25"
+crossterm = { version = "0.27", features = ["serde"] }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Cryptography
+sha3 = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+
+# Configuration
+dotenv = "0.15"
+config = { version = "0.13", features = ["toml"] }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# DateTime
+chrono = { workspace = true }
+
+# UUID
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+# Misc
+base64 = { workspace = true }
+futures = "0.3"
+async-trait = { workspace = true }
+dirs = "5.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+proptest = { workspace = true }
+
+[[bin]]
+name = "axiom-community"
+path = "src/main.rs"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

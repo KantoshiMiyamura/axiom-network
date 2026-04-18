@@ -1,0 +1,12 @@
+[package]
+name = "axiom-primitives"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_bytes = "0.11"
+zeroize = { version = "1.6", features = ["zeroize_derive"] }

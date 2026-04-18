@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Releases | Axiom Network</title>
+  <meta name="description" content="Release history for the Axiom Network blockchain software. Download current and previous versions.">
+  <meta property="og:title" content="Releases | Axiom Network">
+  <meta property="og:description" content="Release history for the Axiom Network blockchain software.">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="container">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1>Releases</h1>
+      <p>Release history for Axiom Network. Each release includes pre-built binaries for all supported platforms.</p>
+    </div>
+
+    <!-- v1.0.0 — Latest -->
+    <div class="card mb-4" style="border-color:rgba(16,185,129,0.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
+        <div>
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.25rem">
+            <h2 style="font-size:1.25rem;font-weight:600">v1.0.0 — Mainnet Launch</h2>
+            <span style="display:inline-block;padding:0.2rem 0.625rem;border-radius:99px;font-size:0.6875rem;font-weight:500;background:var(--accent-muted);color:var(--accent);border:1px solid rgba(16,185,129,0.2)">Latest</span>
+          </div>
+          <div class="text-xs text-muted mono">April 13, 2026</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Release Notes</h3>
+      <ul class="bullet-list mb-4">
+        <li>Mainnet-ready blockchain node with ML-DSA-87 post-quantum signatures (FIPS 204)</li>
+        <li>Native desktop wallet with OS-level key protection (DPAPI / Keychain / Secret Service)</li>
+        <li>Encrypted local cache — all wallet data protected with XChaCha20-Poly1305</li>
+        <li>Clipboard protection — auto-clear after 30 seconds</li>
+        <li>Live address validation with checksum verification in wallet UI</li>
+        <li>Binary integrity verification (SHA-256 self-check)</li>
+        <li>Air-gapped transaction signing for maximum security</li>
+        <li>Unified CLI with wallet, node, mining, and status subcommands</li>
+        <li>Smooth reward decay with Q64 fixed-point consensus arithmetic</li>
+        <li>LWMA difficulty adjustment for stable 30-second blocks</li>
+        <li>RPC server with bearer token authentication and rate limiting</li>
+        <li>Production deployment scripts with systemd hardening</li>
+        <li>930+ test suite — 0 failures</li>
+      </ul>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Node Downloads</h3>
+      <div class="gap-4 mb-3">
+        <a href="downloads/v1.0.0/axiom-v1.0.0-x86_64-pc-windows-msvc.zip" class="btn btn-primary btn-sm" download>&#11015; Windows x86_64</a>
+        <a href="downloads/v1.0.0/axiom-v1.0.0-x86_64-unknown-linux-gnu.tar.gz" class="btn btn-primary btn-sm" download>&#11015; Linux x86_64</a>
+        <a href="downloads/v1.0.0/axiom-v1.0.0-aarch64-apple-darwin.tar.gz" class="btn btn-primary btn-sm" download>&#11015; macOS ARM</a>
+        <a href="downloads/v1.0.0/axiom-v1.0.0-x86_64-apple-darwin.tar.gz" class="btn btn-primary btn-sm" download>&#11015; macOS Intel</a>
+      </div>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Wallet Downloads</h3>
+      <div class="gap-4">
+        <a href="downloads/v1.0.0/Axiom-Wallet-1.0.0-x64-setup.msi" class="btn btn-ghost btn-sm" download>&#128274; Windows .msi</a>
+        <a href="downloads/v1.0.0/Axiom-Wallet-1.0.0-x86_64.AppImage" class="btn btn-ghost btn-sm" download>&#128274; Linux AppImage</a>
+        <a href="downloads/v1.0.0/Axiom-Wallet-1.0.0-universal.dmg" class="btn btn-ghost btn-sm" download>&#128274; macOS .dmg</a>
+        <a href="downloads/v1.0.0/axiom-wallet_1.0.0_amd64.deb" class="btn btn-ghost btn-sm" download>&#128274; Linux .deb</a>
+      </div>
+    </div>
+
+    <!-- v0.5.0 -->
+    <div class="card mb-4">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
+        <div>
+          <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:0.25rem">v0.5.0</h2>
+          <div class="text-xs text-muted mono">April 1, 2026</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Release Notes</h3>
+      <ul class="bullet-list mb-3">
+        <li>Unified CLI binary with wallet, node, and mining subcommands</li>
+        <li>ML-DSA-87 post-quantum signature scheme (FIPS 204)</li>
+        <li>Smooth reward decay with Q64 fixed-point consensus arithmetic</li>
+        <li>LWMA difficulty adjustment for stable 30-second blocks</li>
+        <li>Cross-platform installers for Windows, macOS, and Linux</li>
+        <li>Encrypted keystore with Argon2id + XChaCha20-Poly1305</li>
+        <li>BIP39 24-word mnemonic seed phrase generation</li>
+        <li>RPC server with authentication and rate limiting</li>
+      </ul>
+
+      <div class="gap-4">
+        <a href="downloads/v0.5.0/axiom-v0.5.0-x86_64-pc-windows-msvc.zip" class="btn btn-outline btn-sm" download>&#11015; Windows x86_64</a>
+      </div>
+    </div>
+
+    <!-- v0.4.0 -->
+    <div class="card mb-4">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
+        <div>
+          <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:0.25rem">v0.4.0</h2>
+          <div class="text-xs text-muted mono">March 15, 2026</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Release Notes</h3>
+      <ul class="bullet-list mb-3">
+        <li>Proof-of-work mining with SHA3-256</li>
+        <li>Checkpoint system for fast chain synchronization</li>
+        <li>Chain reorganization handling with rollback support</li>
+        <li>WebSocket RPC for real-time block and transaction subscriptions</li>
+      </ul>
+    </div>
+
+    <!-- v0.3.0 -->
+    <div class="card mb-4">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
+        <div>
+          <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:0.25rem">v0.3.0</h2>
+          <div class="text-xs text-muted mono">February 20, 2026</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Release Notes</h3>
+      <ul class="bullet-list mb-3">
+        <li>Transaction validation with UTXO model</li>
+        <li>Mempool with fee-based priority ordering</li>
+        <li>Peer-to-peer gossip protocol for transaction relay</li>
+        <li>Block propagation and verification pipeline</li>
+      </ul>
+    </div>
+
+    <!-- GitHub Link -->
+    <section class="section">
+      <div class="gap-4">
+        <a href="https://github.com/axiom-network/axiom/releases" target="_blank" rel="noopener" class="link-arrow">View all releases on GitHub &rarr;</a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

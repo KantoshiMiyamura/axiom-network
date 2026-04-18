@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Run a Node | Axiom Network</title>
+  <meta name="description" content="Complete guide to running an Axiom full node — requirements, installation, configuration, and monitoring.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom</span></a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="container max-w-3">
+
+    <div class="page-header">
+      <h1>Run a Node</h1>
+      <p>Full nodes validate every transaction and block. Running one strengthens the network and gives you trustless access to the blockchain.</p>
+    </div>
+
+    <!-- Requirements -->
+    <section class="section">
+      <h2 class="section-title">System Requirements</h2>
+      <div class="req-grid">
+        <div class="req-card min">
+          <div class="tag">Minimum</div>
+          <div class="req-row"><span>CPU</span><span class="val">2 cores</span></div>
+          <div class="req-row"><span>RAM</span><span class="val">4 GB</span></div>
+          <div class="req-row"><span>Disk</span><span class="val">20 GB</span></div>
+          <div class="req-row"><span>Network</span><span class="val">10 Mbps</span></div>
+        </div>
+        <div class="req-card rec">
+          <div class="tag">Recommended</div>
+          <div class="req-row"><span>CPU</span><span class="val">4+ cores</span></div>
+          <div class="req-row"><span>RAM</span><span class="val">8 GB</span></div>
+          <div class="req-row"><span>Disk</span><span class="val">SSD, 50 GB</span></div>
+          <div class="req-row"><span>Network</span><span class="val">25+ Mbps</span></div>
+        </div>
+      </div>
+      <p class="text-sm text-muted mt-2">Supported: Windows 10+, macOS 12+, Linux (glibc 2.31+). Both x86_64 and aarch64.</p>
+    </section>
+
+    <!-- Installation -->
+    <section class="section">
+      <h2 class="section-title">Installation</h2>
+      <div class="code-block mb-3">
+        <div class="code-header"><span>Linux</span><span>bash</span></div>
+        <pre><code>curl -LO https://github.com/axiom-network/axiom/releases/latest/download/axiom-v1.0.0-x86_64-unknown-linux-gnu.tar.gz
+tar -xzf axiom-v1.0.0-x86_64-unknown-linux-gnu.tar.gz
+cd axiom-v1.0.0-x86_64-unknown-linux-gnu
+./install.sh</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span>macOS (Apple Silicon)</span><span>bash</span></div>
+        <pre><code>curl -LO https://github.com/axiom-network/axiom/releases/latest/download/axiom-v1.0.0-aarch64-apple-darwin.tar.gz
+tar -xzf axiom-v1.0.0-aarch64-apple-darwin.tar.gz
+cd axiom-v1.0.0-aarch64-apple-darwin
+./install.sh</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+    </section>
+
+    <!-- Configuration -->
+    <section class="section">
+      <h2 class="section-title">Configuration</h2>
+      <p class="text-sm text-muted mb-2">Initialize creates the data directory and default configuration:</p>
+      <div class="code-block mb-3"><pre><code>axiom init</code></pre><button class="copy-btn">copy</button></div>
+
+      <p class="text-sm text-muted mb-1">Configuration file location:</p>
+      <ul class="bullet-list mb-3" style="list-style:none">
+        <li>Linux: <code>~/.axiom/axiom.conf</code></li>
+        <li>macOS: <code>~/Library/Application Support/axiom/axiom.conf</code></li>
+        <li>Windows: <code>%APPDATA%\axiom\axiom.conf</code></li>
+      </ul>
+
+      <div class="code-block mb-3">
+        <div class="code-header"><span>Key configuration options</span><span>toml</span></div>
+        <pre><code># Peer-to-peer network port
+listen_port = 9333
+
+# Maximum peer connections
+max_peers = 50
+
+# RPC interface (127.0.0.1 = local only, safe default)
+rpc_bind = "127.0.0.1"
+rpc_port = 9332
+
+# Enable mining (default: off)
+mine = false
+mining_threads = 0  # 0 = use all available cores
+
+# Logging verbosity
+log_level = "info"</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+
+      <div class="info-box security">
+        <div class="icon">&#128737;</div>
+        <div>
+          <strong>RPC security</strong>
+          <p>By default, RPC binds to 127.0.0.1 (localhost only). Do not expose RPC to the public internet without authentication and a reverse proxy.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Running -->
+    <section class="section">
+      <h2 class="section-title">Running the Node</h2>
+      <div class="code-block mb-2">
+        <div class="code-header"><span>Start the node</span></div>
+        <pre><code>axiom start</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <div class="code-block mb-2">
+        <div class="code-header"><span>Start with mining</span></div>
+        <pre><code>axiom start --mine</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span>Check status</span></div>
+        <pre><code>axiom status</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+    </section>
+
+    <!-- Systemd -->
+    <section class="section">
+      <h2 class="section-title">Running as a systemd Service (Linux)</h2>
+      <div class="code-block mb-3">
+        <div class="code-header"><span>/etc/systemd/system/axiom.service</span><span>ini</span></div>
+        <pre><code>[Unit]
+Description=Axiom Network Full Node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=axiom
+ExecStart=/home/axiom/.local/bin/axiom start
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span>Enable and start</span></div>
+        <pre><code>sudo systemctl daemon-reload
+sudo systemctl enable axiom
+sudo systemctl start axiom
+sudo journalctl -u axiom -f</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+    </section>
+
+    <!-- Peer Discovery -->
+    <section class="section">
+      <h2 class="section-title">Peer Discovery</h2>
+      <p class="text-sm text-muted mb-2">The node discovers peers through a combination of hardcoded seed nodes and peer exchange. No manual peer configuration is required for most setups.</p>
+      <div class="info-box info">
+        <div class="icon">&#8505;</div>
+        <div><p>If you are behind a NAT or firewall, ensure TCP port 9333 is forwarded to your node. This allows inbound connections and helps the network.</p></div>
+      </div>
+    </section>
+
+    <!-- Monitoring -->
+    <section class="section">
+      <h2 class="section-title">Monitoring</h2>
+      <div class="code-block mb-2">
+        <div class="code-header"><span>Node status</span></div>
+        <pre><code>axiom status</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span>View logs</span></div>
+        <pre><code># Linux/macOS
+tail -f ~/.axiom/logs/axiom.log
+
+# Filter by level
+grep "ERROR\|WARN" ~/.axiom/logs/axiom.log</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+    </section>
+
+    <!-- Best Practices -->
+    <section class="section">
+      <h2 class="section-title">Best Practices</h2>
+      <ul class="bullet-list">
+        <li>Keep your node software updated to the latest release</li>
+        <li>Use SSD storage for significantly faster sync and block validation</li>
+        <li>Run the node on a dedicated machine or VPS for maximum uptime</li>
+        <li>Monitor disk space — prune old logs periodically</li>
+        <li>Never expose RPC to the internet without proper authentication</li>
+        <li>Forward port 9333 to accept inbound peer connections</li>
+        <li>Synchronize your system clock with NTP</li>
+      </ul>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul><li><a href="downloads.html">Downloads</a></li><li><a href="releases.html">Releases</a></li><li><a href="run-node.html">Run a Node</a></li><li><a href="mining.html">Mining</a></li><li><a href="wallet.html">Wallet</a></li></ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul><li><a href="docs.html">Documentation</a></li><li><a href="architecture.html">Architecture</a></li><li><a href="security.html">Security</a></li><li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li></ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul><li><a href="tokenomics.html">Tokenomics</a></li><li><a href="faq.html">FAQ</a></li></ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture | Axiom Network</title>
+  <meta name="description" content="Technical architecture of the Axiom Network. System layers, consensus model, transaction lifecycle, block validation, storage, networking, and RPC interface.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html" class="active">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="container">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1>Architecture</h1>
+      <p>Axiom is a modular Rust codebase organized into purpose-built crates. Each layer handles a single responsibility and communicates through well-defined interfaces.</p>
+    </div>
+
+    <!-- 1. System Layers -->
+    <section class="section">
+      <h2 class="section-title">System Layers</h2>
+      <p class="section-sub">The full node stack from user-facing CLI down to primitive types.</p>
+
+      <div class="layer-stack">
+        <div class="layer" style="border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.05);">
+          <span class="layer-name">CLI / RPC Interface</span>
+          <span class="layer-desc">axiom-cli, axiom-rpc</span>
+        </div>
+        <div class="layer-arrow">&#9660;</div>
+        <div class="layer" style="border: 1px solid rgba(59,130,246,0.3); background: rgba(59,130,246,0.05);">
+          <span class="layer-name">Wallet</span>
+          <span class="layer-desc">axiom-wallet, axiom-signer, axiom-crypto</span>
+        </div>
+        <div class="layer-arrow">&#9660;</div>
+        <div class="layer" style="border: 1px solid rgba(168,85,247,0.3); background: rgba(168,85,247,0.05);">
+          <span class="layer-name">Consensus</span>
+          <span class="layer-desc">axiom-consensus: PoW, LWMA, validation</span>
+        </div>
+        <div class="layer-arrow">&#9660;</div>
+        <div class="layer" style="border: 1px solid rgba(234,179,8,0.3); background: rgba(234,179,8,0.05);">
+          <span class="layer-name">Transaction Pool</span>
+          <span class="layer-desc">axiom-protocol: mempool, gossip</span>
+        </div>
+        <div class="layer-arrow">&#9660;</div>
+        <div class="layer" style="border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.05);">
+          <span class="layer-name">Network</span>
+          <span class="layer-desc">axiom-node: P2P, peer discovery, sync</span>
+        </div>
+        <div class="layer-arrow">&#9660;</div>
+        <div class="layer" style="border: 1px solid rgba(239,68,68,0.5); background: rgba(239,68,68,0.08);">
+          <span class="layer-name">Storage</span>
+          <span class="layer-desc">axiom-storage: blocks, chainstate, indexes</span>
+        </div>
+        <div class="layer-arrow">&#9660;</div>
+        <div class="layer" style="border: 1px solid var(--border); background: var(--surface);">
+          <span class="layer-name">Primitives</span>
+          <span class="layer-desc">axiom-primitives: Amount, Hash256, types</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Consensus Model -->
+    <section class="section">
+      <h2 class="section-title">Consensus Model</h2>
+      <p class="section-sub">Nakamoto-style proof of work with SHA3-256 hashing and per-block difficulty adjustment via LWMA. No staking, no committees, no delegation -- pure computational proof.</p>
+
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-icon">&#9874;</div>
+          <h3>SHA3-256 Proof of Work</h3>
+          <p>Block headers are hashed with SHA3-256 (Keccak). Miners iterate the nonce until the hash meets the current difficulty target. SHA3 was chosen for ASIC-resistance in early stages and alignment with NIST post-quantum standards.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9881;</div>
+          <h3>LWMA Difficulty Adjustment</h3>
+          <p>Linear Weighted Moving Average adjusts difficulty every block using the most recent window of block timestamps. This eliminates the oscillations and gaming vulnerabilities found in fixed-interval adjustment schemes.</p>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <h3 style="margin-bottom: 1rem;">Consensus Parameters</h3>
+        <div class="spec-grid">
+          <div class="item">
+            <div class="label">Block Time</div>
+            <div class="value">30s</div>
+          </div>
+          <div class="item">
+            <div class="label">Max Block Size</div>
+            <div class="value">4 MB</div>
+          </div>
+          <div class="item">
+            <div class="label">Max Transactions</div>
+            <div class="value">10,000</div>
+          </div>
+          <div class="item">
+            <div class="label">Max TX Size</div>
+            <div class="value">100 KB</div>
+          </div>
+          <div class="item">
+            <div class="label">Initial Reward</div>
+            <div class="value">50 AXM</div>
+          </div>
+          <div class="item">
+            <div class="label">Reward Floor</div>
+            <div class="value">0.0001 AXM</div>
+          </div>
+          <div class="item">
+            <div class="label">Decay Factor</div>
+            <div class="value">0.99999/block</div>
+          </div>
+          <div class="item">
+            <div class="label">Floor Height</div>
+            <div class="value">~1,312,000</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Transaction Lifecycle -->
+    <section class="section">
+      <h2 class="section-title">Transaction Lifecycle</h2>
+      <p class="section-sub">From construction to confirmed inclusion in the chain.</p>
+
+      <div class="steps max-w-3">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Construction</h3>
+            <p>The wallet selects UTXOs, calculates fees, and builds the transaction structure with inputs, outputs, and metadata.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Signing (ML-DSA-87)</h3>
+            <p>Each input is signed with the sender's ML-DSA-87 private key. The signature is appended to the transaction, providing NIST Category 5 post-quantum authentication.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Broadcast</h3>
+            <p>The signed transaction is serialized and sent to connected peers via the gossip protocol. Peers relay it to their own connections.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Mempool</h3>
+            <p>Receiving nodes validate the transaction (signature, UTXO existence, no double-spend, fee sufficiency) and add it to their local mempool.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Inclusion</h3>
+            <p>A miner selects transactions from the mempool, orders them by fee priority, and includes them in a candidate block. The block is mined via SHA3-256 PoW.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <h3>Confirmation</h3>
+            <p>Once the block is found and propagated, the transaction is confirmed. Each subsequent block adds another confirmation, increasing finality confidence.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Block Validation -->
+    <section class="section">
+      <h2 class="section-title">Block Validation</h2>
+      <p class="section-sub">Every block received from the network is validated against these rules before acceptance.</p>
+
+      <ul class="bullet-list">
+        <li>Block header hash meets the current difficulty target</li>
+        <li>Previous block hash matches the tip of the local chain</li>
+        <li>Timestamp is within acceptable range of network-adjusted time</li>
+        <li>Block size does not exceed the 4 MB limit</li>
+        <li>Transaction count does not exceed 10,000</li>
+        <li>Coinbase reward matches the expected value for the block height</li>
+        <li>All transaction signatures (ML-DSA-87) are valid</li>
+        <li>No double-spends: every input references an unspent UTXO</li>
+      </ul>
+    </section>
+
+    <!-- 5. Data Storage -->
+    <section class="section">
+      <h2 class="section-title">Data Storage</h2>
+      <p class="section-sub">Persistent state is organized into block storage and chain state databases.</p>
+
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-icon">&#128451;</div>
+          <h3>Block Storage</h3>
+          <p>Complete blocks are stored sequentially and indexed by hash and height. Raw block data is kept in flat files for efficient sequential reads, with a separate index database for lookups.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128279;</div>
+          <h3>Chain State (UTXO)</h3>
+          <p>The UTXO set is the canonical record of all unspent transaction outputs. It is updated atomically with each block connection/disconnection and provides O(1) lookups for transaction validation.</p>
+        </div>
+      </div>
+
+      <div class="code-block mt-4">
+        <div class="code-header"><span>Data Directory Structure</span></div>
+        <pre><code>~/.axiom/
+  blocks/
+    blk00000.dat        # Raw block data files
+    index/              # Block hash -> file position index
+  chainstate/
+    utxo.db             # Current unspent transaction outputs
+  peers.dat             # Known peer addresses
+  axiom.conf            # Node configuration
+  wallet.dat            # Encrypted wallet (Argon2id + XChaCha20)
+  debug.log             # Node log output</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+    </section>
+
+    <!-- 6. Networking -->
+    <section class="section">
+      <h2 class="section-title">Networking</h2>
+      <p class="section-sub">Peer-to-peer communication and node protection mechanisms.</p>
+
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-icon">&#127760;</div>
+          <h3>P2P Protocol</h3>
+          <p>Nodes communicate over TCP on port 9333. Peer discovery uses DNS seeds and addr message gossip. Block and transaction propagation follows an inv/getdata pattern to minimize bandwidth.</p>
+          <ul style="margin-top:0.75rem;list-style:none;font-family:var(--mono);font-size:0.75rem;color:var(--text-3)">
+            <li>Default port: 9333</li>
+            <li>Protocol: TCP gossip</li>
+            <li>Discovery: DNS seeds + addr relay</li>
+            <li>Propagation: inv / getdata / block</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128737;</div>
+          <h3>Node Protection</h3>
+          <p>Nodes enforce rate limiting and ban scoring to protect against abuse. Peers that send invalid data, flood messages, or violate protocol rules accumulate ban points and are disconnected.</p>
+          <ul style="margin-top:0.75rem;list-style:none;font-family:var(--mono);font-size:0.75rem;color:var(--text-3)">
+            <li>Per-peer rate limiting</li>
+            <li>Ban scoring with auto-disconnect</li>
+            <li>Invalid message penalties</li>
+            <li>Connection slot management</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. RPC Interface -->
+    <section class="section">
+      <h2 class="section-title">RPC Interface</h2>
+      <p class="section-sub">JSON-RPC server on port 9332 provides programmatic access to the node. Bound to localhost by default for security.</p>
+
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-icon">&#128272;</div>
+          <h3>Authentication</h3>
+          <p>RPC access is protected by challenge-response authentication. Clients request a challenge, sign it, and receive a JWT token for subsequent requests. Tokens expire and must be refreshed.</p>
+          <ul style="margin-top:0.75rem;list-style:none;font-family:var(--mono);font-size:0.75rem;color:var(--text-3)">
+            <li>Challenge-response handshake</li>
+            <li>JWT bearer tokens</li>
+            <li>Token expiration + refresh</li>
+            <li>Localhost-only by default</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128268;</div>
+          <h3>API Coverage</h3>
+          <p>The RPC interface exposes methods for blockchain queries, transaction submission, wallet operations, mining control, and network status. WebSocket support enables real-time event subscriptions.</p>
+          <ul style="margin-top:0.75rem;list-style:none;font-family:var(--mono);font-size:0.75rem;color:var(--text-3)">
+            <li>getblockcount, getblock, getblockhash</li>
+            <li>sendrawtransaction, gettxout</li>
+            <li>getmininginfo, submitblock</li>
+            <li>getpeerinfo, getnetworkinfo</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section-lg">
+      <div class="cta-box">
+        <h2>Explore the source</h2>
+        <p>The full Axiom codebase is open source. Read the code, audit the logic, or contribute.</p>
+        <div class="cta-btns">
+          <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener" class="btn btn-primary">View on GitHub</a>
+          <a href="security.html" class="btn btn-outline">Security &rarr;</a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

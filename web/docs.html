@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation | Axiom Network</title>
+  <meta name="description" content="Getting started with Axiom Network. Installation, wallet setup, node configuration, mining, and CLI reference.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html" class="active">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Documentation</h1>
+      <p>Everything you need to install, configure, and run an Axiom node. From first download to mining your first block.</p>
+    </div>
+
+    <div class="max-w-3">
+
+      <!-- Installation -->
+      <section class="mb-4">
+        <h2 class="section-title">Installation</h2>
+        <p class="text-sm text-muted mb-3">Download the latest release for your platform and install.</p>
+
+        <h3 class="text-sm mb-1" style="font-weight:500;">Linux / macOS</h3>
+        <div class="code-block mb-3">
+          <pre><code>tar xzf axiom-v1.0.0-linux-x86_64.tar.gz
+cd axiom-v1.0.0
+sudo ./install.sh
+axiom version</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <h3 class="text-sm mb-1" style="font-weight:500;">Windows</h3>
+        <div class="code-block mb-3">
+          <pre><code># Extract axiom-v1.0.0-windows-x86_64.zip
+cd axiom-v1.0.0
+.\install.bat
+axiom version</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <h3 class="text-sm mb-1" style="font-weight:500;">Build from source</h3>
+        <div class="code-block">
+          <pre><code>git clone https://github.com/axiom-network/axiom.git
+cd axiom
+cargo build --release
+./target/release/axiom version</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+      </section>
+
+      <!-- Quick Start -->
+      <section class="mb-4">
+        <h2 class="section-title">Quick Start</h2>
+        <p class="text-sm text-muted mb-3">Three commands to get up and running.</p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h3>Initialize your node</h3>
+              <p>Creates the data directory and default configuration file.</p>
+              <div class="code-block"><pre><code>axiom init</code></pre><button class="copy-btn">copy</button></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h3>Create a wallet</h3>
+              <p>Generates a new wallet with a BIP39 seed phrase and ML-DSA-87 keypair.</p>
+              <div class="code-block"><pre><code>axiom wallet create</code></pre><button class="copy-btn">copy</button></div>
+              <div class="info-box warn">
+                <div class="icon">&#9888;</div>
+                <div>
+                  <strong>Back up your seed phrase</strong>
+                  <p>Write down your 24-word seed phrase and store it in a safe location. This is the only way to recover your wallet if you lose access. Never share it with anyone.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h3>Start the node</h3>
+              <p>Connects to the network, syncs the blockchain, and begins validating.</p>
+              <div class="code-block"><pre><code>axiom start</code></pre><button class="copy-btn">copy</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Wallet Operations -->
+      <section class="mb-4">
+        <h2 class="section-title">Wallet Operations</h2>
+        <p class="text-sm text-muted mb-3">Manage your wallets from the command line.</p>
+
+        <div class="code-block mb-2">
+          <pre><code># Create a new wallet
+axiom wallet create
+
+# Import a wallet from seed phrase
+axiom wallet import
+
+# Show your wallet address
+axiom wallet address
+
+# Check your balance
+axiom wallet balance</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <div class="info-box security">
+          <div class="icon">&#128274;</div>
+          <div>
+            <strong>Wallet encryption</strong>
+            <p>Private keys are encrypted at rest using Argon2id for key derivation and XChaCha20-Poly1305 for authenticated encryption. Keys never leave your device unencrypted.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Node Configuration -->
+      <section class="mb-4">
+        <h2 class="section-title">Node Configuration</h2>
+        <p class="text-sm text-muted mb-3">After running <code>axiom init</code>, edit the configuration file for your platform.</p>
+
+        <div class="code-block mb-2">
+          <pre><code># Config file locations
+Linux:   ~/.axiom/axiom.conf
+macOS:   ~/Library/Application Support/Axiom/axiom.conf
+Windows: %APPDATA%\Axiom\axiom.conf</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header"><span>axiom.conf</span></div>
+          <pre><code># Network
+listen_port = 9333
+max_peers = 50
+
+# RPC
+rpc_bind = "127.0.0.1"
+rpc_port = 9332
+
+# Mining
+mine = false
+mining_threads = 0
+
+# Logging
+log_level = "info"</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+      </section>
+
+      <!-- Syncing -->
+      <section class="mb-4">
+        <h2 class="section-title">Syncing</h2>
+        <p class="text-sm text-muted mb-3">Check sync progress and understand the syncing process.</p>
+
+        <div class="code-block mb-2">
+          <pre><code>axiom status</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <p class="text-sm text-muted">Axiom uses checkpoint sync to accelerate initial synchronization. The node downloads verified checkpoints from the network first, then syncs remaining blocks from the latest checkpoint to chain tip. This significantly reduces time to full sync compared to downloading every block from genesis.</p>
+      </section>
+
+      <!-- Mining -->
+      <section class="mb-4">
+        <h2 class="section-title">Mining</h2>
+        <p class="text-sm text-muted mb-3">Start mining AXM with your CPU.</p>
+
+        <div class="code-block mb-2">
+          <pre><code># Start node with mining enabled
+axiom start --mine</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <div class="code-block mb-2">
+          <pre><code># Start a dedicated mining worker
+axiom worker start</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <div class="code-block mb-2">
+          <pre><code># View mining rewards in table format
+axiom rewards --table</code></pre>
+          <button class="copy-btn">copy</button>
+        </div>
+
+        <p class="text-sm mt-2"><a href="mining.html" class="link-arrow">Full mining guide &rarr;</a></p>
+      </section>
+
+      <!-- Troubleshooting -->
+      <section class="mb-4">
+        <h2 class="section-title">Troubleshooting</h2>
+
+        <h3 class="text-sm mb-1 mt-3" style="font-weight:500;">Node won't start</h3>
+        <p class="text-sm text-muted mb-2">Check that port 9333 is not already in use by another process. On Linux/macOS, run <code>lsof -i :9333</code> to identify conflicts. Stop any conflicting process before starting your node.</p>
+
+        <h3 class="text-sm mb-1 mt-3" style="font-weight:500;">No peers found</h3>
+        <p class="text-sm text-muted mb-2">Ensure your firewall allows outbound connections on port 9333. If you are behind a NAT, configure port forwarding for port 9333 to allow incoming peer connections.</p>
+
+        <h3 class="text-sm mb-1 mt-3" style="font-weight:500;">Wallet password forgotten</h3>
+        <p class="text-sm text-muted mb-2">If you have your 24-word seed phrase, you can recover your wallet by importing it. Run <code>axiom wallet import</code> and enter your seed phrase when prompted. A new password will be set during import.</p>
+      </section>
+
+      <!-- CLI Reference -->
+      <section class="mb-4">
+        <h2 class="section-title">CLI Reference</h2>
+        <p class="text-sm text-muted mb-3">Complete list of available commands.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">axiom init</td>
+                <td>Initialize data directory and default configuration</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom start</td>
+                <td>Start the node and connect to the network</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom start --mine</td>
+                <td>Start the node with mining enabled</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom wallet create</td>
+                <td>Generate a new wallet with seed phrase and keypair</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom wallet import</td>
+                <td>Import a wallet from an existing seed phrase</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom wallet address</td>
+                <td>Display your wallet address</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom wallet balance</td>
+                <td>Show current wallet balance</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom worker start</td>
+                <td>Start a dedicated mining worker process</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom rewards</td>
+                <td>Display mining reward summary</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom rewards --table N</td>
+                <td>Show last N mining rewards in table format</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom status</td>
+                <td>Show node sync status, peer count, and chain tip</td>
+              </tr>
+              <tr>
+                <td class="mono">axiom version</td>
+                <td>Print version and build information</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

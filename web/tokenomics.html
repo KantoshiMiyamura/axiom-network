@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tokenomics | Axiom Network</title>
+  <meta name="description" content="Axiom Network tokenomics: ~5,000,000 AXM asymptotic supply, smooth exponential reward decay, zero pre-mine, 100% proof-of-work distribution.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html" class="active">Tokenomics</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1>Tokenomics</h1>
+      <p>Axiom's economic model is deterministic, transparent, and immutable. Every AXM enters circulation through proof-of-work mining with no exceptions.</p>
+    </div>
+
+    <!-- Key Metrics -->
+    <section class="section">
+      <h2 class="section-title">Key Metrics</h2>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="label">Max Supply</div><div class="value">~5,000,000 AXM</div></div>
+        <div class="stat-card"><div class="label">Initial Reward</div><div class="value">50 AXM</div></div>
+        <div class="stat-card"><div class="label">Reward Floor</div><div class="value">0.0001 AXM</div></div>
+        <div class="stat-card"><div class="label">Pre-mine</div><div class="value">0 AXM</div></div>
+      </div>
+    </section>
+
+    <!-- Supply Policy -->
+    <section class="section">
+      <h2 class="section-title">Supply Policy</h2>
+      <div class="max-w-3">
+        <p class="text-sm text-muted leading">Axiom's total supply asymptotically approaches approximately 5,000,000 AXM. There is no hard cap in the traditional sense -- instead, block rewards decay smoothly toward a permanent floor of 0.0001 AXM, meaning new coins are always produced at a negligible rate. The vast majority of the supply (~99.98%) is mined within the first year.</p>
+        <div class="info-box info mt-3">
+          <div class="icon">&#9432;</div>
+          <div>
+            <strong>Consensus-Governed Supply</strong>
+            <p>The supply curve is determined entirely by consensus rules encoded in the protocol. No entity, foundation, or governance vote can alter the emission schedule without a network-wide hard fork accepted by a majority of miners and nodes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reward Model -->
+    <section class="section">
+      <h2 class="section-title">Reward Model</h2>
+      <div class="card-grid card-grid-2 mb-4">
+        <div class="card">
+          <div class="card-icon">&#128200;</div>
+          <h3>Smooth Exponential Decay</h3>
+          <p>Block rewards follow a continuous exponential decay function rather than abrupt halvings. The formula is:</p>
+          <div class="code-block mt-2"><pre><code>reward = 50 * e^(-0.0000487 * height)</code></pre></div>
+          <p class="mt-2">This produces a gradual, predictable decline in new supply -- no sudden shocks to miner revenue or network security.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9644;</div>
+          <h3>Reward Floor</h3>
+          <p>At approximately block height 1,312,000, the computed reward drops below 0.0001 AXM. From that point forward, the reward is clamped to a permanent floor of <strong class="text-accent">0.0001 AXM</strong> per block.</p>
+          <p class="mt-2">This floor ensures that miners always receive a non-zero coinbase reward, maintaining a baseline incentive to secure the network indefinitely.</p>
+        </div>
+      </div>
+
+      <h3 class="mb-2">Emission Schedule</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Block Height</th>
+              <th>Reward</th>
+              <th>Elapsed Time</th>
+              <th>Cumulative Supply</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">0</td>
+              <td class="mono accent">50 AXM</td>
+              <td>Genesis</td>
+              <td class="mono">50 AXM</td>
+            </tr>
+            <tr>
+              <td class="mono">10,000</td>
+              <td class="mono accent">47.581 AXM</td>
+              <td>~3.5 days</td>
+              <td class="mono">~488,000 AXM</td>
+            </tr>
+            <tr>
+              <td class="mono">50,000</td>
+              <td class="mono accent">30.327 AXM</td>
+              <td>~17 days</td>
+              <td class="mono">~1,950,000 AXM</td>
+            </tr>
+            <tr>
+              <td class="mono">100,000</td>
+              <td class="mono accent">18.394 AXM</td>
+              <td>~35 days</td>
+              <td class="mono">~3,160,000 AXM</td>
+            </tr>
+            <tr>
+              <td class="mono">200,000</td>
+              <td class="mono accent">6.738 AXM</td>
+              <td>~69 days</td>
+              <td class="mono">~4,320,000 AXM</td>
+            </tr>
+            <tr>
+              <td class="mono">500,000</td>
+              <td class="mono accent">0.335 AXM</td>
+              <td>~174 days</td>
+              <td class="mono">~4,900,000 AXM</td>
+            </tr>
+            <tr>
+              <td class="mono">1,000,000</td>
+              <td class="mono accent">0.002 AXM</td>
+              <td>~347 days</td>
+              <td class="mono">~4,990,000 AXM</td>
+            </tr>
+            <tr>
+              <td class="mono">1,312,000+</td>
+              <td class="mono accent">0.0001 AXM (floor)</td>
+              <td>~455 days</td>
+              <td class="mono">~5,000,000 AXM</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Fee Model -->
+    <section class="section">
+      <h2 class="section-title">Fee Model</h2>
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-icon">&#9878;</div>
+          <h3>Fee-Based Prioritization</h3>
+          <p>Transaction fees are denominated in satoshis per byte (sat/byte). Miners select transactions from the mempool based on fee density, creating a market-determined prioritization mechanism. There is no protocol-mandated minimum fee -- during low-demand periods, near-zero fee transactions are routinely confirmed.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128737;</div>
+          <h3>Long-Term Security Budget</h3>
+          <p>As block rewards decay toward the 0.0001 AXM floor, transaction fees become the primary component of miner revenue. The 4 MB block size limit provides sufficient throughput capacity for fee revenue to sustain network security as the chain matures and adoption grows.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Distribution -->
+    <section class="section">
+      <h2 class="section-title">Distribution</h2>
+      <div class="dist-box">
+        <h3>100% Proof-of-Work Distribution</h3>
+        <div class="dist-nums">
+          <div>
+            <div class="num">0%</div>
+            <div class="desc">Pre-mine</div>
+          </div>
+          <div>
+            <div class="num">0%</div>
+            <div class="desc">Team / Foundation</div>
+          </div>
+          <div>
+            <div class="num">0%</div>
+            <div class="desc">ICO / Token Sale</div>
+          </div>
+        </div>
+        <p>Every AXM that enters circulation is earned through proof-of-work mining. There are no privileged parties, no insider allocations, and no vesting schedules. The genesis block contains a single 50 AXM coinbase reward, identical to every other block at height zero. Anyone with a CPU can mine from day one on equal footing.</p>
+      </div>
+    </section>
+
+    <!-- Economic Sustainability -->
+    <section class="section">
+      <h2 class="section-title">Economic Sustainability</h2>
+      <div class="max-w-3">
+        <p class="text-sm text-muted leading mb-3">Axiom's smooth exponential decay avoids the abrupt halving events seen in Bitcoin and its derivatives. Rather than cutting miner revenue by 50% overnight every four years, Axiom's reward decreases by a fraction of a percent each block. This produces a predictable, gradual transition that gives miners, markets, and infrastructure operators time to adjust without sudden economic shocks.</p>
+        <p class="text-sm text-muted leading mb-3">The 4 MB block size limit balances throughput and decentralization. As block rewards diminish, the fee market within these blocks provides the economic foundation for long-term network security. Larger blocks accommodate more transactions and more total fee revenue without requiring Layer 2 solutions for basic payment use cases.</p>
+        <p class="text-sm text-muted leading">The minimum reward floor of 0.0001 AXM per block ensures that the coinbase incentive never reaches zero. While this floor is economically negligible, it serves as a protocol-level guarantee that mining always produces a non-zero reward, preserving the incentive structure even in the theoretical absence of transaction fees.</p>
+      </div>
+    </section>
+
+    <!-- Links -->
+    <section class="section">
+      <div class="gap-4">
+        <a href="mining.html" class="link-arrow">Start mining Axiom &rarr;</a>
+        <a href="architecture.html" class="link-arrow">Explore the architecture &rarr;</a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.0</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
