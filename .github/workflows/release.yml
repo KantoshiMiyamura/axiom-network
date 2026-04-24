@@ -38,10 +38,10 @@ jobs:
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             archive: tar.gz
-          - name: aarch64-apple-darwin
-            os: macos-14
-            target: aarch64-apple-darwin
-            archive: tar.gz
+          # aarch64-apple-darwin temporarily disabled for testnet releases:
+          # the macos-14 runner was exiting 101 during `cargo build`. Re-enable
+          # once the root cause is diagnosed and a working toolchain pin is
+          # confirmed on Apple Silicon runners. Tracked in the release runbook.
           - name: x86_64-apple-darwin
             os: macos-13
             target: x86_64-apple-darwin
