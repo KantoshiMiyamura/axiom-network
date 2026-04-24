@@ -26,7 +26,7 @@
       <a href="security.html">Security</a>
       <a href="tokenomics.html">Tokenomics</a>
       <a href="faq.html">FAQ</a>
-      <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener">GitHub</a>
     </nav>
     <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
   </div>
@@ -37,7 +37,7 @@
     <a href="security.html">Security</a>
     <a href="tokenomics.html">Tokenomics</a>
     <a href="faq.html">FAQ</a>
-    <a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener">GitHub</a>
   </nav>
 </header>
 
@@ -50,50 +50,36 @@
       <p>Release history for Axiom Network. Each release includes pre-built binaries for all supported platforms.</p>
     </div>
 
-    <!-- v1.0.0 — Latest -->
+    <!-- v1.0.1-testnet.1 — Current public testnet -->
     <div class="card mb-4" style="border-color:rgba(16,185,129,0.3)">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
         <div>
           <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.25rem">
-            <h2 style="font-size:1.25rem;font-weight:600">v1.0.0 — Mainnet Launch</h2>
-            <span style="display:inline-block;padding:0.2rem 0.625rem;border-radius:99px;font-size:0.6875rem;font-weight:500;background:var(--accent-muted);color:var(--accent);border:1px solid rgba(16,185,129,0.2)">Latest</span>
+            <h2 style="font-size:1.25rem;font-weight:600">v1.0.1-testnet.1 — Public Testnet</h2>
+            <span style="display:inline-block;padding:0.2rem 0.625rem;border-radius:99px;font-size:0.6875rem;font-weight:500;background:var(--accent-muted);color:var(--accent);border:1px solid rgba(16,185,129,0.2)">Testnet</span>
           </div>
-          <div class="text-xs text-muted mono">April 13, 2026</div>
+          <div class="text-xs text-muted mono">Testnet only — tokens have no monetary value. Mainnet has not launched.</div>
         </div>
       </div>
 
-      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Release Notes</h3>
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">What's in this release</h3>
       <ul class="bullet-list mb-4">
-        <li>Mainnet-ready blockchain node with ML-DSA-87 post-quantum signatures (FIPS 204)</li>
-        <li>Native desktop wallet with OS-level key protection (DPAPI / Keychain / Secret Service)</li>
-        <li>Encrypted local cache — all wallet data protected with XChaCha20-Poly1305</li>
-        <li>Clipboard protection — auto-clear after 30 seconds</li>
-        <li>Live address validation with checksum verification in wallet UI</li>
-        <li>Binary integrity verification (SHA-256 self-check)</li>
-        <li>Air-gapped transaction signing for maximum security</li>
-        <li>Unified CLI with wallet, node, mining, and status subcommands</li>
-        <li>Smooth reward decay with Q64 fixed-point consensus arithmetic</li>
-        <li>LWMA difficulty adjustment for stable 30-second blocks</li>
-        <li>RPC server with bearer token authentication and rate limiting</li>
-        <li>Production deployment scripts with systemd hardening</li>
-        <li>930+ test suite — 0 failures</li>
+        <li>ML-DSA-87 (FIPS 204) post-quantum transaction signatures</li>
+        <li>SHA3-256 proof-of-work with LWMA difficulty retarget</li>
+        <li>v2 handshake with domain-separated 256-bit nonce, persistent node identity, and self-peer rejection</li>
+        <li>UTXO mempool with fee-rate ordering and admission rate limiting</li>
+        <li>HTTP + WebSocket RPC</li>
+        <li>Unified <code>axiom</code> CLI + <code>axiom-node</code>, <code>axiom-keygen</code>, <code>axiom-sign</code>, <code>axiom-bump-fee</code> binaries</li>
+        <li>Test suite: 993 passed, 0 failed, 4 ignored on the tagged source</li>
       </ul>
 
-      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Node Downloads</h3>
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Node downloads (GitHub release)</h3>
+      <p class="text-xs text-muted mb-3">Binaries are published on the GitHub release. Always verify with SHA256SUMS + minisign before running — see <a href="docs.html">Verifying releases</a>.</p>
       <div class="gap-4 mb-3">
-        <a href="downloads/v1.0.0/axiom-v1.0.0-x86_64-pc-windows-msvc.zip" class="btn btn-primary btn-sm" download>&#11015; Windows x86_64</a>
-        <a href="downloads/v1.0.0/axiom-v1.0.0-x86_64-unknown-linux-gnu.tar.gz" class="btn btn-primary btn-sm" download>&#11015; Linux x86_64</a>
-        <a href="downloads/v1.0.0/axiom-v1.0.0-aarch64-apple-darwin.tar.gz" class="btn btn-primary btn-sm" download>&#11015; macOS ARM</a>
-        <a href="downloads/v1.0.0/axiom-v1.0.0-x86_64-apple-darwin.tar.gz" class="btn btn-primary btn-sm" download>&#11015; macOS Intel</a>
+        <a href="https://github.com/Ayano-X-Tech/axiom-network/releases/tag/v1.0.1-testnet.1" class="btn btn-primary btn-sm" target="_blank" rel="noopener">&#11015; GitHub Release</a>
       </div>
 
-      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Wallet Downloads</h3>
-      <div class="gap-4">
-        <a href="downloads/v1.0.0/Axiom-Wallet-1.0.0-x64-setup.msi" class="btn btn-ghost btn-sm" download>&#128274; Windows .msi</a>
-        <a href="downloads/v1.0.0/Axiom-Wallet-1.0.0-x86_64.AppImage" class="btn btn-ghost btn-sm" download>&#128274; Linux AppImage</a>
-        <a href="downloads/v1.0.0/Axiom-Wallet-1.0.0-universal.dmg" class="btn btn-ghost btn-sm" download>&#128274; macOS .dmg</a>
-        <a href="downloads/v1.0.0/axiom-wallet_1.0.0_amd64.deb" class="btn btn-ghost btn-sm" download>&#128274; Linux .deb</a>
-      </div>
+      <p class="text-xs text-muted">Desktop wallet installers are not part of this release. Use the CLI wallet (<code>axiom-keygen</code> / <code>axiom</code>).</p>
     </div>
 
     <!-- v0.5.0 -->
@@ -161,7 +147,7 @@
     <!-- GitHub Link -->
     <section class="section">
       <div class="gap-4">
-        <a href="https://github.com/axiom-network/axiom/releases" target="_blank" rel="noopener" class="link-arrow">View all releases on GitHub &rarr;</a>
+        <a href="https://github.com/Ayano-X-Tech/axiom-network/releases" target="_blank" rel="noopener" class="link-arrow">View all releases on GitHub &rarr;</a>
       </div>
     </section>
 
@@ -175,7 +161,7 @@
       <div class="footer-brand">
         <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
         <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
-        <div class="footer-version">v1.0.0</div>
+        <div class="footer-version">v1.0.1-testnet.1</div>
       </div>
       <div>
         <h4>Product</h4>
@@ -193,7 +179,7 @@
           <li><a href="docs.html">Documentation</a></li>
           <li><a href="architecture.html">Architecture</a></li>
           <li><a href="security.html">Security</a></li>
-          <li><a href="https://github.com/axiom-network/axiom" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener">GitHub</a></li>
         </ul>
       </div>
       <div>

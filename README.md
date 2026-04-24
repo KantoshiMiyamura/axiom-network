@@ -1,129 +1,141 @@
-# Axiom Network — Proof of Useful Compute
+# Axiom Network
 
-**Status:** ✅ Mainnet Ready | **Version:** 1.0.0 | **Last Updated:** 2026-03-28
+**Status:** Public testnet — `v1.0.1-testnet.1` — **not yet mainnet**
+**License:** MIT
+**Source:** <https://github.com/Ayano-X-Tech/axiom-network>
 
-Axiom Network is a production-grade blockchain implementing Proof of Useful Compute (PoUC), enabling monetization of AI compute while maintaining cryptographic security and full decentralization.
+Axiom Network is a post-quantum blockchain implementing Proof of Useful Compute
+(PoUC). Transactions are signed with ML-DSA-87 (FIPS 204). The chain-local
+token, `AXM`, has **no monetary value on this testnet** — coins mined here are
+throwaway test tokens, not an asset.
 
-## Quick Start
-
-### Prerequisites
-- Rust 1.85+
-- Node.js 20+
-- 4GB+ RAM, 50GB+ disk space
-
-### Build & Deploy
-
-```bash
-# Build all components
-cargo build --release --all
-
-# Run tests (517+ tests)
-cargo test --all --release
-
-# Start mainnet node
-./target/release/axiom-node --port 9100 --rpc-port 8332 --host 0.0.0.0
-```
-
-### Directories
-
-- **`crates/`** — Core Rust implementation
-  - `axiom-node` — Blockchain consensus engine
-  - `axiom-rpc` — RPC API server (40+ endpoints)
-  - `axiom-wallet` — Cryptographic wallet (ML-DSA-87)
-  - `axiom-ai` — Proof of Useful Compute protocol
-  - `axiom-crypto` — Post-quantum cryptography
-
-- **`web/`** — Next.js 14 frontend (watch-only wallet)
-- **`docs/`** — Documentation and deployment guides
-- **`scripts/`** — Utility scripts and tools
-- **`data/`** — Blockchain state and configuration
-
-## Key Features
-
-✅ **Consensus:** Proof of Work with LWMA difficulty adjustment
-✅ **Cryptography:** ML-DSA-87 (FIPS 204) post-quantum signatures
-✅ **AI Protocol:** Stake-based compute market with settlement
-✅ **Performance:** 59.1 jobs/sec, 10.2s block time
-✅ **Security:** Zero private key exposure in web frontend
-✅ **Testing:** 517+ tests, ~90% code coverage
-
-## Deployment
-
-See [docs/deployment/](docs/deployment/) for:
-- Mainnet deployment procedures
-- Service management
-- Monitoring and health checks
-- Troubleshooting guides
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│      Web Frontend (Watch-Only Wallet)       │
-│  Next.js 14 | No Private Keys | HTTPS Only │
-└──────────────────┬──────────────────────────┘
-                   │ RPC API
-┌──────────────────▼──────────────────────────┐
-│        RPC Server (40+ Endpoints)           │
-│      HTTP/WebSocket | Rate Limited          │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│        Blockchain Consensus                 │
-│    PoW (LWMA) | Block Validation            │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│      AI Compute Market (PoUC)               │
-│  Jobs | Workers | Verifiers | Settlement   │
-└──────────────────────────────────────────────┘
-```
-
-## Security
-
-- **Cryptography:** Post-quantum ML-DSA-87 signatures
-- **Wallet:** BIP39 seed generation + HKDF-SHA512 derivation
-- **Key Zeroization:** Sensitive data cleared from memory
-- **Web:** Zero private keys stored, watch-only model
-- **Network:** Replay protection, CORS enabled, HTTPS required
-
-**Security Audit Status:** ✅ Passed — No vulnerabilities found
-
-## Performance Metrics
-
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| Throughput | >50 tx/s | 59.1 | ✅ |
-| Block Time | ~10s | 10.2s | ✅ |
-| RPC Latency (p95) | <100ms | 25ms | ✅ |
-| Network Propagation | <500ms | 150ms | ✅ |
-
-## Testing
-
-```bash
-# Run all tests
-cargo test --all --release
-
-# Run specific crate
-cargo test -p axiom-node --release
-
-# Run with output
-cargo test --all --release -- --nocapture
-```
-
-**Results:** 517/517 tests passing | 0 failures | ~90% coverage
-
-## License
-
-MIT License — See [LICENSE](LICENSE)
-
-## Documentation
-
-- [docs/deployment/](docs/deployment/) — Deployment & operations
-- [docs/audit/](docs/audit/) — Security audits & verification
-- [docs/guide/](docs/guide/) — User & developer guides
-- [docs/archive/](docs/archive/) — Historical reports & phase documentation
+> This is a community-run, open-source research and engineering release. Do not
+> rely on testnet tokens having any value, ever. Do not move real funds through
+> this network until an explicit mainnet announcement.
 
 ---
 
-**Axiom Network is production-ready and approved for mainnet launch.**
+## What's in this repo
+
+| Crate / dir          | Purpose                                              |
+|----------------------|------------------------------------------------------|
+| `crates/axiom-primitives` | Hash, address, byte types                       |
+| `crates/axiom-crypto` | ML-DSA-87 signing, BIP39 seed handling              |
+| `crates/axiom-protocol` | Transaction / block wire format                   |
+| `crates/axiom-consensus` | PoW header validation, LWMA difficulty retarget  |
+| `crates/axiom-node`  | P2P, mempool, orphan pool, validation, state        |
+| `crates/axiom-rpc`   | HTTP/WebSocket RPC                                   |
+| `crates/axiom-wallet` | Keys, addresses, UTXO tracking                     |
+| `crates/axiom-cli`   | `axiom`, `axiom-node`, `axiom-keygen`, `axiom-bump-fee` |
+| `crates/axiom-signer` | `axiom-sign` transaction signer                    |
+| `crates/axiom-ai`    | PoUC compute market                                  |
+| `crates/axiom-guard` | Per-node persistent identity (ML-DSA-87 keypair)    |
+| `web/`               | Static website (downloads, docs, releases pages)    |
+| `docs/`              | Architecture, protocol, operator, security docs     |
+| `scripts/testnet/`   | Local 4-node testnet harness (docker-compose + drivers) |
+
+---
+
+## Build from source
+
+```bash
+# Rust 1.93.1 (pinned via rust-toolchain.toml)
+cargo build --release --workspace
+cargo test  --release --workspace
+```
+
+The test suite currently reports **993 passed, 0 failed, 4 ignored** on the
+tracked revision. `cargo clippy --workspace --release --all-targets` reports
+**0 errors**.
+
+---
+
+## Run a node (testnet)
+
+```bash
+./target/release/axiom-node \
+  --network test \
+  --data-dir ./testnet-data \
+  --port 29000 \
+  --rpc-port 18330 \
+  --peer <bootstrap-host:29000>
+```
+
+Query the node:
+
+```bash
+curl -s http://127.0.0.1:18330/tip
+curl -s http://127.0.0.1:18330/peer_count
+curl -s http://127.0.0.1:18330/metrics
+```
+
+---
+
+## Wallet & keys (local only)
+
+```bash
+./target/release/axiom-keygen        # writes wallet.json to the current dir
+./target/release/axiom               # interactive wallet CLI
+```
+
+**Wallet keys never leave the local machine.** The node does not know your
+seed phrase, never stores it, and has no RPC to retrieve it.
+
+If you lose your wallet file and seed phrase, the coins it controls are
+permanently unrecoverable. This is testnet — treat all keys as disposable.
+
+---
+
+## Mining (testnet)
+
+The node mines by default when started with a miner address. See
+[docs/OPERATOR_RUNBOOK.md](docs/OPERATOR_RUNBOOK.md) for the mining flags,
+expected hashrate on commodity hardware, and the LWMA retarget behavior.
+
+Testnet difficulty adapts — early blocks are fast, later blocks slow down to
+the target interval. This is expected and documented.
+
+---
+
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — component topology
+- [docs/PROTOCOL.md](docs/PROTOCOL.md) — wire format, message types
+- [docs/CONSENSUS-RULES.md](docs/CONSENSUS-RULES.md) — validation rules
+- [docs/ECONOMICS.md](docs/ECONOMICS.md) — supply, subsidy, fees
+- [docs/OPERATOR_RUNBOOK.md](docs/OPERATOR_RUNBOOK.md) — running a node
+- [docs/RPC-REFERENCE.md](docs/RPC-REFERENCE.md) — endpoint catalog
+- [docs/API.md](docs/API.md) — HTTP API reference
+- [docs/SECURITY.md](docs/SECURITY.md) — threat model, disclosure policy
+- [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md) — checksum + minisign
+- [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) — release runbook
+
+---
+
+## Known limitations of this release
+
+1. **No multi-host WAN stability evidence.** Local 4-node simulations on a
+   single host are reproducible via `scripts/testnet/`. Multi-host WAN evidence
+   is not yet published.
+2. **No funded mempool stress evidence.** Mempool admission has been exercised
+   with the validation path; a real funded-flood test is pending.
+3. **No mainnet genesis has been declared.** Anyone running `--network main`
+   does so at their own risk on an undefined chain.
+4. **Wallet installer is not part of this release.** Only the node binaries
+   are shipped. Use the CLI wallet (`axiom-keygen`, `axiom`).
+
+These are tracked and will be closed before any mainnet announcement.
+
+---
+
+## Contributing & security
+
+- Bugs / issues: open a GitHub issue.
+- Security reports: follow [docs/SECURITY.md](docs/SECURITY.md).
+- Do not report security issues through public channels.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

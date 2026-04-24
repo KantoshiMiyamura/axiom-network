@@ -177,6 +177,9 @@ impl Node {
 
         let fee_sat = validator.validate_and_compute_fee(&tx)?;
 
+        // Advisory only: the score is logged but never gates admission.
+        // Consensus correctness depends solely on `validate_and_compute_fee`
+        // above; the anomaly detector is an observer (see AI-CONSENSUS-AUDIT.md §3.1).
         let anomaly_score = self.anomaly_detector.analyse(&txid, &tx);
         if anomaly_score > 0.0 {
             tracing::warn!(
@@ -734,6 +737,15 @@ impl Node {
         self.mempool.get_all_transactions()
     }
 
+    /// Mempool entries paired with the fee and serialized size recorded at
+    /// admission time, highest-fee-rate first. Used by `get_mempool` so the
+    /// RPC returns real fee values.
+    pub fn mempool_entries_with_fees(
+        &self,
+    ) -> Vec<(axiom_primitives::Hash256, axiom_protocol::Transaction, u64, usize)> {
+        self.mempool.get_all_entries_with_fees()
+    }
+
     pub fn get_block(&self, block_hash: &Hash256) -> Result<Option<Block>, NodeError> {
         Ok(self.state.get_block(block_hash)?)
     }
@@ -908,24 +920,20 @@ impl Node {
         self.mempool.get_fee_percentiles()
     }
 
-    /// Spawn consensus monitoring task for AxiomMind v2
+    /// Background loop that samples node metrics for AxiomMind dashboards.
+    /// Read-only: it reads `best_height`, `mempool_size`, `orphan_count` and
+    /// emits them to the metrics layer. Block-by-block analysis lives in
+    /// `axiom-guard::NetworkGuard`, driven by the post-acceptance hook in the
+    /// network service — never from this loop.
     pub fn spawn_consensus_monitor(node: std::sync::Arc<Node>) {
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().unwrap();
             rt.block_on(async {
                 loop {
-                    // Check consensus health every 10 seconds
                     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-
                     let _consensus_height = node.best_height().unwrap_or(0);
                     let _mempool_size = node.mempool_size();
                     let _orphan_count = node.orphan_count();
-
-                    // AxiomMind consensus scanning is handled by the
-                    // NetworkGuard instance in the RPC layer (see axiom-guard).
-                    // The guard's `analyze_block()` is called when new blocks
-                    // arrive via the network service, not in this background
-                    // loop. This loop only collects metrics for monitoring.
                 }
             });
         });

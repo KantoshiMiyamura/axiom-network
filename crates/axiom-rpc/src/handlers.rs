@@ -49,17 +49,25 @@ pub type SharedNetworkService = Arc<RwLock<NetworkService>>;
 pub type SharedGuardState = Arc<RwLock<axiom_guard::NetworkGuard>>;
 pub type SharedMonitorStore = Arc<RwLock<Vec<axiom_monitor::MonitorReport>>>;
 
-pub async fn get_status(State(state): State<SharedNodeState>) -> Result<Json<NodeStatus>> {
+pub async fn get_status(
+    State(state): State<SharedNodeState>,
+    Extension(ns): Extension<Option<SharedNetworkService>>,
+) -> Result<Json<NodeStatus>> {
     let node = state.read().await;
+
+    let peers = match ns {
+        Some(ns) => ns.read().await.peer_manager().ready_peer_count().await,
+        None => 0,
+    };
 
     Ok(Json(NodeStatus {
         best_block_hash: node.best_block_hash().map(|h| hex::encode(h.as_bytes())),
         best_height: node.best_height(),
         mempool_size: node.mempool_size(),
         orphan_count: node.orphan_count(),
-        version: "Axiom Node v1.0.0".to_string(),
-        network: "axiom-mainnet-v1".to_string(),
-        peers: 0,
+        version: concat!("Axiom Node v", env!("CARGO_PKG_VERSION")).to_string(),
+        network: node.chain_id().to_string(),
+        peers,
     }))
 }
 
@@ -82,8 +90,11 @@ pub async fn get_best_height(State(state): State<SharedNodeState>) -> Result<Jso
 }
 
 /// Alias for `get_status`.
-pub async fn get_tip(State(state): State<SharedNodeState>) -> Result<Json<NodeStatus>> {
-    get_status(State(state)).await
+pub async fn get_tip(
+    State(state): State<SharedNodeState>,
+    Extension(ns): Extension<Option<SharedNetworkService>>,
+) -> Result<Json<NodeStatus>> {
+    get_status(State(state), Extension(ns)).await
 }
 
 pub async fn get_block_by_hash(
@@ -213,8 +224,7 @@ pub async fn submit_transaction(
     let tx_bytes = hex::decode(&req.transaction_hex)
         .map_err(|_| RpcError::InvalidRequest("Invalid hex encoding".into()))?;
 
-    let tx: Transaction = bincode::serde::decode_from_slice(&tx_bytes, bincode::config::standard())
-        .map(|(v, _)| v)
+    let tx: Transaction = axiom_protocol::deserialize_transaction(&tx_bytes)
         .map_err(|e| RpcError::InvalidRequest(format!("Invalid transaction: {}", e)))?;
 
     let mut node = state.write().await;
@@ -385,7 +395,10 @@ pub async fn get_block_transactions(
                         })
                         .collect();
 
-                    let tx_data = axiom_protocol::serialize_transaction(tx);
+                    // Canonical txid: double-hash of the unsigned serialization.
+                    // Must match the form indexed by axiom-storage and used by
+                    // /tx/:txid and /address/:addr/txs.
+                    let tx_data = axiom_protocol::serialize_transaction_unsigned(tx);
                     let txid = axiom_crypto::double_hash256(&tx_data);
 
                     TransactionDetail {
@@ -435,7 +448,8 @@ pub async fn get_transaction(
     let mempool_txs = node.get_mempool_transactions();
 
     for tx in mempool_txs {
-        let tx_data = axiom_protocol::serialize_transaction(&tx);
+        // Canonical txid: double-hash of the unsigned serialization.
+        let tx_data = axiom_protocol::serialize_transaction_unsigned(&tx);
         let tx_txid = axiom_crypto::double_hash256(&tx_data);
 
         if tx_txid == txid {
@@ -849,24 +863,21 @@ pub async fn get_mempool(
     let offset = params.offset.unwrap_or(0);
 
     let node = state.read().await;
-    let mempool_txs = node.mempool_transactions();
+    let mempool_entries = node.mempool_entries_with_fees();
 
-    let total = mempool_txs.len();
+    let total = mempool_entries.len();
     let mut total_size = 0usize;
 
-    // fee_sat is always 0 — computing it requires UTXO lookup we skip here.
+    // Fee and size are taken from the mempool entry recorded at admission,
+    // so we never have to redo UTXO lookups here.
     let mut all_summaries = Vec::with_capacity(total);
-    for (txid, tx) in &mempool_txs {
-        let serialized = axiom_protocol::serialize_transaction(tx);
-        let size = serialized.len();
-        total_size += size;
-
-        let fee_sat = 0u64;
+    for (txid, tx, fee_sat, size) in &mempool_entries {
+        total_size += *size;
 
         all_summaries.push(MempoolTxSummary {
             txid: hex::encode(txid.as_bytes()),
-            size,
-            fee_sat,
+            size: *size,
+            fee_sat: *fee_sat,
             nonce: tx.nonce,
             input_count: tx.inputs.len(),
             output_count: tx.outputs.len(),
@@ -1213,7 +1224,8 @@ pub async fn get_tx_merkle_proof(
 
     let mempool_txs = node.get_mempool_transactions();
     for tx in mempool_txs {
-        let tx_data = axiom_protocol::serialize_transaction(&tx);
+        // Canonical txid: double-hash of the unsigned serialization.
+        let tx_data = axiom_protocol::serialize_transaction_unsigned(&tx);
         let mempool_txid = axiom_crypto::double_hash256(&tx_data);
         if mempool_txid == txid {
             return Err(RpcError::InvalidRequest(
@@ -1231,11 +1243,13 @@ pub async fn get_tx_merkle_proof(
         .load_block(&loc.block_hash)
         .map_err(|e| RpcError::Internal(format!("Block load error: {}", e)))?;
 
+    // Merkle leaves must use the unsigned-form txid — that is what the stored
+    // merkle root was computed over. A signed-form proof would never validate.
     let tx_hashes: Vec<axiom_primitives::Hash256> = block
         .transactions
         .iter()
         .map(|tx| {
-            let data = axiom_protocol::serialize_transaction(tx);
+            let data = axiom_protocol::serialize_transaction_unsigned(tx);
             axiom_crypto::double_hash256(&data)
         })
         .collect();
@@ -1428,7 +1442,8 @@ pub async fn decode_raw_tx(
         })
         .collect();
 
-    let tx_data = axiom_protocol::serialize_transaction(&tx);
+    // Canonical txid: double-hash of the unsigned serialization.
+    let tx_data = axiom_protocol::serialize_transaction_unsigned(&tx);
     let txid = axiom_crypto::double_hash256(&tx_data);
 
     Ok(Json(crate::types::TransactionDetail {
@@ -1823,18 +1838,17 @@ pub async fn get_block_stats(
         .map(|cb| cb.outputs.iter().map(|o| o.value.as_sat()).sum::<u64>())
         .unwrap_or(0);
 
-    // Fee rates per non-coinbase transaction (requires size calculation).
+    // Per-tx fee requires resolving every input against the UTXO set at the
+    // block's parent — an expensive, I/O-bound walk we intentionally skip on
+    // the stats path. Callers who need accurate fees must inspect the block's
+    // transactions individually. `fee_total_sat`/`avg_fee_rate`/`min_fee_rate`/
+    // `max_fee_rate` in the response are therefore reported as 0 here; clients
+    // should treat them as unavailable rather than "free".
     let fee_rates: Vec<u64> = block
         .transactions
         .iter()
         .skip(1) // skip coinbase
-        .map(|tx| {
-            let size = axiom_protocol::serialize_transaction(tx).len().max(1);
-            // We can't know exact fee without UTXO lookup; approximate from size.
-            // Use 0 as placeholder — the important stats are size-derived.
-            let _ = size;
-            0u64
-        })
+        .map(|_tx| 0u64)
         .collect();
 
     let fee_total_sat: u64 = fee_rates.iter().sum();
@@ -2412,7 +2426,7 @@ mod pagination_tests {
         assert_eq!(limit, 10);
 
         let blocks = fake_blocks(50);
-        let page: Vec<_> = blocks.iter().skip(0).take(limit).collect();
+        let page: Vec<_> = blocks.iter().take(limit).collect();
         assert!(page.len() <= 10);
     }
 
@@ -2425,7 +2439,7 @@ mod pagination_tests {
         assert_eq!(limit, 5);
 
         let blocks = fake_blocks(50);
-        let page: Vec<_> = blocks.iter().skip(0).take(limit).collect();
+        let page: Vec<_> = blocks.iter().take(limit).collect();
         assert!(page.len() <= 5);
         assert_eq!(page.len(), 5);
     }
@@ -2447,8 +2461,6 @@ mod pagination_tests {
 
         let valid: u32 = MAX_REASONABLE_HEIGHT;
         assert!(valid <= MAX_REASONABLE_HEIGHT);
-
-        assert!(0u32 <= MAX_REASONABLE_HEIGHT);
     }
 
     #[test]

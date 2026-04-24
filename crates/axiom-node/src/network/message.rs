@@ -302,6 +302,9 @@ pub const SERVICE_LIGHT: u64 = 1 << 3;
 pub const SERVICE_AI: u64 = 1 << 4;
 pub const SERVICE_ENCRYPTED: u64 = 1 << 5;
 
+/// Length in bytes of the strong 256-bit handshake nonce.
+pub const NONCE_HASH_LEN: usize = 32;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct VersionMessage {
     pub protocol_version: u32,
@@ -309,10 +312,49 @@ pub struct VersionMessage {
     pub best_height: u32,
     #[serde(default)]
     pub services: u64,
+    /// Legacy 64-bit nonce. Derived from the first 8 bytes of `nonce_hash`
+    /// on v2 peers so that a v1 peer can still detect v2 self-dials.
     #[serde(default)]
     pub nonce: u64,
     #[serde(default)]
     pub user_agent: String,
+    /// Post-v2 strong handshake nonce. Zero on v1 peers and MUST be treated
+    /// as "unset" in that case. Computed as
+    /// `SHA256(random_128 || node_identity)` so different nodes cannot
+    /// collide even if one of them picks a degenerate random value.
+    #[serde(default)]
+    pub nonce_hash: [u8; NONCE_HASH_LEN],
+}
+
+/// V1 wire layout kept for backward-compatible decoding. Bincode 2's
+/// sequential encoding does not tolerate missing trailing fields, so a
+/// payload produced by an old peer must be decoded into a struct whose
+/// shape matches v1 exactly. See `Message::deserialize`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct VersionMessageV1 {
+    protocol_version: u32,
+    network: String,
+    best_height: u32,
+    #[serde(default)]
+    services: u64,
+    #[serde(default)]
+    nonce: u64,
+    #[serde(default)]
+    user_agent: String,
+}
+
+impl From<VersionMessageV1> for VersionMessage {
+    fn from(v: VersionMessageV1) -> Self {
+        VersionMessage {
+            protocol_version: v.protocol_version,
+            network: v.network,
+            best_height: v.best_height,
+            services: v.services,
+            nonce: v.nonce,
+            user_agent: v.user_agent,
+            nonce_hash: [0u8; NONCE_HASH_LEN],
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -517,10 +559,23 @@ impl Message {
 
         let message = match msg_type {
             MessageType::Version => {
-                let v: VersionMessage =
-                    bincode::serde::decode_from_slice(payload, bincode::config::standard())
-                        .map(|(v, _)| v)
-                        .map_err(|e| MessageError::Deserialization(e.to_string()))?;
+                // Try v2 wire format first (nonce_hash appended). Old peers
+                // omit that field, so bincode's sequential decoder fails
+                // partway through — in that case, retry as v1 and upconvert.
+                let v: VersionMessage = match bincode::serde::decode_from_slice::<
+                    VersionMessage,
+                    _,
+                >(
+                    payload, bincode::config::standard()
+                ) {
+                    Ok((v, _)) => v,
+                    Err(_) => {
+                        let (v1, _): (VersionMessageV1, _) =
+                            bincode::serde::decode_from_slice(payload, bincode::config::standard())
+                                .map_err(|e| MessageError::Deserialization(e.to_string()))?;
+                        VersionMessage::from(v1)
+                    }
+                };
                 Message::Version(v)
             }
             MessageType::VerAck => Message::VerAck,
@@ -697,6 +752,83 @@ mod tests {
                 assert_eq!(v.best_height, 100);
             }
             _ => panic!("wrong message type"),
+        }
+    }
+
+    #[test]
+    fn test_version_v2_nonce_hash_roundtrips() {
+        // A v2-produced Version must survive a full serialize/deserialize
+        // with both the u64 nonce and the 256-bit nonce_hash intact.
+        let mut nonce_hash = [0u8; NONCE_HASH_LEN];
+        for (i, b) in nonce_hash.iter_mut().enumerate() {
+            *b = i as u8 + 1;
+        }
+        let version = VersionMessage {
+            protocol_version: 2,
+            network: "test".to_string(),
+            best_height: 42,
+            services: 0b1010,
+            nonce: 0x1122_3344_5566_7788,
+            user_agent: "axiom/test".to_string(),
+            nonce_hash,
+        };
+
+        let bytes = Message::Version(version.clone()).serialize().unwrap();
+        let out = Message::deserialize(&bytes).unwrap();
+        match out {
+            Message::Version(v) => {
+                assert_eq!(v.protocol_version, version.protocol_version);
+                assert_eq!(v.network, version.network);
+                assert_eq!(v.best_height, version.best_height);
+                assert_eq!(v.services, version.services);
+                assert_eq!(v.nonce, version.nonce);
+                assert_eq!(v.user_agent, version.user_agent);
+                assert_eq!(v.nonce_hash, version.nonce_hash);
+            }
+            _ => panic!("expected Version"),
+        }
+    }
+
+    #[test]
+    fn test_v1_wire_format_decodes_into_v2_struct() {
+        // Hand-craft a payload in the *old* wire shape (no nonce_hash
+        // field). This is exactly what an unpatched peer emits. The
+        // fallback decoder must accept it and zero out nonce_hash.
+        #[derive(serde::Serialize)]
+        struct V1 {
+            protocol_version: u32,
+            network: String,
+            best_height: u32,
+            services: u64,
+            nonce: u64,
+            user_agent: String,
+        }
+        let legacy = V1 {
+            protocol_version: 1,
+            network: "dev".to_string(),
+            best_height: 7,
+            services: 1,
+            nonce: 0xCAFE_BABE,
+            user_agent: "v1-peer".to_string(),
+        };
+        let payload = bincode::serde::encode_to_vec(&legacy, bincode::config::standard()).unwrap();
+
+        let mut frame = Vec::with_capacity(5 + payload.len());
+        frame.push(MessageType::Version as u8);
+        frame.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        frame.extend_from_slice(&payload);
+
+        let msg = Message::deserialize(&frame).expect("v1 wire format must decode");
+        match msg {
+            Message::Version(v) => {
+                assert_eq!(v.protocol_version, 1);
+                assert_eq!(v.network, "dev");
+                assert_eq!(v.best_height, 7);
+                assert_eq!(v.nonce, 0xCAFE_BABE);
+                assert_eq!(v.user_agent, "v1-peer");
+                assert_eq!(v.nonce_hash, [0u8; NONCE_HASH_LEN]);
+            }
+            _ => panic!("expected Version"),
         }
     }
 

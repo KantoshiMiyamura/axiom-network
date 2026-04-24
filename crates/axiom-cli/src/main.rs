@@ -5,11 +5,11 @@
 mod p2p;
 
 use axiom_ai::{ComputeProtocol, InferenceRegistry, ModelRegistry, ReputationRegistry};
-use axiom_guard::NetworkGuard;
+use axiom_guard::{CognitiveFingerprint, NetworkGuard};
 use axiom_monitor::NetworkMonitorAgent;
 use axiom_node::network::{
-    resolve_dns_seeds, NetworkService, PeerDiscovery, PeerManager, DEVNET_DNS_SEEDS,
-    MAINNET_DNS_SEEDS,
+    dedupe_and_filter_self, resolve_dns_seeds, self_p2p_addrs, NetworkService, PeerDiscovery,
+    PeerManager, MAINNET_DNS_SEEDS, TESTNET_DNS_SEEDS,
 };
 use axiom_node::{install_panic_hook, spawn_resilient, Watchdog, WatchdogConfig};
 use axiom_node::{Config, Network, Node};
@@ -179,11 +179,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("");
 
     info!("Initializing P2P networking...");
-    let peer_manager = Arc::new(PeerManager::new(args.network.clone()));
+    // Bind the handshake nonce to this node's persistent guard identity
+    // so two distinct nodes can never collide on the same nonce_hash.
+    // The fingerprint file is already created by NetworkGuard above; if
+    // that failed for any reason, load/create it here so networking still
+    // starts with a stable identity instead of a volatile random one.
+    let identity_path = CognitiveFingerprint::identity_path(&data_path);
+    let node_identity: Vec<u8> = match CognitiveFingerprint::load_or_create(&data_path) {
+        Ok(fp) => {
+            info!(
+                "Handshake identity loaded from {} ({} bytes)",
+                identity_path.display(),
+                fp.public_key.len()
+            );
+            fp.public_key
+        }
+        Err(e) => {
+            warn!(
+                "HANDSHAKE_IDENTITY_FALLBACK: could not load guard identity at {} ({}). \
+                 Handshake nonce will be bound only to volatile OS randomness — \
+                 this node's wire identity will change on every restart, which \
+                 weakens the self-peer detection guarantee. Fix: ensure the data \
+                 directory is writable and run again.",
+                identity_path.display(),
+                e
+            );
+            Vec::new()
+        }
+    };
+    let peer_manager = Arc::new(PeerManager::with_identity(
+        args.network.clone(),
+        &node_identity,
+    ));
     let network_service = {
         let mut svc = NetworkService::with_shared_node(
             node_state.clone(),
-            PeerManager::new(args.network.clone()),
+            PeerManager::with_identity(args.network.clone(), &node_identity),
         );
         // Hook AxiomMind into peer-received blocks so non-mining nodes
         // also benefit from threat detection.
@@ -248,19 +279,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // DNS seeding skipped if --peer or --seeds were given.
+    // Devnet never auto-resolves peers — it must stay isolated unless operators
+    // explicitly wire peers with --peer. Mainnet peers must not leak into other
+    // networks: match each Network arm explicitly so a future variant fails to
+    // compile instead of silently defaulting.
     let dns_seeds = if seeds.is_empty() && direct_peers.is_empty() {
-        let dns_hosts = match network {
+        let dns_hosts: &[&str] = match network {
             Network::Mainnet => MAINNET_DNS_SEEDS,
-            _ => DEVNET_DNS_SEEDS,
+            Network::Test => TESTNET_DNS_SEEDS,
+            Network::Dev => &[],
         };
-        info!("Resolving DNS seeds ({} hostnames)...", dns_hosts.len());
-        let resolved = resolve_dns_seeds(dns_hosts);
-        if resolved.is_empty() {
-            info!("DNS seeds unreachable — starting as standalone node");
+        if dns_hosts.is_empty() {
+            info!(
+                "No DNS seeds for network '{}' — running isolated (use --peer to connect)",
+                network.as_str()
+            );
+            Vec::new()
         } else {
-            info!("✓ DNS seeding: {} peers discovered", resolved.len());
+            info!("Resolving DNS seeds ({} hostnames)...", dns_hosts.len());
+            let resolved = resolve_dns_seeds(dns_hosts);
+            if resolved.is_empty() {
+                info!("DNS seeds unreachable — starting as standalone node");
+            } else {
+                info!("✓ DNS seeding: {} peers discovered", resolved.len());
+            }
+            resolved
         }
-        resolved
     } else {
         Vec::new()
     };
@@ -268,15 +312,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut all_seeds = seeds;
     all_seeds.append(&mut direct_peers);
     all_seeds.extend(dns_seeds);
-    let seeds = all_seeds;
+
+    let p2p_bind: SocketAddr = args.p2p_bind.parse()?;
+
+    // Self-connection prevention: compute every socket address that routes
+    // back to this node (loopback, bind IP, detected outbound IP — all at
+    // the p2p port) and strip them from the seed list before we dial.
+    let self_addrs = self_p2p_addrs(p2p_bind);
+    let seeds_before = all_seeds.len();
+    let seeds = dedupe_and_filter_self(all_seeds, &self_addrs);
+    let dropped = seeds_before.saturating_sub(seeds.len());
+    if dropped > 0 {
+        info!(
+            "Filtered {} self/duplicate seed(s) (p2p nonce 0x{:016x}, self-addrs: {})",
+            dropped,
+            peer_manager.local_nonce(),
+            self_addrs
+                .iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+    }
 
     if seeds.is_empty() {
         info!("Running in standalone mode (no peers)");
     }
     info!("");
 
-    let p2p_bind: SocketAddr = args.p2p_bind.parse()?;
-    let discovery = Arc::new(Mutex::new(PeerDiscovery::new(seeds.clone())));
+    let discovery = Arc::new(Mutex::new({
+        let mut d = PeerDiscovery::new(seeds.clone());
+        d.set_self_addrs(self_addrs.clone());
+        d
+    }));
     let p2p_network = Arc::new(P2PNetwork::new(p2p_bind, peer_manager.clone(), discovery));
     p2p_network.clone().start(network_service.clone()).await?;
     info!("Initialising AI model registry...");

@@ -1,0 +1,122 @@
+# Axiom Network — multi-server testnet via docker-compose.
+#
+# For true multi-server operation, deploy ONE service per host (pick
+# one service stanza below, run it on its own VM) and update the --peer
+# flags to point at the other hosts' public IPs.
+#
+# Build an image locally first:
+#
+#   docker build -t axiom-node:local -f scripts/testnet/Dockerfile .
+#
+# Then on each of 4 servers:
+#
+#   TESTNET_NODE_ID=0 TESTNET_PEER_ADDRS='1.2.3.4:29001,5.6.7.8:29002,9.10.11.12:29003' \
+#     docker compose -f scripts/testnet/docker-compose.yml up -d node0
+#
+# NOTE: only the P2P port is published. RPC is bound to loopback-only
+# inside the container — reach it from the host via SSH tunnel.
+
+version: "3.9"
+
+x-node-common: &node-common
+  image: axiom-node:local
+  restart: unless-stopped
+  networks: [ axiom-test ]
+  environment:
+    RUST_LOG: info
+    RUST_BACKTRACE: "1"
+  healthcheck:
+    test: [ "CMD", "curl", "-fsS", "--max-time", "3", "http://127.0.0.1:18332/health" ]
+    interval: 15s
+    timeout: 5s
+    retries: 6
+    start_period: 20s
+
+services:
+  node0:
+    <<: *node-common
+    container_name: axiom-n0
+    hostname: axiom-n0
+    ports:
+      - "29000:29000/tcp"      # P2P — reachable from other nodes
+    volumes:
+      - n0-data:/data
+    command:
+      - --network=test
+      - --data-dir=/data
+      - --rpc-bind=127.0.0.1:18332
+      - --p2p-bind=0.0.0.0:29000
+      - --peer=${NODE1_ADDR:-axiom-n1:29001}
+      - --peer=${NODE2_ADDR:-axiom-n2:29002}
+      - --peer=${NODE3_ADDR:-axiom-n3:29003}
+      - --mine
+      - --miner-address=0000000000000000000000000000000000000000000000000000000000000001
+      - --mining-interval=1
+      - --log-level=info
+
+  node1:
+    <<: *node-common
+    container_name: axiom-n1
+    hostname: axiom-n1
+    ports:
+      - "29001:29001/tcp"
+    volumes:
+      - n1-data:/data
+    command:
+      - --network=test
+      - --data-dir=/data
+      - --rpc-bind=127.0.0.1:18332
+      - --p2p-bind=0.0.0.0:29001
+      - --peer=${NODE0_ADDR:-axiom-n0:29000}
+      - --peer=${NODE2_ADDR:-axiom-n2:29002}
+      - --peer=${NODE3_ADDR:-axiom-n3:29003}
+      - --mine
+      - --miner-address=0000000000000000000000000000000000000000000000000000000000000002
+      - --mining-interval=1
+      - --log-level=info
+
+  node2:
+    <<: *node-common
+    container_name: axiom-n2
+    hostname: axiom-n2
+    ports:
+      - "29002:29002/tcp"
+    volumes:
+      - n2-data:/data
+    command:
+      - --network=test
+      - --data-dir=/data
+      - --rpc-bind=127.0.0.1:18332
+      - --p2p-bind=0.0.0.0:29002
+      - --peer=${NODE0_ADDR:-axiom-n0:29000}
+      - --peer=${NODE1_ADDR:-axiom-n1:29001}
+      - --peer=${NODE3_ADDR:-axiom-n3:29003}
+      - --log-level=info
+
+  node3:
+    <<: *node-common
+    container_name: axiom-n3
+    hostname: axiom-n3
+    ports:
+      - "29003:29003/tcp"
+    volumes:
+      - n3-data:/data
+    command:
+      - --network=test
+      - --data-dir=/data
+      - --rpc-bind=127.0.0.1:18332
+      - --p2p-bind=0.0.0.0:29003
+      - --peer=${NODE0_ADDR:-axiom-n0:29000}
+      - --peer=${NODE1_ADDR:-axiom-n1:29001}
+      - --peer=${NODE2_ADDR:-axiom-n2:29002}
+      - --log-level=info
+
+volumes:
+  n0-data: {}
+  n1-data: {}
+  n2-data: {}
+  n3-data: {}
+
+networks:
+  axiom-test:
+    driver: bridge

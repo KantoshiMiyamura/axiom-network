@@ -62,6 +62,18 @@ impl PeerManager {
         }
     }
 
+    /// Build a manager whose handshake nonce is bound to the given node
+    /// identity (typically the persistent guard public key). This keeps
+    /// every node's outbound Version message cryptographically distinct,
+    /// so two peers can never accidentally collide on the same nonce.
+    pub fn with_identity(network: String, node_identity: &[u8]) -> Self {
+        PeerManager {
+            peers: Arc::new(RwLock::new(HashMap::new())),
+            protocol: ProtocolHandler::with_identity(network, node_identity),
+            banned_peers: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
     pub async fn ban_peer(&self, addr: SocketAddr, duration: Duration) {
         let unban_time = Instant::now() + duration;
         let mut banned = self.banned_peers.write().await;
@@ -209,6 +221,12 @@ impl PeerManager {
 
     pub fn create_version(&self, best_height: u32) -> Message {
         self.protocol.create_version(best_height)
+    }
+
+    /// Random per-node nonce stamped into every outbound Version message.
+    /// Used by the discovery layer to tag and drop self-dials.
+    pub fn local_nonce(&self) -> u64 {
+        self.protocol.local_nonce()
     }
 
     pub async fn send_to_peer(

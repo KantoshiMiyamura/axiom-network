@@ -447,8 +447,8 @@ fn test_list_recent_settlements() {
         .list_recent_settlements(10)
         .expect("List settlements should succeed");
 
-    // This is just to verify the API works, settlements list may be empty
-    assert_eq!(settlements.len() >= 0, true);
+    // API sanity check — list_recent_settlements must not error; contents may be empty.
+    let _ = settlements.len();
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -797,6 +797,6 @@ fn test_multiple_verifier_registration() {
         .list_active_workers(10)
         .expect("Should be able to list");
 
-    // We should have at least the registered verifiers (actual count includes workers too)
-    assert!(verifiers.len() >= 0, "Should have verifiers registered");
+    // API sanity check — list_active_workers must return a (possibly empty) Vec.
+    let _ = verifiers.len();
 }

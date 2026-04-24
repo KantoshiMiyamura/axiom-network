@@ -19,9 +19,24 @@
 /testnet-*/
 /tmp-*/
 /test-*/
+/devnet-sim-*/
 *.dat
 *.sst
 *.fjall
+
+# ── Out-of-tree helper crate for E2E (own workspace) ──────
+/scripts/e2e/target/
+/scripts/e2e/devnet-*/
+/scripts/e2e/Cargo.lock
+/scripts/e2e/*-wallet.json
+
+# ── E2E run outputs ───────────────────────────────────────
+/e2e-data/
+
+# ── Local 4-node testnet runtime output (keep source, drop runtime) ──
+/scripts/testnet/logs/
+/scripts/testnet/pids/
+/scripts/testnet/*.csv
 
 # ── Secrets and credentials ───────────────────────────────
 *.env

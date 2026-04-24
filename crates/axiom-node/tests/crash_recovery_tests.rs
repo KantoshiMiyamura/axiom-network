@@ -69,9 +69,9 @@ fn mempool_persistence_after_restart() {
         let node2 = create_test_node(db_path);
         let mempool_size_after = node2.mempool_size();
         println!("Mempool size after restart: {}", mempool_size_after);
-        // Mempool may or may not persist depending on implementation
-        // The important thing is we don't panic
-        assert!(mempool_size_after >= 0, "Mempool size should be valid");
+        // mempool_size() returning at all is the assertion — mempool persistence
+        // behavior is implementation-defined and not under test here.
+        let _ = mempool_size_after;
     }
 }
 
@@ -230,6 +230,6 @@ fn concurrent_shutdown_safety() {
     // Final verification
     let final_node = create_test_node(db_path);
     let final_height = final_node.best_height().unwrap();
-    assert!(final_height >= 0, "State should be consistent");
-    println!("✓ Final state height: {}", final_height);
+    let _ = final_height;
+    println!("Final state height: {}", final_height);
 }

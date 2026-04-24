@@ -1,5 +1,11 @@
 // Copyright (c) 2026 Kantoshi Miyamura
-// AxiomMind v2 - Anomaly Detection Engine
+//
+// AxiomMind v2 — anomaly detection over already-validated chain events.
+//
+// INVARIANT: detectors run AFTER consensus validation. They emit
+// `AnomalyAlert` records that surface in dashboards and audit logs; they MUST
+// NOT cause block rejection or transaction eviction. The `recommended_action`
+// strings are operator hints, not control-plane instructions.
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -274,8 +280,10 @@ impl MerkleAnomalyDetector {
 
 impl Detector for MerkleAnomalyDetector {
     fn detect(&self, data: &DetectionData) -> Option<AnomalyAlert> {
-        // Check for duplicate merkle roots (potential manipulation)
-        // In production, this would check against actual merkle tree validation
+        // Sanity check only: empty merkle root is a structural red flag worth
+        // surfacing. Authoritative merkle validation lives in
+        // `axiom-consensus::merkle_proof` and runs before this detector ever sees
+        // the block — this check exists to flag wiring bugs upstream.
         if data.merkle_root.is_empty() {
             return Some(AnomalyAlert {
                 anomaly_type: AnomalyType::MerkleAnomaly,

@@ -103,13 +103,13 @@ jobs:
 
       - name: Build release binaries
         shell: bash
+        # axiom-cli produces: axiom, axiom-node, axiom-keygen, axiom-bump-fee.
+        # axiom-signer produces: axiom-sign. The library crate axiom-node is a
+        # transitive dependency of axiom-cli — no separate -p needed.
         run: |
           cargo build --release --target ${{ matrix.target }} \
             -p axiom-cli \
-            -p axiom-node \
-            -p axiom-keygen \
-            -p axiom-sign \
-            -p axiom-bump-fee
+            -p axiom-signer
 
       - name: Run tests
         shell: bash
@@ -169,8 +169,11 @@ jobs:
 
   # ──────────────────────────────────────────────────────────────────────────
   # Desktop wallet installers — Tauri
+  # Disabled for testnet releases: node-only ship. Re-enable by setting
+  # `if: true` once the wallet is ready for public distribution.
   # ──────────────────────────────────────────────────────────────────────────
   build-wallet:
+    if: false
     name: Wallet ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -279,7 +282,9 @@ jobs:
   # ──────────────────────────────────────────────────────────────────────────
   publish:
     name: Publish GitHub Release
-    needs: [build-node, build-wallet]
+    # Node-only release: `build-wallet` is gated off (see its `if: false`).
+    # Restore `build-wallet` here when re-enabling wallet installers.
+    needs: [build-node]
     runs-on: ubuntu-22.04
     steps:
       - name: Resolve release tag

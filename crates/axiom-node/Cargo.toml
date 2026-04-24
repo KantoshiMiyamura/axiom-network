@@ -27,3 +27,9 @@ rand_core.workspace = true
 [dev-dependencies]
 tempfile = "3.8"
 axiom-wallet.workspace = true
+
+[features]
+# Enables the confidential-transaction test suite. Requires axiom-protocol's
+# own `axiom-ct` feature to be active for ConfidentialTransfer (de)serialization.
+default = []
+axiom-ct = []

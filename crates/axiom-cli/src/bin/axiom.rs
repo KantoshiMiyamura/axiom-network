@@ -182,6 +182,44 @@ enum WalletAction {
         #[arg(long)]
         wallet: Option<PathBuf>,
     },
+
+    /// Send AXM from the local wallet to a recipient. Prompts for password;
+    /// private key is never printed. The transaction is built and signed
+    /// locally and submitted to the local RPC node.
+    Send {
+        /// Recipient address (axm... format)
+        #[arg(long)]
+        to: String,
+
+        /// Amount to send. Interpreted as AXM decimal (e.g. "1.5") unless
+        /// --sat is set, in which case it is read as raw satoshis.
+        #[arg(long)]
+        amount: String,
+
+        /// Interpret --amount as satoshis instead of AXM.
+        #[arg(long)]
+        sat: bool,
+
+        /// Flat fee in satoshis (default 1000).
+        #[arg(long, default_value = "1000")]
+        fee: u64,
+
+        /// Optional memo (up to 80 bytes).
+        #[arg(long)]
+        memo: Option<String>,
+
+        /// Path to wallet keystore (default: platform default wallet.json).
+        #[arg(long)]
+        wallet: Option<PathBuf>,
+
+        /// RPC URL of the local node.
+        #[arg(long, default_value = "http://127.0.0.1:8332")]
+        rpc: String,
+
+        /// Skip the final confirmation prompt.
+        #[arg(long)]
+        yes: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -234,6 +272,16 @@ fn main() {
             WalletAction::Import { out } => cmd_wallet_import(out),
             WalletAction::Balance { address, rpc } => cmd_wallet_balance(address, &rpc),
             WalletAction::Address { wallet } => cmd_wallet_address(wallet),
+            WalletAction::Send {
+                to,
+                amount,
+                sat,
+                fee,
+                memo,
+                wallet,
+                rpc,
+                yes,
+            } => cmd_wallet_send(to, amount, sat, fee, memo, wallet, &rpc, yes),
         },
         Commands::Worker { action } => match action {
             WorkerAction::Start { rpc, address } => cmd_worker_start(&rpc, address),
@@ -537,6 +585,376 @@ fn cmd_wallet_address(wallet: Option<PathBuf>) {
     }
     let addr = load_wallet_address(&path);
     println!("{}", addr);
+}
+
+// ── axiom wallet send ────────────────────────────────────────────────────────
+
+const DUST_THRESHOLD_SAT: u64 = 546;
+
+fn parse_amount_sat(amount_str: &str, sat_mode: bool) -> Result<u64, String> {
+    if sat_mode {
+        amount_str
+            .parse::<u64>()
+            .map_err(|e| format!("--amount must be an integer when --sat is set: {}", e))
+            .and_then(|v| {
+                if v == 0 {
+                    Err("--amount must be > 0".into())
+                } else {
+                    Ok(v)
+                }
+            })
+    } else {
+        let axm: f64 = amount_str
+            .parse()
+            .map_err(|e| format!("--amount must be a decimal AXM value: {}", e))?;
+        if !axm.is_finite() || axm <= 0.0 {
+            return Err("--amount must be > 0".into());
+        }
+        let sat_float = (axm * 100_000_000.0).round();
+        if sat_float < 1.0 || sat_float > (u64::MAX as f64) {
+            return Err(format!("--amount out of range: {}", amount_str));
+        }
+        Ok(sat_float as u64)
+    }
+}
+
+fn decode_hash32(name: &str, hex_str: &str) -> Result<[u8; 32], String> {
+    let bytes =
+        hex::decode(hex_str).map_err(|e| format!("bad {} '{}': {}", name, hex_str, e))?;
+    if bytes.len() != 32 {
+        return Err(format!("{} must be 32 bytes, got {}", name, bytes.len()));
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(arr)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn cmd_wallet_send(
+    to: String,
+    amount_str: String,
+    sat_mode: bool,
+    fee_sat: u64,
+    memo: Option<String>,
+    wallet: Option<PathBuf>,
+    rpc: &str,
+    yes: bool,
+) {
+    use axiom_primitives::{Amount, Hash256};
+    use axiom_protocol::serialize_transaction;
+    use axiom_wallet::{Address, KeyPair, TransactionBuilder};
+
+    // 1. Validate recipient address before touching the wallet.
+    let to_addr = Address::from_string(&to).unwrap_or_else(|_| {
+        eprintln!("error: invalid recipient address '{}'", to);
+        std::process::exit(1);
+    });
+
+    // 2. Parse + validate amount.
+    let amount_sat = parse_amount_sat(&amount_str, sat_mode).unwrap_or_else(|e| {
+        eprintln!("error: {}", e);
+        std::process::exit(1);
+    });
+    if amount_sat < DUST_THRESHOLD_SAT {
+        eprintln!(
+            "error: amount {} sat is below dust threshold {} sat",
+            amount_sat, DUST_THRESHOLD_SAT
+        );
+        std::process::exit(1);
+    }
+
+    // 3. Validate memo length early (builder truncates silently otherwise).
+    if let Some(m) = memo.as_deref() {
+        if m.len() > 80 {
+            eprintln!("error: memo exceeds 80 bytes ({} bytes)", m.len());
+            std::process::exit(1);
+        }
+    }
+
+    // 4. Load keystore (no password yet).
+    let wallet_path = wallet.unwrap_or_else(default_wallet_path);
+    if !wallet_path.exists() {
+        eprintln!("error: no wallet found at {}", wallet_path.display());
+        eprintln!("       Create one with: axiom wallet create");
+        std::process::exit(1);
+    }
+    let json = fs::read_to_string(&wallet_path).unwrap_or_else(|e| {
+        eprintln!("error: cannot read wallet {}: {}", wallet_path.display(), e);
+        std::process::exit(1);
+    });
+    let keystore = axiom_wallet::import_keystore(&json).unwrap_or_else(|e| {
+        eprintln!("error: invalid keystore format: {}", e);
+        std::process::exit(1);
+    });
+
+    // 5. Reach the node before asking for the password — if RPC is down,
+    // fail early and we haven't collected credentials for nothing.
+    let base = rpc.trim_end_matches('/');
+    let status: serde_json::Value = reqwest::blocking::get(format!("{}/status", base))
+        .and_then(|r| r.error_for_status())
+        .and_then(|r| r.json())
+        .unwrap_or_else(|e| {
+            eprintln!("error: cannot reach node /status at {}: {}", rpc, e);
+            std::process::exit(1);
+        });
+    let chain_id = status
+        .get("network")
+        .and_then(|v| v.as_str())
+        .unwrap_or_else(|| {
+            eprintln!("error: /status response missing 'network' field");
+            std::process::exit(1);
+        })
+        .to_string();
+    let tip_height = status
+        .get("best_height")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0) as u32;
+
+    // 6. Prompt for password and unlock.
+    // Production build: interactive prompt only.
+    // The AXIOM_TEST_WALLET_PASSWORD env var bypass is compiled in only when the
+    // `test-fixtures` Cargo feature is set — release builds physically lack it.
+    let password = read_wallet_password();
+    let priv_bytes = axiom_wallet::unlock_keystore(&keystore, &password).unwrap_or_else(|_| {
+        eprintln!("error: wrong password or corrupt keystore");
+        std::process::exit(1);
+    });
+    drop(password);
+    let keypair = KeyPair::from_private_key(priv_bytes.to_vec()).unwrap_or_else(|e| {
+        eprintln!("error: failed to load keypair: {}", e);
+        std::process::exit(1);
+    });
+    let from_addr = Address::from_pubkey_hash(keypair.public_key_hash());
+
+    // Refuse to send to self — ambiguous at best, and masks real bugs.
+    if from_addr.pubkey_hash() == to_addr.pubkey_hash() {
+        eprintln!("error: sender and recipient are the same address");
+        std::process::exit(1);
+    }
+
+    // 7. Fetch UTXOs for the sender.
+    let utxos_url = format!("{}/utxos/{}", base, from_addr);
+    let utxos: serde_json::Value = reqwest::blocking::get(&utxos_url)
+        .and_then(|r| r.error_for_status())
+        .and_then(|r| r.json())
+        .unwrap_or_else(|e| {
+            eprintln!("error: cannot fetch UTXOs: {}", e);
+            std::process::exit(1);
+        });
+
+    let empty_vec: Vec<serde_json::Value> = Vec::new();
+    let utxo_list = utxos
+        .get("utxos")
+        .and_then(|v| v.as_array())
+        .unwrap_or(&empty_vec);
+
+    // Filter out immature coinbase outputs. Devnet maturity = 5, else = 100.
+    let maturity: u32 = if chain_id == "axiom-dev-1" { 5 } else { 100 };
+
+    #[derive(Clone)]
+    struct Utxo {
+        txid: String,
+        output_index: u32,
+        value: u64,
+    }
+    let mut mature: Vec<Utxo> = utxo_list
+        .iter()
+        .filter_map(|u| {
+            let txid = u.get("txid")?.as_str()?.to_string();
+            let output_index = u.get("output_index")?.as_u64()? as u32;
+            let value = u.get("value")?.as_u64()?;
+            let block_height = u.get("block_height")?.as_u64()? as u32;
+            // Match validator semantics exactly: blocks_since = tip - height,
+            // must be >= maturity. We can't tell coinbase vs transfer from this
+            // response, so apply the conservative (coinbase) rule to all.
+            let blocks_since = tip_height.saturating_sub(block_height);
+            if blocks_since < maturity {
+                return None;
+            }
+            Some(Utxo { txid, output_index, value })
+        })
+        .collect();
+
+    if mature.is_empty() {
+        eprintln!(
+            "error: no mature UTXOs available for {} (tip {}, maturity {} blocks)",
+            from_addr, tip_height, maturity
+        );
+        std::process::exit(1);
+    }
+
+    // 8. Coin selection: smallest-first until we cover amount+fee.
+    mature.sort_by_key(|u| u.value);
+    let total_required = amount_sat.checked_add(fee_sat).unwrap_or_else(|| {
+        eprintln!("error: amount + fee overflow");
+        std::process::exit(1);
+    });
+    let mut selected: Vec<Utxo> = Vec::new();
+    let mut selected_sum: u64 = 0;
+    for u in &mature {
+        selected_sum = selected_sum.checked_add(u.value).unwrap_or_else(|| {
+            eprintln!("error: input sum overflow");
+            std::process::exit(1);
+        });
+        selected.push(u.clone());
+        if selected_sum >= total_required {
+            break;
+        }
+    }
+    if selected_sum < total_required {
+        eprintln!(
+            "error: insufficient funds — need {} sat ({} amount + {} fee), have {} sat mature",
+            total_required, amount_sat, fee_sat, selected_sum
+        );
+        std::process::exit(1);
+    }
+
+    // Compute change. If change would be below dust, roll it into the fee.
+    let raw_change = selected_sum - total_required;
+    let (change_sat, effective_fee) = if raw_change >= DUST_THRESHOLD_SAT {
+        (raw_change, fee_sat)
+    } else {
+        (0, fee_sat + raw_change)
+    };
+    let has_change = change_sat > 0;
+
+    // 9. Fetch sender nonce. /nonce returns the LAST-USED nonce; the next
+    // outgoing tx must use last_used + 1.
+    let nonce_url = format!("{}/nonce/{}", base, from_addr);
+    let nonce_resp: serde_json::Value = reqwest::blocking::get(&nonce_url)
+        .and_then(|r| r.error_for_status())
+        .and_then(|r| r.json())
+        .unwrap_or_else(|e| {
+            eprintln!("error: cannot fetch nonce: {}", e);
+            std::process::exit(1);
+        });
+    let last_used_nonce: u64 = nonce_resp
+        .get("nonce")
+        .and_then(|v| v.as_u64())
+        .unwrap_or(0);
+    let nonce = last_used_nonce.saturating_add(1);
+
+    // 10. Show preview and ask for confirmation.
+    println!();
+    println!("  ─── Send preview ─────────────────────────────────────────");
+    println!("  From:      {}", from_addr);
+    println!("  To:        {}", to_addr);
+    println!(
+        "  Amount:    {} sat   ({:.8} AXM)",
+        amount_sat,
+        amount_sat as f64 / 100_000_000.0
+    );
+    println!(
+        "  Fee:       {} sat   ({:.8} AXM)",
+        effective_fee,
+        effective_fee as f64 / 100_000_000.0
+    );
+    if has_change {
+        println!(
+            "  Change:    {} sat   ({:.8} AXM)   → back to sender",
+            change_sat,
+            change_sat as f64 / 100_000_000.0
+        );
+    } else if raw_change > 0 {
+        println!("  Change:    rolled into fee ({} sat < dust)", raw_change);
+    } else {
+        println!("  Change:    none");
+    }
+    println!("  Inputs:    {} UTXO(s), total {} sat", selected.len(), selected_sum);
+    println!("  Nonce:     {}", nonce);
+    println!("  Chain ID:  {}", chain_id);
+    if let Some(m) = memo.as_deref() {
+        if !m.is_empty() {
+            println!("  Memo:      {}", m);
+        }
+    }
+    println!("  ──────────────────────────────────────────────────────────");
+    println!();
+
+    if !yes {
+        eprint!("Proceed? [y/N] ");
+        io::stderr().flush().ok();
+        let mut line = String::new();
+        io::stdin().read_line(&mut line).ok();
+        let ans = line.trim().to_ascii_lowercase();
+        if ans != "y" && ans != "yes" {
+            eprintln!("aborted");
+            std::process::exit(0);
+        }
+    }
+
+    // 11. Build + sign transaction locally.
+    let mut builder = TransactionBuilder::new()
+        .nonce(nonce)
+        .chain_id(chain_id.clone())
+        .keypair(keypair);
+    for u in &selected {
+        let hash = decode_hash32("prev_tx_hash", &u.txid).unwrap_or_else(|e| {
+            eprintln!("error: {}", e);
+            std::process::exit(1);
+        });
+        builder = builder.add_input(Hash256::from_bytes(hash), u.output_index);
+    }
+    let amount_typed = Amount::from_sat(amount_sat).unwrap_or_else(|e| {
+        eprintln!("error: invalid amount: {}", e);
+        std::process::exit(1);
+    });
+    builder = builder.add_output(amount_typed, *to_addr.pubkey_hash());
+    if has_change {
+        let change_typed = Amount::from_sat(change_sat).unwrap_or_else(|e| {
+            eprintln!("error: invalid change amount: {}", e);
+            std::process::exit(1);
+        });
+        builder = builder.add_output(change_typed, *from_addr.pubkey_hash());
+    }
+    if let Some(m) = memo.as_deref() {
+        if !m.is_empty() {
+            builder = builder.memo(m);
+        }
+    }
+    let tx = builder.build().unwrap_or_else(|e| {
+        eprintln!("error: failed to build transaction: {}", e);
+        std::process::exit(1);
+    });
+
+    // 12. Serialize and submit.
+    let tx_bytes = serialize_transaction(&tx);
+    let submit_url = format!("{}/submit_transaction", base);
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .unwrap_or_else(|e| {
+            eprintln!("error: failed to build HTTP client: {}", e);
+            std::process::exit(1);
+        });
+    let submit_body = serde_json::json!({ "transaction_hex": hex::encode(&tx_bytes) });
+    let resp = client
+        .post(&submit_url)
+        .json(&submit_body)
+        .send()
+        .unwrap_or_else(|e| {
+            eprintln!("error: submit failed: {}", e);
+            std::process::exit(1);
+        });
+    if !resp.status().is_success() {
+        let st = resp.status();
+        let body = resp.text().unwrap_or_default();
+        eprintln!("error: node rejected transaction ({}): {}", st, body);
+        std::process::exit(1);
+    }
+    let result: serde_json::Value = resp.json().unwrap_or_else(|e| {
+        eprintln!("error: invalid submit response: {}", e);
+        std::process::exit(1);
+    });
+    let txid = result
+        .get("txid")
+        .and_then(|v| v.as_str())
+        .unwrap_or("<unknown>");
+
+    println!();
+    println!("  ✓ Transaction submitted to mempool");
+    println!("    txid: {}", txid);
+    println!();
 }
 
 // ── axiom worker start ───────────────────────────────────────────────────────
@@ -861,6 +1279,35 @@ fn read_password_confirmed(prompt: &str) -> String {
 
         return pw;
     }
+}
+
+// Reads the wallet password.
+//
+// In production builds (default features) this is always an interactive prompt.
+//
+// When the `test-fixtures` Cargo feature is enabled, an `AXIOM_TEST_WALLET_PASSWORD`
+// env var is honored instead, with a loud stderr warning. Release builds without
+// the feature do not contain that code path at all.
+#[cfg(not(feature = "test-fixtures"))]
+fn read_wallet_password() -> String {
+    rpassword::prompt_password("Wallet password: ").unwrap_or_else(|e| {
+        eprintln!("error: failed to read password: {}", e);
+        std::process::exit(1);
+    })
+}
+
+#[cfg(feature = "test-fixtures")]
+fn read_wallet_password() -> String {
+    if let Ok(p) = std::env::var("AXIOM_TEST_WALLET_PASSWORD") {
+        if !p.is_empty() {
+            eprintln!("warning: using AXIOM_TEST_WALLET_PASSWORD — test-fixtures build, not for production");
+            return p;
+        }
+    }
+    rpassword::prompt_password("Wallet password: ").unwrap_or_else(|e| {
+        eprintln!("error: failed to read password: {}", e);
+        std::process::exit(1);
+    })
 }
 
 // ── axiom mine (one-click, like Bitcoin Core) ───────────────────────────────

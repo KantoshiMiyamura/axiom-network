@@ -3,7 +3,7 @@
 //! Peer discovery and DNS-based bootstrap.
 
 use std::collections::{HashSet, VecDeque};
-use std::net::{SocketAddr, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const MAINNET_DNS_SEEDS: &[&str] = &[
@@ -23,7 +23,9 @@ pub const TESTNET_DNS_SEEDS: &[&str] = &[
     "testnet-seed2.axiom-network.io:9000",
 ];
 
-pub const DEVNET_DNS_SEEDS: &[&str] = &["devnet-seed.axiom-network.io:9000"];
+// Devnet is isolated by design. No default peers, no DNS seeding.
+// Operators wiring multi-node devnets pass peers explicitly via `--peer`.
+pub const DEVNET_DNS_SEEDS: &[&str] = &[];
 
 /// Resolve DNS seeds; unreachable hostnames are silently skipped.
 pub fn resolve_dns_seeds(hostnames: &[&str]) -> Vec<SocketAddr> {
@@ -36,11 +38,99 @@ pub fn resolve_dns_seeds(hostnames: &[&str]) -> Vec<SocketAddr> {
     addrs
 }
 
+/// Build the set of socket addresses that identify **this node** on the wire.
+///
+/// The p2p port is the authoritative discriminator; IPs are merely the
+/// interfaces we might be reachable at. Any peer list entry matching
+/// (self_ip, p2p_port) is a loopback to ourselves and must be skipped.
+///
+/// Always includes loopback (127.0.0.1, ::1) and `bind_addr` itself. When
+/// bind_addr is `0.0.0.0` / `::`, attempts a best-effort outbound-IP probe
+/// (UDP `connect` trick) to learn the primary public/LAN IP so a seed list
+/// that names our public IP is still filtered.
+pub fn self_p2p_addrs(bind_addr: SocketAddr) -> Vec<SocketAddr> {
+    let port = bind_addr.port();
+    let mut set: HashSet<SocketAddr> = HashSet::new();
+
+    set.insert(bind_addr);
+    set.insert(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port));
+    set.insert(SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), port));
+    set.insert(SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), port));
+    set.insert(SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), port));
+
+    if bind_addr.ip().is_unspecified() {
+        if let Some(ip) = detect_outbound_ipv4() {
+            set.insert(SocketAddr::new(IpAddr::V4(ip), port));
+        }
+        if let Some(ip) = detect_outbound_ipv6() {
+            set.insert(SocketAddr::new(IpAddr::V6(ip), port));
+        }
+    }
+
+    set.into_iter().collect()
+}
+
+/// Best-effort primary IPv4 address for this host.
+///
+/// Opens a UDP socket and *connects* it to a public address (no packets are
+/// actually sent). The kernel then binds the socket to whichever interface it
+/// would use to reach that destination, and `local_addr()` reports the IP.
+/// Returns `None` in isolated environments (no route to the probe address).
+fn detect_outbound_ipv4() -> Option<Ipv4Addr> {
+    let sock = UdpSocket::bind("0.0.0.0:0").ok()?;
+    sock.connect("8.8.8.8:80").ok()?;
+    match sock.local_addr().ok()?.ip() {
+        IpAddr::V4(v4) if !v4.is_unspecified() => Some(v4),
+        _ => None,
+    }
+}
+
+fn detect_outbound_ipv6() -> Option<Ipv6Addr> {
+    let sock = UdpSocket::bind("[::]:0").ok()?;
+    sock.connect("[2001:4860:4860::8888]:80").ok()?;
+    match sock.local_addr().ok()?.ip() {
+        IpAddr::V6(v6) if !v6.is_unspecified() => Some(v6),
+        _ => None,
+    }
+}
+
+/// Returns true if `addr` points back at this node.
+///
+/// Matches on full (IP, port) tuples against the precomputed self-addrs list.
+/// An address book entry with the same IP but a different port is a *different*
+/// node on the same host and is **not** filtered.
+pub fn is_self_addr(addr: &SocketAddr, self_addrs: &[SocketAddr]) -> bool {
+    self_addrs.iter().any(|s| s == addr)
+}
+
+/// Remove duplicates and entries that point back at this node.
+/// Preserves input order so operator-supplied `--peer` entries keep their
+/// dial priority over DNS-resolved seeds.
+pub fn dedupe_and_filter_self(
+    addrs: Vec<SocketAddr>,
+    self_addrs: &[SocketAddr],
+) -> Vec<SocketAddr> {
+    let mut seen: HashSet<SocketAddr> = HashSet::new();
+    let mut out: Vec<SocketAddr> = Vec::with_capacity(addrs.len());
+    for a in addrs {
+        if is_self_addr(&a, self_addrs) {
+            continue;
+        }
+        if seen.insert(a) {
+            out.push(a);
+        }
+    }
+    out
+}
+
 pub struct PeerDiscovery {
     known_peers: HashSet<SocketAddr>,
     seed_nodes: Vec<SocketAddr>,
     last_discovery: u64,
     discovery_interval: u64,
+    /// Addrs that map back to this node; used to reject self entries from
+    /// gossip (`Peers` messages) or from handshake-detected self-dials.
+    self_addrs: HashSet<SocketAddr>,
 }
 
 impl PeerDiscovery {
@@ -50,10 +140,35 @@ impl PeerDiscovery {
             seed_nodes,
             last_discovery: 0,
             discovery_interval: 300,
+            self_addrs: HashSet::new(),
         }
     }
 
+    /// Record the addrs that resolve to this node so future gossip
+    /// `Peers` messages can be filtered.
+    pub fn set_self_addrs(&mut self, self_addrs: Vec<SocketAddr>) {
+        self.self_addrs = self_addrs.into_iter().collect();
+    }
+
+    /// Mark `addr` as a confirmed self-address (e.g. after a handshake
+    /// returned `HandshakeError::SelfConnection`). Idempotent.
+    pub fn mark_self(&mut self, addr: SocketAddr) {
+        self.self_addrs.insert(addr);
+        self.known_peers.remove(&addr);
+    }
+
+    pub fn is_self(&self, addr: &SocketAddr) -> bool {
+        self.self_addrs.contains(addr)
+    }
+
+    pub fn self_addrs(&self) -> Vec<SocketAddr> {
+        self.self_addrs.iter().copied().collect()
+    }
+
     pub fn add_peer(&mut self, addr: SocketAddr) {
+        if self.self_addrs.contains(&addr) {
+            return;
+        }
         self.known_peers.insert(addr);
     }
 
@@ -275,6 +390,77 @@ mod tests {
             book.add_addr(SocketAddr::new(ip, 9000));
         }
         assert_eq!(book.len(), ADDR_BOOK_CAPACITY);
+    }
+
+    #[test]
+    fn test_self_addrs_includes_loopback_and_bind() {
+        let bind = SocketAddr::from_str("0.0.0.0:9000").unwrap();
+        let self_addrs = self_p2p_addrs(bind);
+
+        assert!(self_addrs.contains(&SocketAddr::from_str("127.0.0.1:9000").unwrap()));
+        assert!(self_addrs.contains(&SocketAddr::from_str("0.0.0.0:9000").unwrap()));
+        assert!(self_addrs.contains(&SocketAddr::from_str("[::1]:9000").unwrap()));
+    }
+
+    #[test]
+    fn test_is_self_addr_matches_port_exactly() {
+        let bind = SocketAddr::from_str("0.0.0.0:9000").unwrap();
+        let self_addrs = self_p2p_addrs(bind);
+
+        // Same IP + same port → self.
+        assert!(is_self_addr(
+            &SocketAddr::from_str("127.0.0.1:9000").unwrap(),
+            &self_addrs
+        ));
+        // Same IP, DIFFERENT port → not self (different node on same host).
+        assert!(!is_self_addr(
+            &SocketAddr::from_str("127.0.0.1:9001").unwrap(),
+            &self_addrs
+        ));
+    }
+
+    #[test]
+    fn test_dedupe_and_filter_self_preserves_order() {
+        let bind = SocketAddr::from_str("0.0.0.0:9000").unwrap();
+        let self_addrs = self_p2p_addrs(bind);
+
+        let input = vec![
+            SocketAddr::from_str("1.1.1.1:9000").unwrap(),
+            SocketAddr::from_str("127.0.0.1:9000").unwrap(), // self — drop
+            SocketAddr::from_str("2.2.2.2:9000").unwrap(),
+            SocketAddr::from_str("1.1.1.1:9000").unwrap(), // duplicate — drop
+            SocketAddr::from_str("0.0.0.0:9000").unwrap(), // self — drop
+        ];
+        let out = dedupe_and_filter_self(input, &self_addrs);
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0], SocketAddr::from_str("1.1.1.1:9000").unwrap());
+        assert_eq!(out[1], SocketAddr::from_str("2.2.2.2:9000").unwrap());
+    }
+
+    #[test]
+    fn test_peer_discovery_rejects_self_from_gossip() {
+        let mut d = PeerDiscovery::new(vec![]);
+        let self_addr = SocketAddr::from_str("178.104.8.137:9000").unwrap();
+        d.set_self_addrs(vec![self_addr]);
+
+        d.add_peer(self_addr);
+        assert!(!d.is_known(&self_addr));
+
+        let other = SocketAddr::from_str("1.2.3.4:9000").unwrap();
+        d.add_peer(other);
+        assert!(d.is_known(&other));
+    }
+
+    #[test]
+    fn test_mark_self_evicts_known_peer() {
+        let mut d = PeerDiscovery::new(vec![]);
+        let addr = SocketAddr::from_str("10.0.0.1:9000").unwrap();
+        d.add_peer(addr);
+        assert!(d.is_known(&addr));
+
+        d.mark_self(addr);
+        assert!(!d.is_known(&addr));
+        assert!(d.is_self(&addr));
     }
 
     #[test]

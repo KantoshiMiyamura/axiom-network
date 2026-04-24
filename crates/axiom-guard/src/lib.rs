@@ -1,7 +1,14 @@
 // Copyright (c) 2026 Kantoshi Miyamura
-//! AxiomMind — the AI intelligence layer of Axiom Network.
-//! A self-learning, self-defending neural guardian that lives on the blockchain.
-//! Has a post-quantum ML-DSA-87 cryptographic identity. Cannot be shut down.
+//! NetworkGuard — heuristic attack-pattern detector over already-accepted blocks.
+//!
+//! Subscribes to the post-validation `block_accepted_hook` and produces
+//! `GuardAlert` records for selfish-mining, fork-race, and timestamp-skew
+//! patterns. EWMA baselines and peer reputation are tracked in RAM and
+//! exposed via RPC.
+//!
+//! INVARIANT: this crate is read-only with respect to consensus. It MUST NOT
+//! reject blocks, evict transactions, or disconnect peers — alert consumers
+//! decide policy. See AI-CONSENSUS-AUDIT.md §3.2 for the isolation argument.
 
 pub mod alerts;
 pub mod detector;

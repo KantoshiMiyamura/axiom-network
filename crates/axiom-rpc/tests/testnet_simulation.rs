@@ -431,18 +431,10 @@ fn testnet_simulation_10_nodes_continuous_load() {
     println!("STABILITY SCORE: {:.0}/100", stability_score);
     println!("═══════════════════════════════════════════════════════════════\n");
 
-    // Final verdict
-    if stability_score >= 85.0 {
-        println!("🟢 VERDICT: STABLE FOR TESTNET ECONOMY\n");
-        println!("The compute protocol is ready for:");
-        println!("  ✅ 1000+ jobs/day on testnet");
-        println!("  ✅ 50+ concurrent workers");
-        println!("  ✅ Cross-node coordination");
-        println!("  ✅ Real-world failure scenarios");
-        println!("  ✅ Economic incentive testing\n");
-    } else {
-        println!("🟡 VERDICT: NEEDS ADJUSTMENT\n");
-    }
+    println!(
+        "verdict: {}",
+        if stability_score >= 85.0 { "stable" } else { "needs adjustment" }
+    );
 
     println!("═══════════════════════════════════════════════════════════════\n");
 
@@ -1039,66 +1031,20 @@ fn testnet_throughput_optimization() {
     );
     println!("└─────────────────────────────────────────────────────────┘\n");
 
-    // Architectural improvements summary
-    println!("🏗️  ARCHITECTURAL IMPROVEMENTS IMPLEMENTED:");
-    println!("┌─────────────────────────────────────────────────────────┐");
-    println!("│ 1. Batch Submissions                                    │");
-    println!("│    - Group 20 jobs per network call instead of 1        │");
-    println!("│    - Latency impact amortized: 50-100ms / 20 jobs       │");
-    println!("│    - Improvement: ~20x latency efficiency              │");
-    println!("│                                                         │");
-    println!("│ 2. Priority Queue (Fee-Based)                           │");
-    println!("│    - High-fee jobs assigned first                       │");
-    println!("│    - Fair distribution maintained                       │");
-    println!("│    - Economic incentives preserved                      │");
-    println!("│                                                         │");
-    println!("│ 3. Reduced Latency Calls                                │");
-    println!("│    - Assignment latency every 10 ops vs. per-op         │");
-    println!("│    - Batched assignment operations                      │");
-    println!("│    - Improvement: ~10x on assignment path               │");
-    println!("│                                                         │");
-    println!("│ 4. Pipeline Operations                                  │");
-    println!("│    - Parallel submission and assignment phases          │");
-    println!("│    - No blocking on completion                          │");
-    println!("│    - Improved CPU/network utilization                   │");
-    println!("└─────────────────────────────────────────────────────────┘\n");
+    println!();
+    println!("optimization summary:");
+    println!("  throughput_improvement:    {:.0}%", throughput_improvement);
+    println!("  assignment_improvement:    {:.0}%", assignment_improvement);
+    let network_amortization = (opt_submitted as f64 / baseline_submitted as f64)
+        * (baseline_throughput / opt_throughput);
+    println!("  network_amortization:      {:.1}x", network_amortization);
 
-    println!("🎯 OPTIMIZATION SUMMARY:");
-    println!("┌─────────────────────────────────────────────────────────┐");
-
-    if throughput_improvement >= 300.0 {
-        println!("│ ✅ EXCEPTIONAL: {:.0}% throughput improvement           │", throughput_improvement);
-    } else if throughput_improvement >= 200.0 {
-        println!("│ ✅ EXCELLENT: {:.0}% throughput improvement             │", throughput_improvement);
-    } else if throughput_improvement >= 100.0 {
-        println!("│ ✅ STRONG: {:.0}% throughput improvement                │", throughput_improvement);
-    } else {
-        println!("│ ✅ GOOD: {:.0}% throughput improvement                  │", throughput_improvement);
-    }
-
-    println!("│                                                         │");
-    println!("│ Submission Batching Impact:    ~{:.0}% improvement       │", throughput_improvement);
-    println!("│ Assignment Optimization Impact: ~{:.0}% improvement      │", assignment_improvement);
-    println!("│ Network Efficiency Gain:       {:.1}x amortization       │",
-        (opt_submitted as f64 / baseline_submitted as f64) * (baseline_throughput / opt_throughput));
-    println!("└─────────────────────────────────────────────────────────┘\n");
-
-    // Target achievement
-    println!("🎯 TARGET ACHIEVEMENT:");
     let target_throughput = 50.0;
     let target_queue_growth = 2.0;
-
-    if opt_throughput >= target_throughput {
-        println!("  ✅ Throughput Target (>50 jobs/sec):      ACHIEVED ({:.1} jobs/sec)", opt_throughput);
-    } else {
-        println!("  ⚠️  Throughput Target (>50 jobs/sec):      {:.1} jobs/sec (would require async implementation)", opt_throughput);
-    }
-    println!("  ℹ️  Queue Growth (<2 jobs/sec):             Maintained at protocol level");
-    println!("  ℹ️  Note: Async/true parallelization would reach >50 jobs/sec target\n");
-
-    println!("╔════════════════════════════════════════════════════════════╗");
-    println!("║  OPTIMIZATION COMPLETE                                   ║");
-    println!("║  Throughput increased by {:.0}% via batching & pipelining     ║", throughput_improvement);
-    println!("║  Ready for production deployment with async support       ║");
-    println!("╚════════════════════════════════════════════════════════════╝\n");
+    println!(
+        "  throughput_target_50/s:    {:.1} jobs/sec ({})",
+        opt_throughput,
+        if opt_throughput >= target_throughput { "met" } else { "not met" }
+    );
+    let _ = target_queue_growth;
 }

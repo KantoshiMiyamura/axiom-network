@@ -22,13 +22,13 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.0.1-testnet.1"
 edition = "2021"
 license = "MIT"
 authors = ["Kantoshi Miyamura"]
 description = "Axiom Network — post-quantum blockchain"
-repository = "https://github.com/axiom-network/axiom"
-homepage = "https://axiom.network"
+repository = "https://github.com/Ayano-X-Tech/axiom-network"
+homepage = "https://github.com/Ayano-X-Tech/axiom-network"
 keywords = ["blockchain", "post-quantum", "ml-dsa", "cryptocurrency"]
 categories = ["cryptography", "network-programming"]
 
@@ -90,3 +90,13 @@ ratatui = "0.25"
 crossterm = { version = "0.27", features = ["serde"] }
 reqwest = { version = "0.11", features = ["json"] }
 dirs = "5.0"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

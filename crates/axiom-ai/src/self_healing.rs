@@ -1,5 +1,12 @@
 // Copyright (c) 2026 Kantoshi Miyamura
-// AxiomMind v2 - Self-Healing System
+
+//! Patch-recommendation telemetry for AxiomMind v2.
+//!
+//! INVARIANT: nothing in this module mutates source files, on-chain state,
+//! or peer state. `Patch` and `CodeChange` are descriptive metadata; the
+//! `apply_patch` and `vote` functions are no-ops that exist solely to keep
+//! the dashboard state machine consistent. Wiring either to real I/O
+//! requires explicit operator review (see AI-CONSENSUS-AUDIT.md, R2).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -310,9 +317,8 @@ impl ConsensusEngine {
         ConsensusEngine { node_id, peer_count }
     }
 
-    /// Vote on a patch
+    /// Stub. Patch voting never escapes this process — see module doc.
     pub async fn vote(&self, _patch: &Patch, _approve: bool) -> Result<(), String> {
-        // In production, this would broadcast vote to peers
         Ok(())
     }
 
@@ -377,25 +383,22 @@ impl SelfHealingSystem {
         }
     }
 
-    /// Detect and heal a vulnerability
+    /// Generate, validate, and record a patch for telemetry. Does not modify
+    /// any source file or chain state — see module-level invariant.
     pub async fn heal(&self, vulnerability: &Vulnerability) -> Result<PatchResult, String> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
 
-        // Generate patch
         let mut _patch = PatchGenerator::generate(vulnerability)?;
         _patch.status = PatchStatus::Generated;
 
-        // Validate patch
         self.validate_patch(&_patch)?;
         _patch.status = PatchStatus::Validated;
 
-        // Get consensus (simulated - in production would broadcast to peers)
         _patch.status = PatchStatus::Approved;
 
-        // Apply patch
         self.apply_patch(&_patch)?;
         _patch.status = PatchStatus::Applied;
 
@@ -436,16 +439,11 @@ impl SelfHealingSystem {
         Ok(())
     }
 
-    /// Apply a patch
+    /// No-op. Invariant: this function MUST NOT touch the filesystem or any
+    /// chain state. The AI subsystem is advisory; consensus / source-of-truth
+    /// changes are operator-driven. Wiring this to filesystem mutation
+    /// requires an explicit security review.
     fn apply_patch(&self, _patch: &Patch) -> Result<(), String> {
-        // In production, this would:
-        // 1. Create a backup of affected files
-        // 2. Apply code changes
-        // 3. Recompile affected modules
-        // 4. Run tests
-        // 5. Verify functionality
-
-        // For now, we simulate successful application
         Ok(())
     }
 

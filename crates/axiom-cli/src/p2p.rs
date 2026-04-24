@@ -3,7 +3,8 @@
 //! P2P networking for CLI node.
 
 use axiom_node::network::{
-    Connection, Direction, Message, NetworkService, PeerDiscovery, PeerId, PeerManager, Transport,
+    Connection, Direction, HandshakeError, Message, NetworkError, NetworkService, PeerDiscovery,
+    PeerId, PeerManager, Transport,
 };
 use std::collections::HashSet;
 use std::net::SocketAddr;
@@ -49,9 +50,16 @@ impl P2PNetwork {
             }
         });
 
-        let seeds = {
+        // Pull seeds and drop any addr that resolves back to us. Dedupe so we
+        // don't spin up N identical connector tasks for the same host.
+        let seeds: Vec<SocketAddr> = {
             let disc = self.discovery.lock().unwrap_or_else(|e| e.into_inner());
-            disc.get_seed_nodes()
+            let raw = disc.get_seed_nodes();
+            let mut seen: HashSet<SocketAddr> = HashSet::new();
+            raw.into_iter()
+                .filter(|a| !disc.is_self(a))
+                .filter(|a| seen.insert(*a))
+                .collect()
         };
 
         info!("DISCOVERY: connecting to {} seed nodes", seeds.len());
@@ -129,6 +137,19 @@ impl P2PNetwork {
         let mut retry_delay = 1u64;
 
         loop {
+            // Short-circuit if a previous handshake revealed this seed is us.
+            // Reclaims the task instead of letting it retry indefinitely.
+            {
+                let disc = self.discovery.lock().unwrap_or_else(|e| e.into_inner());
+                if disc.is_self(&seed_addr) {
+                    info!(
+                        "PEER_SEED_SKIP_SELF: {} resolves to this node — halting dial task",
+                        seed_addr
+                    );
+                    return;
+                }
+            }
+
             match Transport::connect(seed_addr).await {
                 Ok(connection) => {
                     info!("PEER_SEED_CONNECTED: {}", seed_addr);
@@ -162,6 +183,20 @@ impl P2PNetwork {
                     {
                         warn!("Seed connection error for {}: {}", seed_addr, e);
                         self.peer_manager.remove_peer(peer_id).await;
+                    }
+
+                    // If the handshake identified this seed as ourselves, the
+                    // discovery book will now flag it — exit the retry loop.
+                    let is_self = {
+                        let disc = self.discovery.lock().unwrap_or_else(|e| e.into_inner());
+                        disc.is_self(&seed_addr)
+                    };
+                    if is_self {
+                        info!(
+                            "PEER_SEED_SELF_CONFIRMED: {} — not reconnecting",
+                            seed_addr
+                        );
+                        return;
                     }
 
                     info!("PEER_SEED_RECONNECT: {} in {}s", seed_addr, retry_delay);
@@ -243,15 +278,21 @@ impl P2PNetwork {
                 continue;
             }
 
-            let known = {
+            let known: Vec<SocketAddr> = {
                 let disc = self.discovery.lock().unwrap_or_else(|e| e.into_inner());
                 disc.get_peers()
             };
 
             let mut to_connect = Vec::new();
             for addr in known {
-                if addr == self.bind_addr {
-                    continue; // don't connect to ourselves
+                // Full self-filter: catches bind_addr, loopback, and any IP
+                // the handshake layer later confirmed as our own.
+                let is_self = {
+                    let disc = self.discovery.lock().unwrap_or_else(|e| e.into_inner());
+                    disc.is_self(&addr)
+                };
+                if is_self {
+                    continue;
                 }
                 if self.peer_manager.is_addr_connected(addr).await {
                     continue; // already connected
@@ -393,7 +434,24 @@ impl P2PNetwork {
                                 }
                             }
                             Err(e) => {
-                                tracing::warn!("HANDSHAKE_ERROR: peer={}, error={}", addr, e);
+                                // SelfConnection is the nonce-match path: the peer we
+                                // dialled is actually us (public IP in seed list, NAT
+                                // hairpinning, etc). Remember the addr so future
+                                // discovery ticks and reconnect tasks skip it, and
+                                // close the socket quietly — no ban, no retry storm.
+                                if matches!(
+                                    e,
+                                    NetworkError::Handshake(HandshakeError::SelfConnection)
+                                ) {
+                                    tracing::info!(
+                                        "HANDSHAKE_SELF: peer={} is this node — marking addr as self",
+                                        addr
+                                    );
+                                    let mut disc = discovery.lock().unwrap_or_else(|e| e.into_inner());
+                                    disc.mark_self(addr);
+                                } else {
+                                    tracing::warn!("HANDSHAKE_ERROR: peer={}, error={}", addr, e);
+                                }
                                 break;
                             }
                         }
@@ -402,7 +460,9 @@ impl P2PNetwork {
                         {
                             let mut disc = discovery.lock().unwrap_or_else(|e| e.into_inner());
                             for a in &addrs {
-                                if *a != bind_addr {
+                                // `add_peer` already rejects addrs known to be self;
+                                // keep the redundant bind_addr check as belt-and-suspenders.
+                                if *a != bind_addr && !disc.is_self(a) {
                                     disc.add_peer(*a);
                                 }
                             }

@@ -1,42 +1,34 @@
 // Copyright (c) 2026 Kantoshi Miyamura
 
-//! `axiom-ai` — AI model registry and inference payment layer for the
-//! Axiom Network.
+//! `axiom-ai` — AI registry, inference accounting, PoUC, and AxiomMind v2.
 //!
-//! # Phase AI-1: Model Registry
+//! INVARIANT: this crate has no dependency on `axiom-consensus` and no path
+//! by which its outputs can mutate consensus state. Registries persist in
+//! their own fjall partitions (`<data_dir>/ai_registry/`, `<data_dir>/ai_jobs/`);
+//! `amount_sat` fields are accounting numbers internal to the AI registry and
+//! do NOT lock or move on-chain UTXOs. AxiomMind v2 components (anomaly
+//! detector, self-healer, RL engine, monitoring) are advisory observers only.
+//! See AI-CONSENSUS-AUDIT.md for the full isolation argument.
 //!
-//! Persistent, append-only registration of AI model artifacts by SHA-256 hash.
-//! Backed by a fjall partition at `<data_dir>/ai_registry/`.
-//!
-//! - `POST /ai/model/register` — register a model hash with metadata
-//! - `GET  /ai/model/:hash`    — fetch a model record by hash
-//! - `GET  /ai/models/recent`  — list recently registered models
-//!
-//! # Phase AI-2: Inference Payments
-//!
-//! Lifecycle management for AI inference jobs.  AXM is the settlement token:
-//! requester locks `amount_sat` on job creation; provider earns it on completion.
-//! Backed by a fjall partition at `<data_dir>/ai_jobs/`.
-//!
-//! - `POST /ai/inference/request`  — open a new Pending job
-//! - `POST /ai/inference/complete` — provider marks job done + submits result hash
-//! - `POST /ai/inference/cancel`   — requester cancels a Pending job
-//! - `GET  /ai/inference/:job_id`  — fetch a job by ID
-//! - `GET  /ai/inference/jobs/:address` — list jobs for an address
+//! Modules:
+//! - `registry`, `inference`, `reputation` — model/inference/provider records
+//! - `worker`, `verifier`, `settlement`, `protocol`, `compute_types` — PoUC
+//! - `neural_network`, `anomaly_detection`, `self_healing`,
+//!   `reinforcement_learning`, `monitoring`, `axiommind_v2` — AxiomMind v2
 
 pub mod inference;
 pub mod registry;
 pub mod reputation;
 pub mod types;
 
-// Proof of Useful Compute (PoUC) Protocol — Phase AI-3
+// Proof of Useful Compute (PoUC).
 pub mod compute_types;
 pub mod worker;
 pub mod verifier;
 pub mod settlement;
 pub mod protocol;
 
-// AxiomMind v2 - Neural Guardian modules
+// AxiomMind v2 — observers only; see crate-level INVARIANT.
 #[allow(clippy::needless_range_loop)]
 pub mod neural_network;
 pub mod anomaly_detection;
@@ -44,6 +36,9 @@ pub mod self_healing;
 pub mod reinforcement_learning;
 pub mod monitoring;
 pub mod axiommind_v2;
+
+// Guardian — deterministic, signed, gossip-able advisory layer.
+pub mod guardian;
 
 pub use inference::{InferenceError, InferenceRegistry};
 pub use registry::{ModelRegistry, RegistryError};

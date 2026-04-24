@@ -15,8 +15,8 @@ mod service;
 mod transport;
 
 pub use discovery::{
-    resolve_dns_seeds, PeerAddressBook, PeerDiscovery, DEVNET_DNS_SEEDS, MAINNET_DNS_SEEDS,
-    TESTNET_DNS_SEEDS,
+    dedupe_and_filter_self, is_self_addr, resolve_dns_seeds, self_p2p_addrs, PeerAddressBook,
+    PeerDiscovery, DEVNET_DNS_SEEDS, MAINNET_DNS_SEEDS, TESTNET_DNS_SEEDS,
 };
 pub use dos_protection::{DosProtection, MempoolRateLimiter, RateLimiter};
 pub use encryption::{EncryptedConnection, EncryptionError};
@@ -54,7 +54,7 @@ pub use message::{
     SERVICE_LIGHT,
 };
 pub use peer::{Direction, Peer, PeerId, PeerState};
-pub use protocol::{HandshakeError, ProtocolHandler};
+pub use protocol::{HandshakeError, ProtocolHandler, MIN_PROTOCOL_VERSION, PROTOCOL_VERSION};
 pub use scoring::{PeerScore, PeerScorer};
 pub use service::{NetworkService, ServiceError};
 pub use transport::{Connection, Transport};

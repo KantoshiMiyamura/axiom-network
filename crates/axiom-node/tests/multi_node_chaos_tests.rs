@@ -344,9 +344,9 @@ fn mempool_multinode_consistency() {
         mempool_a, mempool_b
     );
 
-    // Both should have valid mempool states
-    assert!(mempool_a >= 0, "Node A mempool should be valid");
-    assert!(mempool_b >= 0, "Node B mempool should be valid");
+    // mempool_size() returning a usize is the assertion; cross-node convergence
+    // is tested separately once gossip finishes.
+    let _ = (mempool_a, mempool_b);
 
-    println!("✓ Mempool consistency: Both nodes maintain valid mempool state");
+    println!("Mempool consistency: Both nodes maintain valid mempool state");
 }

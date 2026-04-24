@@ -1,6 +1,9 @@
 // Copyright (c) 2026 Kantoshi Miyamura
 //
-// End-to-end tests for confidential transaction validation.
+// End-to-end tests for confidential transaction validation. Gated on the
+// `axiom-ct` feature — the axiom-protocol serializer refuses ConfidentialTransfer
+// txs unless its own axiom-ct feature is enabled, so this test is skipped in
+// the default build.
 
 #![cfg(feature = "axiom-ct")]
 

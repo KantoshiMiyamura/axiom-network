@@ -1,5 +1,11 @@
 // Copyright (c) 2026 Kantoshi Miyamura
-// AxiomMind v2 - Monitoring & Reporting System
+//
+// AxiomMind v2 — operational dashboards (security, performance, AI, network).
+//
+// INVARIANT: this module is read-only with respect to chain state. It
+// aggregates metrics from observers (anomaly detector, network guard, RL
+// engine) and exposes them via dashboards. It MUST NOT mutate consensus,
+// mempool, or peer-set state.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -655,7 +661,9 @@ pub struct StatusReport {
     pub generated_at: u64,
 }
 
-// Mock rand module
+// In-crate `rand` shim. Returns `T::default()`, so any sampling in this
+// module is deterministic. Monitoring outputs feed dashboards only — keeping
+// them deterministic avoids spurious alert churn during replays.
 mod rand {
     pub fn random<T>() -> T
     where

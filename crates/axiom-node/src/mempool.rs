@@ -405,6 +405,26 @@ impl Mempool {
             .collect()
     }
 
+    /// All mempool entries with (txid, transaction, fee_sat, size_bytes),
+    /// ordered highest fee rate first. Used by the `get_mempool` RPC so
+    /// fee values surface to callers instead of the historical `fee_sat = 0`
+    /// placeholder.
+    pub fn get_all_entries_with_fees(&self) -> Vec<(Hash256, Transaction, u64, usize)> {
+        self.fee_index
+            .iter()
+            .rev()
+            .map(|(key, &txid)| {
+                let entry = &self.entries[&txid];
+                (
+                    key.txid,
+                    entry.transaction.clone(),
+                    entry.fee_sat,
+                    entry.size_bytes,
+                )
+            })
+            .collect()
+    }
+
     pub fn get_transactions_by_fee(&self) -> Vec<(Hash256, Transaction)> {
         self.get_all_transactions()
     }

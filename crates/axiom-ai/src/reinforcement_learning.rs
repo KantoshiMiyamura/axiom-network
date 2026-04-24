@@ -1,5 +1,12 @@
 // Copyright (c) 2026 Kantoshi Miyamura
-// AxiomMind v2 - Reinforcement Learning Module
+//
+// AxiomMind v2 — Q-learning policy module.
+//
+// INVARIANT: this module is advisory only. `select_action` returns an `Action`
+// that is consumed exclusively by `learn()` for Q-value updates; no variant is
+// dispatched to consensus, peer state, or the filesystem. Any future caller
+// that interprets `Action` as an instruction MUST go through an explicit
+// security review (see AI-CONSENSUS-AUDIT.md, R1).
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -24,24 +31,23 @@ pub enum State {
     NetworkDegraded,
 }
 
-/// Action to take in response to state
+/// Q-learning action label. These are policy outputs the RL module records
+/// against state transitions; none is dispatched to live systems by this crate.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Action {
-    /// No action needed
     NoAction,
-    /// Alert operators
     Alert,
-    /// Increase monitoring
     IncreaseMonitoring,
-    /// Apply patch
+    /// Telemetry-only. No dispatcher: wiring this to source-file mutation
+    /// requires a separate security review (see AI-CONSENSUS-AUDIT.md, R1/R2).
     ApplyPatch,
-    /// Isolate affected nodes
+    /// Telemetry-only. No dispatcher: this label MUST NOT be wired to peer
+    /// disconnect logic without an explicit network-policy review.
     IsolateNodes,
-    /// Trigger consensus vote
+    /// Telemetry-only. No dispatcher: consensus is rule-driven, never
+    /// AI-driven. Wiring this would break the AI/consensus isolation boundary.
     TriggerConsensus,
-    /// Rollback changes
     Rollback,
-    /// Reduce network load
     ReduceLoad,
 }
 
@@ -229,12 +235,11 @@ impl QLearningModule {
             action_values.insert(action.clone(), new_q);
         }
 
-        // Decay exploration rate
+        // exploration_rate decay computed but not persisted: the field is `&self`,
+        // not `&mut self`. Treat the decay as advisory until the engine carries
+        // interior mutability for it.
         let _new_exploration_rate = (self.exploration_rate * self.exploration_decay)
             .max(self.min_exploration_rate);
-
-        // Note: In a real implementation, we'd update self.exploration_rate
-        // For now, we just use it for learning
 
         // Record episode
         let now = SystemTime::now()
@@ -439,7 +444,10 @@ impl ReinforcementLearningEngine {
     }
 }
 
-// Mock rand module for testing
+// In-crate `rand` shim. Returns `T::default()`, so all randomness in this
+// module is deterministic (epsilon-greedy always picks `false`/`0`). This is
+// intentional: RL output is advisory and must not introduce non-determinism
+// that could be observed by callers expecting reproducible behaviour.
 mod rand {
     pub fn random<T>() -> T
     where

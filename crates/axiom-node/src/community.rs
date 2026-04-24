@@ -33,10 +33,12 @@ const BAN_DURATION: Duration = Duration::from_secs(86_400); // 24 h
 /// Channel capacity for live-push to RPC WebSocket subscribers.
 const LIVE_CHANNEL_CAPACITY: usize = 256;
 
-// ── moderation word list (AxiomMind v1) ──────────────────────────────────────
+// ── AxiomMind v1 denylist ────────────────────────────────────────────────────
 //
-// A simple allowlist/denylist filter.  In a future release this will be
-// replaced by an on-device ML classifier.  Words are lower-cased ASCII.
+// Deterministic substring + run-length classifier. Lower-cased ASCII only.
+// Runs in the gossip relay path; verdict gates whether a message is rebroadcast
+// and whether the sender is recorded as a ban-vote candidate. Affects the
+// in-RAM message ring only — never the chain.
 
 const BANNED_WORDS: &[&str] = &[
     // Hate speech — slurs omitted here; actual list lives in axiom-guard
