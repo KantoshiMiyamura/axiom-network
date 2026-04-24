@@ -61,7 +61,7 @@
           <div class="req-row"><span>Network</span><span class="val">25+ Mbps</span></div>
         </div>
       </div>
-      <p class="text-sm text-muted mt-2">Supported: Windows 10+, macOS 12+, Linux (glibc 2.31+). Both x86_64 and aarch64.</p>
+      <p class="text-sm text-muted mt-2">Supported: Windows 10+ (x86_64), macOS 12+ (Intel x86_64), Linux (x86_64, glibc 2.31+). Apple Silicon (aarch64) builds are not produced for this testnet release.</p>
     </section>
 
     <!-- Installation -->
@@ -76,10 +76,10 @@ cd axiom-v1.0.1-testnet.1-x86_64-unknown-linux-gnu
         <button class="copy-btn">copy</button>
       </div>
       <div class="code-block">
-        <div class="code-header"><span>macOS (Apple Silicon)</span><span>bash</span></div>
-        <pre><code>curl -LO https://github.com/Ayano-X-Tech/axiom-network/releases/latest/download/axiom-v1.0.1-testnet.1-aarch64-apple-darwin.tar.gz
-tar -xzf axiom-v1.0.1-testnet.1-aarch64-apple-darwin.tar.gz
-cd axiom-v1.0.1-testnet.1-aarch64-apple-darwin
+        <div class="code-header"><span>macOS (Intel)</span><span>bash</span></div>
+        <pre><code>curl -LO https://github.com/Ayano-X-Tech/axiom-network/releases/latest/download/axiom-v1.0.1-testnet.1-x86_64-apple-darwin.tar.gz
+tar -xzf axiom-v1.0.1-testnet.1-x86_64-apple-darwin.tar.gz
+cd axiom-v1.0.1-testnet.1-x86_64-apple-darwin
 ./install.sh</code></pre>
         <button class="copy-btn">copy</button>
       </div>
