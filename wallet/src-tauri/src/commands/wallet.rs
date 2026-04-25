@@ -1,5 +1,6 @@
 use serde::Serialize;
 use std::time::Instant;
+use zeroize::Zeroizing;
 
 use crate::error::{AppError, AppResult};
 use crate::state::{AppState, Session, WalletData};
@@ -56,7 +57,7 @@ pub fn create_wallet(
             .cache
             .lock()
             .map_err(|_| AppError::Internal("lock".into()))?
-            .enable_encryption(&state.data_dir, secret);
+            .enable_encryption(&state.data_dir, secret.as_slice());
     }
 
     let (phrase, seed) = axiom_wallet::generate_seed_phrase();
@@ -69,9 +70,11 @@ pub fn create_wallet(
         account_count: 1,
         seed_phrase: Some(phrase.clone()),
     };
-    let pt = serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?;
-    let ks =
-        axiom_wallet::create_keystore(&pt, &password).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let pt = Zeroizing::new(
+        serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?,
+    );
+    let ks = axiom_wallet::create_keystore(&pt, &password)
+        .map_err(|e| AppError::Wallet(e.to_string()))?;
     let json =
         axiom_wallet::export_keystore(&ks).map_err(|e| AppError::Wallet(e.to_string()))?;
 
@@ -114,11 +117,11 @@ pub fn import_wallet_seed(
             .cache
             .lock()
             .map_err(|_| AppError::Internal("lock".into()))?
-            .enable_encryption(&state.data_dir, secret);
+            .enable_encryption(&state.data_dir, secret.as_slice());
     }
 
-    let seed =
-        axiom_wallet::recover_wallet_from_seed(&phrase).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let seed = axiom_wallet::recover_wallet_from_seed(&phrase)
+        .map_err(|e| AppError::Wallet(e.to_string()))?;
     let kp =
         axiom_wallet::derive_account(&seed, 0).map_err(|e| AppError::Wallet(e.to_string()))?;
     let addr = axiom_wallet::Address::from_pubkey_hash(kp.public_key_hash());
@@ -128,9 +131,11 @@ pub fn import_wallet_seed(
         account_count: 1,
         seed_phrase: Some(phrase),
     };
-    let pt = serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?;
-    let ks =
-        axiom_wallet::create_keystore(&pt, &password).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let pt = Zeroizing::new(
+        serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?,
+    );
+    let ks = axiom_wallet::create_keystore(&pt, &password)
+        .map_err(|e| AppError::Wallet(e.to_string()))?;
     let json =
         axiom_wallet::export_keystore(&ks).map_err(|e| AppError::Wallet(e.to_string()))?;
 
@@ -215,11 +220,11 @@ pub fn unlock_wallet(
         .unwrap_or(true)
     {
         if let Some(secret) = crate::keyring::get_or_create_device_secret() {
-            if let Ok(mut ds) = state.device_secret.lock() {
-                *ds = Some(secret.clone());
-            }
             if let Ok(mut cache) = state.cache.lock() {
-                cache.enable_encryption(&state.data_dir, &secret);
+                cache.enable_encryption(&state.data_dir, secret.as_slice());
+            }
+            if let Ok(mut ds) = state.device_secret.lock() {
+                *ds = Some(secret);
             }
             let _ = state.persist();
         }
@@ -285,9 +290,35 @@ pub fn get_seed_phrase(
     state: tauri::State<'_, AppState>,
 ) -> AppResult<String> {
     state.touch()?;
+
+    // Reveal-seed is a high-value password check — gate it with the same
+    // rate limiter that protects unlock so an attacker who can call this
+    // RPC cannot brute-force the password unbounded.
+    {
+        let rl = state
+            .rate_limiter
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))?;
+        if let Err(s) = rl.check() {
+            return Err(AppError::RateLimited(s));
+        }
+    }
+
     let json = state.read_keystore()?;
     let ks = axiom_wallet::import_keystore(&json).map_err(|e| AppError::Wallet(e.to_string()))?;
-    axiom_wallet::unlock_keystore(&ks, &password).map_err(|_| AppError::WrongPassword)?;
+    if axiom_wallet::unlock_keystore(&ks, &password).is_err() {
+        let lockout = state
+            .rate_limiter
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))?
+            .record_failure();
+        return Err(lockout.map(AppError::RateLimited).unwrap_or(AppError::WrongPassword));
+    }
+    state
+        .rate_limiter
+        .lock()
+        .map_err(|_| AppError::Internal("lock".into()))?
+        .record_success();
 
     let session = state
         .session

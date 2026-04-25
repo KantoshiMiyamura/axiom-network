@@ -10,7 +10,34 @@ use crate::state::{AppState, PendingTx, SelectedUtxo};
 
 const DUST: u64 = 546;
 const DEFAULT_FEE: u64 = 10_000;
-const CHAIN_ID: &str = "axiom-mainnet";
+
+/// Resolve the chain id for signing. Returns the cached value if present;
+/// otherwise queries the configured node's `/status` endpoint and caches
+/// the result. The cache is invalidated when the node URL changes.
+///
+/// A signature is only valid on the chain whose id was bound into the
+/// signing hash, so it is a hard error if the node does not report one.
+async fn resolve_chain_id(state: &AppState) -> AppResult<String> {
+    if let Some(cached) = state
+        .chain_id
+        .lock()
+        .map_err(|_| AppError::Internal("lock".into()))?
+        .clone()
+    {
+        return Ok(cached);
+    }
+    let url = state
+        .node_url
+        .lock()
+        .map_err(|_| AppError::Internal("lock".into()))?
+        .clone();
+    let id = RpcClient::new(&url).chain_id().await?;
+    *state
+        .chain_id
+        .lock()
+        .map_err(|_| AppError::Internal("lock".into()))? = Some(id.clone());
+    Ok(id)
+}
 
 #[derive(Serialize)]
 pub struct TxPreview {
@@ -52,6 +79,7 @@ pub async fn prepare_send(to: String, amount_sat: u64, state: tauri::State<'_, A
     let utxos = rpc.utxos(&from).await?;
     let fee = rpc.fee_estimate().await.map(|f| f.medium).unwrap_or(DEFAULT_FEE);
     let nonce = rpc.nonce(&from).await?;
+    let chain_id = resolve_chain_id(&state).await?;
 
     let needed = amount_sat.checked_add(fee).ok_or(AppError::Internal("overflow".into()))?;
     let mut sorted = utxos;
@@ -69,7 +97,7 @@ pub async fn prepare_send(to: String, amount_sat: u64, state: tauri::State<'_, A
     let change = total - amount_sat - fee;
     *state.pending_tx.lock().map_err(|_| AppError::Internal("lock".into()))? = Some(PendingTx {
         to_address: to.clone(), amount_sat, fee_sat: fee, from_address: from.clone(),
-        account_index: 0, utxos: selected, chain_id: CHAIN_ID.into(), nonce,
+        account_index: 0, utxos: selected, chain_id, nonce,
     });
 
     Ok(TxPreview { from, to, amount_sat, amount_axm: fmt_axm(amount_sat), fee_sat: fee, total_sat: needed, change_sat: change })
@@ -145,14 +173,23 @@ pub async fn get_history(state: tauri::State<'_, AppState>) -> AppResult<Vec<TxH
 }
 
 #[tauri::command]
-pub fn sign_offline(unsigned_hex: String, state: tauri::State<'_, AppState>) -> AppResult<String> {
+pub async fn sign_offline(
+    unsigned_hex: String,
+    state: tauri::State<'_, AppState>,
+) -> AppResult<String> {
     state.touch()?;
-    let s = state.session.lock().map_err(|_| AppError::Internal("lock".into()))?;
-    let s = s.as_ref().ok_or(AppError::Locked)?;
+    let chain_id = resolve_chain_id(&state).await?;
     let bytes = hex::decode(&unsigned_hex).map_err(|_| AppError::Internal("bad hex".into()))?;
-    let kp = s.keypair(0)?;
-    let hash = axiom_crypto::transaction_signing_hash(CHAIN_ID, &bytes);
-    let sig = kp.sign(hash.as_bytes()).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let hash = axiom_crypto::transaction_signing_hash(&chain_id, &bytes);
+    let sig = {
+        let s = state
+            .session
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))?;
+        let s = s.as_ref().ok_or(AppError::Locked)?;
+        let kp = s.keypair(0)?;
+        kp.sign(hash.as_bytes()).map_err(|e| AppError::Wallet(e.to_string()))?
+    };
     Ok(hex::encode(sig))
 }
 

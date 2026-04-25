@@ -56,6 +56,9 @@ pub struct StatusResp {
     pub block_height: Option<u32>,
     pub best_block_hash: Option<String>,
     pub peer_count: usize,
+    /// Chain identifier returned by the node ("axiom-test-1", "axiom-mainnet-1", etc.).
+    /// Required for transaction signing; replay protection lives here.
+    pub network: Option<String>,
 }
 
 impl RpcClient {
@@ -102,6 +105,14 @@ impl RpcClient {
 
     pub async fn status(&self) -> AppResult<StatusResp> {
         self.get(&format!("{}/status", self.base)).await
+    }
+
+    /// Fetch the node's chain identifier. Used to bind transaction signatures
+    /// to a specific chain — a signature for chain X must not be valid on chain Y.
+    pub async fn chain_id(&self) -> AppResult<String> {
+        let s: StatusResp = self.get(&format!("{}/status", self.base)).await?;
+        s.network
+            .ok_or_else(|| AppError::Network("node /status missing 'network' field".into()))
     }
 
     pub async fn is_online(&self) -> bool {

@@ -28,6 +28,9 @@ pub fn get_settings(state: tauri::State<'_, AppState>) -> AppResult<WalletSettin
 pub fn set_node_url(url: String, state: tauri::State<'_, AppState>) -> AppResult<()> {
     if url.is_empty() { return Err(AppError::Internal("url cannot be empty".into())); }
     *state.node_url.lock().map_err(|_| AppError::Internal("lock".into()))? = url;
+    // Pointing at a different node may mean a different chain — invalidate
+    // the cached chain id so the next signing path re-queries `/status`.
+    *state.chain_id.lock().map_err(|_| AppError::Internal("lock".into()))? = None;
     state.save_settings()
 }
 

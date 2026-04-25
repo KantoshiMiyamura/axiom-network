@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use zeroize::Zeroizing;
 
 use crate::rpc::{TxSummary, UtxoEntry};
 
@@ -16,7 +17,7 @@ pub struct WalletCache {
     #[serde(skip)]
     path: PathBuf,
     #[serde(skip)]
-    device_secret: Option<Vec<u8>>,
+    device_secret: Option<Zeroizing<Vec<u8>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,7 +38,7 @@ impl WalletCache {
         if let Some(secret) = device_secret {
             if let Some(mut cache) = Self::load_encrypted(&enc_path, secret) {
                 cache.path = enc_path;
-                cache.device_secret = Some(secret.to_vec());
+                cache.device_secret = Some(Zeroizing::new(secret.to_vec()));
                 let _ = std::fs::remove_file(&plain_path);
                 return cache;
             }
@@ -47,7 +48,7 @@ impl WalletCache {
         if let Some(mut cache) = Self::load_plaintext(&plain_path) {
             if let Some(secret) = device_secret {
                 cache.path = enc_path;
-                cache.device_secret = Some(secret.to_vec());
+                cache.device_secret = Some(Zeroizing::new(secret.to_vec()));
                 cache.save();
                 let _ = std::fs::remove_file(&plain_path);
             } else {
@@ -60,7 +61,7 @@ impl WalletCache {
         let mut c = WalletCache::default();
         if let Some(secret) = device_secret {
             c.path = enc_path;
-            c.device_secret = Some(secret.to_vec());
+            c.device_secret = Some(Zeroizing::new(secret.to_vec()));
         } else {
             c.path = plain_path;
         }
@@ -80,24 +81,24 @@ impl WalletCache {
 
     /// Enable encryption for the cache (called after device key is created).
     pub fn enable_encryption(&mut self, dir: &Path, secret: &[u8]) {
-        self.device_secret = Some(secret.to_vec());
+        self.device_secret = Some(Zeroizing::new(secret.to_vec()));
         self.path = dir.join("cache.enc");
         self.save();
     }
 
     pub fn save(&self) {
         let json = match serde_json::to_vec(self) {
-            Ok(j) => j,
+            Ok(j) => Zeroizing::new(j),
             Err(_) => return,
         };
 
         if let Some(secret) = &self.device_secret {
-            if let Some(sealed) = crate::keyring::seal(&json, secret, PURPOSE_CACHE) {
+            if let Some(sealed) = crate::keyring::seal(&json, secret.as_slice(), PURPOSE_CACHE) {
                 let _ = std::fs::write(&self.path, sealed);
                 return;
             }
         }
-        let _ = std::fs::write(&self.path, json);
+        let _ = std::fs::write(&self.path, json.as_slice());
     }
 
     pub fn set_balance(&mut self, addr: &str, bal: u64) {

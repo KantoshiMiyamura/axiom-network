@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use axiom_wallet::{derive_account, Address, KeyPair};
 
@@ -14,11 +14,24 @@ use crate::security::UnlockRateLimiter;
 const PURPOSE_KEYSTORE: &[u8] = b"axiom-keystore-v1";
 
 /// Serialized into the keystore's encrypted payload.
+///
+/// `seed_hex` and `seed_phrase` carry secret material. The Drop impl
+/// zeroizes them so the plaintext does not linger after the value goes
+/// out of scope (e.g. once it has been re-encrypted into the keystore).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletData {
     pub seed_hex: String,
     pub account_count: u32,
     pub seed_phrase: Option<String>,
+}
+
+impl Drop for WalletData {
+    fn drop(&mut self) {
+        self.seed_hex.zeroize();
+        if let Some(p) = self.seed_phrase.as_mut() {
+            p.zeroize();
+        }
+    }
 }
 
 /// Unlocked in-memory session. Key material zeroized on drop.
@@ -30,16 +43,23 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(data: WalletData, password: String) -> AppResult<Self> {
-        let seed = hex::decode(&data.seed_hex)
-            .map_err(|_| AppError::Internal("corrupt seed hex".into()))?;
+    pub fn new(mut data: WalletData, password: String) -> AppResult<Self> {
+        // `WalletData` has a Drop impl that zeroizes its fields, so we cannot
+        // move them out by value — `mem::take` swaps in empty defaults that
+        // Drop can safely run over, while we keep ownership of the secrets.
+        let seed_phrase = std::mem::take(&mut data.seed_phrase).map(Zeroizing::new);
+        let seed_hex = Zeroizing::new(std::mem::take(&mut data.seed_hex));
+        let seed = Zeroizing::new(
+            hex::decode(seed_hex.as_str())
+                .map_err(|_| AppError::Internal("corrupt seed hex".into()))?,
+        );
         if seed.len() != 64 {
             return Err(AppError::Internal(format!("seed len {} != 64", seed.len())));
         }
         Ok(Self {
-            seed: Zeroizing::new(seed),
+            seed,
             account_count: data.account_count,
-            seed_phrase: data.seed_phrase.map(Zeroizing::new),
+            seed_phrase,
             password: Zeroizing::new(password),
         })
     }
@@ -119,7 +139,11 @@ pub struct AppState {
     pub rate_limiter: Mutex<UnlockRateLimiter>,
     pub cache: Mutex<WalletCache>,
     pub node_url: Mutex<String>,
-    pub device_secret: Mutex<Option<Vec<u8>>>,
+    pub device_secret: Mutex<Option<Zeroizing<Vec<u8>>>>,
+    /// Chain identifier last reported by the configured node. Cached so signing
+    /// does not require an extra RPC round-trip when the node URL has not
+    /// changed; cleared by `set_node_url`.
+    pub chain_id: Mutex<Option<String>>,
 }
 
 impl AppState {
@@ -127,7 +151,7 @@ impl AppState {
         let ks = data_dir.join("wallet.keystore.json");
         let sealed = data_dir.join("wallet.keystore.sealed");
         let device_secret = crate::keyring::get_device_secret();
-        let cache = WalletCache::load(&data_dir, device_secret.as_deref());
+        let cache = WalletCache::load(&data_dir, device_secret.as_deref().map(|z| z.as_slice()));
         let (url, timeout) = load_settings(&data_dir.join("settings.json"));
         Self {
             session: Mutex::new(None),
@@ -141,6 +165,7 @@ impl AppState {
             cache: Mutex::new(cache),
             node_url: Mutex::new(url),
             device_secret: Mutex::new(device_secret),
+            chain_id: Mutex::new(None),
         }
     }
 
@@ -155,7 +180,7 @@ impl AppState {
             let ds = self.device_secret.lock()
                 .map_err(|_| AppError::Internal("lock".into()))?;
             if let Some(secret) = ds.as_ref() {
-                if let Some(data) = crate::keyring::unseal(&blob, secret, PURPOSE_KEYSTORE) {
+                if let Some(data) = crate::keyring::unseal(&blob, secret.as_slice(), PURPOSE_KEYSTORE) {
                     return String::from_utf8(data)
                         .map_err(|_| AppError::Internal("corrupt sealed keystore".into()));
                 }
@@ -175,7 +200,7 @@ impl AppState {
         let ds = self.device_secret.lock()
             .map_err(|_| AppError::Internal("lock".into()))?;
         if let Some(secret) = ds.as_ref() {
-            let sealed = crate::keyring::seal(json.as_bytes(), secret, PURPOSE_KEYSTORE)
+            let sealed = crate::keyring::seal(json.as_bytes(), secret.as_slice(), PURPOSE_KEYSTORE)
                 .ok_or_else(|| AppError::Internal("seal failed".into()))?;
             let tmp = self.sealed_path.with_extension("tmp");
             std::fs::write(&tmp, &sealed)?;
@@ -216,7 +241,9 @@ impl AppState {
             let session = self.session.lock().map_err(|_| AppError::Internal("lock".into()))?;
             let session = session.as_ref().ok_or(AppError::Locked)?;
             let data = session.to_data();
-            let pt = serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?;
+            let pt = Zeroizing::new(
+                serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?,
+            );
             let ks = axiom_wallet::create_keystore(&pt, session.password())
                 .map_err(|e| AppError::Wallet(e.to_string()))?;
             axiom_wallet::export_keystore(&ks)
