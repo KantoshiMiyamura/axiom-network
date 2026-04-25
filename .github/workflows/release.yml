@@ -331,6 +331,21 @@ jobs:
           sha256sum * | sort -k 2 > SHA256SUMS
           cat SHA256SUMS
 
+      - name: Install minisign (pinned 0.12 from upstream)
+        # Ubuntu's apt repository does not ship a `minisign` package on
+        # ubuntu-22.04, so install the official binary tarball directly from
+        # the upstream GitHub release. Version is pinned for reproducibility
+        # — bump deliberately, not implicitly.
+        run: |
+          set -eu
+          MINISIGN_VERSION="0.12"
+          MINISIGN_URL="https://github.com/jedisct1/minisign/releases/download/${MINISIGN_VERSION}/minisign-${MINISIGN_VERSION}-linux.tar.gz"
+          curl -fsSL "$MINISIGN_URL" -o minisign.tar.gz
+          tar -xzf minisign.tar.gz
+          sudo install -m 755 "minisign-linux/x86_64/minisign" /usr/local/bin/minisign
+          rm -rf minisign.tar.gz minisign-linux
+          minisign -v
+
       - name: Sign SHA256SUMS with minisign
         env:
           MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
@@ -341,8 +356,6 @@ jobs:
             echo "::error::MINISIGN_SECRET_KEY and MINISIGN_PASSWORD must be configured as repo secrets"
             exit 1
           fi
-          sudo apt-get update
-          sudo apt-get install -y minisign
           # Write the secret key to a file with strict permissions, never to stdout.
           KEYFILE="$(mktemp)"
           chmod 600 "$KEYFILE"
