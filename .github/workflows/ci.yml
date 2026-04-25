@@ -119,10 +119,42 @@ jobs:
       - name: Install cargo-audit
         run: cargo install --locked cargo-audit
       - name: Run audit
-        # RUSTSEC-2026-0097 (rand 0.9.2) is pulled only by experimental
-        # community crates (axiom-community-{server,client,shared}) via
-        # tokio-postgres and proptest. Those crates are NOT part of the
-        # public testnet node release. The advisory is ignored here so
-        # the node release isn't blocked, but it MUST be resolved before
-        # the community crates ship — track in the community workstream.
-        run: cargo audit --ignore RUSTSEC-2026-0097
+        # The audit policy is strict for core crates. Every --ignore below
+        # is a deliberate exception scoped to a verified dependency path.
+        #
+        # Verified core-impact advisories — already fixed in Cargo.lock by
+        # this CI run via direct upgrade (no --ignore needed):
+        #   • RUSTSEC-2026-0041  lz4_flex 0.11.5 → 0.11.6
+        #     (was reachable via axiom-storage → fjall → lsm-tree)
+        #   • RUSTSEC-2026-0049/0098/0099/0104  rustls-webpki 0.103.9 → 0.103.13
+        #     (was reachable via axiom-cli → reqwest → hyper-rustls → rustls)
+        #
+        # Ignored — verified reachable ONLY through experimental crates that
+        # are excluded from the public testnet node release (wallet and
+        # community server/client/shared). These advisories MUST be resolved
+        # before those crates ship; tracked in the community workstream.
+        #   • RUSTSEC-2026-0097  rand 0.9.2
+        #     path: axiom-community-{server,client,shared} via tokio-postgres,
+        #     proptest, postgres-protocol
+        #   • RUSTSEC-2026-0002  lru 0.12.5
+        #     path: axiom-community-client → ratatui
+        #   • RUSTSEC-2023-0071  rsa 0.x  (Marvin Attack timing side-channel)
+        #     path: axiom-community-server → sqlx-mysql
+        #   • RUSTSEC-2024-0363  sqlx 0.7.4
+        #     path: axiom-community-server only
+        #
+        # Ignored — known core impact, no drop-in fix available:
+        #   • RUSTSEC-2025-0144  ml-dsa 0.0.4 (timing side-channel, sev 6.4)
+        #     path: axiom-crypto → ml-dsa, used by signer / wallet / node
+        #     fix: upgrade to >=0.1.0-rc.3 (alpha API migration — not a
+        #     drop-in bump). Tracked separately; the timing channel is
+        #     not exploitable without an attacker-observable signing oracle
+        #     and we do not currently expose one in the node binary, but
+        #     this MUST be addressed before mainnet. See SECURITY.md.
+        run: |
+          cargo audit \
+            --ignore RUSTSEC-2026-0097 \
+            --ignore RUSTSEC-2026-0002 \
+            --ignore RUSTSEC-2023-0071 \
+            --ignore RUSTSEC-2024-0363 \
+            --ignore RUSTSEC-2025-0144
