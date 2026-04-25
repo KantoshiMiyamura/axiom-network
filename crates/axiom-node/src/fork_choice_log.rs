@@ -31,12 +31,7 @@ pub fn log_fork_choice_candidate(
 }
 
 /// Log a block acceptance.
-pub fn log_block_accepted(
-    hash: &Hash256,
-    height: u32,
-    chainwork: u128,
-    source: &str,
-) {
+pub fn log_block_accepted(hash: &Hash256, height: u32, chainwork: u128, source: &str) {
     tracing::info!(
         target: "block_accepted",
         hash = %hex::encode(hash.as_bytes()),
@@ -48,12 +43,7 @@ pub fn log_block_accepted(
 }
 
 /// Log a block rejection.
-pub fn log_block_rejected(
-    hash: &Hash256,
-    height: u32,
-    source: &str,
-    reason: &str,
-) {
+pub fn log_block_rejected(hash: &Hash256, height: u32, source: &str, reason: &str) {
     tracing::warn!(
         target: "block_rejected",
         hash = %hex::encode(hash.as_bytes()),
@@ -150,11 +140,7 @@ pub fn log_miner_snapshot_created(
 }
 
 /// Log mining abort due to stale template.
-pub fn log_miner_aborted_stale_template(
-    old_parent: &Hash256,
-    new_parent: &Hash256,
-    reason: &str,
-) {
+pub fn log_miner_aborted_stale_template(old_parent: &Hash256, new_parent: &Hash256, reason: &str) {
     tracing::info!(
         target: "mining",
         old_parent = %hex::encode(old_parent.as_bytes()),
@@ -165,12 +151,7 @@ pub fn log_miner_aborted_stale_template(
 }
 
 /// Log peer block received.
-pub fn log_peer_block_received(
-    peer: &str,
-    hash: &Hash256,
-    height: u32,
-    prev_hash: &Hash256,
-) {
+pub fn log_peer_block_received(peer: &str, hash: &Hash256, height: u32, prev_hash: &Hash256) {
     tracing::debug!(
         target: "peer",
         peer,

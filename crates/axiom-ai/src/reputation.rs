@@ -107,7 +107,12 @@ impl ReputationRegistry {
     ///
     /// SECURITY: Without deduplication an attacker can self-rate their own model
     /// thousands of times, reaching rank #1 with no legitimate users.
-    pub fn rate_model(&self, model_hash: &str, rating: u8, rater_address: &str) -> Result<ReputationScore> {
+    pub fn rate_model(
+        &self,
+        model_hash: &str,
+        rating: u8,
+        rater_address: &str,
+    ) -> Result<ReputationScore> {
         if !(1..=5).contains(&rating) {
             return Err(ReputationError::InvalidRating(rating));
         }

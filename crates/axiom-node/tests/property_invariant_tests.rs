@@ -15,8 +15,10 @@ use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }
@@ -46,20 +48,32 @@ fn property_reward_monotonic_decay() {
     // Check monotonicity: each reward should be <= previous
     let mut violations = 0;
     for i in 1..rewards.len() {
-        if rewards[i] > rewards[i - 1] + 1.0 {  // Allow 1 satoshi floating point error
+        if rewards[i] > rewards[i - 1] + 1.0 {
+            // Allow 1 satoshi floating point error
             violations += 1;
             if violations <= 5 {
                 println!(
                     "  Violation at height {}: reward[{}] = {} > reward[{}] = {}",
-                    i, i, rewards[i], i - 1, rewards[i - 1]
+                    i,
+                    i,
+                    rewards[i],
+                    i - 1,
+                    rewards[i - 1]
                 );
             }
         }
     }
 
-    println!("  Tested {} heights, violations: {}", heights.len(), violations);
+    println!(
+        "  Tested {} heights, violations: {}",
+        heights.len(),
+        violations
+    );
     assert_eq!(violations, 0, "Reward decay must be monotonic");
-    println!("✓ Monotonic decay verified across {} heights", heights.len());
+    println!(
+        "✓ Monotonic decay verified across {} heights",
+        heights.len()
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -119,10 +133,10 @@ fn property_chainwork_overflow_prevention() {
 
     // Test difficulty targets that would produce high work values
     let extreme_targets = vec![
-        0x00000001,  // Very high work
-        0x00ffffff,  // High work
-        0x207fffff,  // Genesis difficulty
-        0xffffffff,  // Maximum value
+        0x00000001, // Very high work
+        0x00ffffff, // High work
+        0x207fffff, // Genesis difficulty
+        0xffffffff, // Maximum value
     ];
 
     let mut overflow_caught = 0;
@@ -140,7 +154,11 @@ fn property_chainwork_overflow_prevention() {
         }
     }
 
-    println!("✓ Tested {} extreme targets, {} saturated safely", extreme_targets.len(), overflow_caught);
+    println!(
+        "✓ Tested {} extreme targets, {} saturated safely",
+        extreme_targets.len(),
+        overflow_caught
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -177,7 +195,7 @@ fn property_transaction_serialization_roundtrip() {
         // Serialize and deserialize
         let serialized = axiom_protocol::serialize_transaction(&original_tx);
         let roundtrip_tx = axiom_protocol::deserialize_transaction(&serialized)
-            .expect(&format!("Failed to deserialize for {}", desc));
+            .unwrap_or_else(|_| panic!("Failed to deserialize for {}", desc));
 
         // Check invariants
         if original_tx.outputs.len() != roundtrip_tx.outputs.len() {
@@ -219,8 +237,14 @@ fn property_transaction_serialization_roundtrip() {
         }
     }
 
-    assert_eq!(failures, 0, "All serialization roundtrips must preserve data");
-    println!("✓ All {} test cases passed roundtrip consistency", test_cases.len());
+    assert_eq!(
+        failures, 0,
+        "All serialization roundtrips must preserve data"
+    );
+    println!(
+        "✓ All {} test cases passed roundtrip consistency",
+        test_cases.len()
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -329,8 +353,10 @@ fn property_genesis_block_invariants() {
 
     let temp_dir1 = TempDir::new().unwrap();
     let mut node1 = {
-        let mut config = Config::default();
-        config.data_dir = temp_dir1.path().to_path_buf();
+        let config = Config {
+            data_dir: temp_dir1.path().to_path_buf(),
+            ..Default::default()
+        };
         Node::new(config).unwrap()
     };
 
@@ -339,8 +365,10 @@ fn property_genesis_block_invariants() {
     let genesis_hash_1 = node1.best_block_hash().unwrap();
     let genesis_work_1 = node1.get_chain_work().unwrap();
 
-    println!("  Startup 1: height={}, hash={:?}, work={:?}",
-        genesis_height_1, genesis_hash_1, genesis_work_1);
+    println!(
+        "  Startup 1: height={}, hash={:?}, work={:?}",
+        genesis_height_1, genesis_hash_1, genesis_work_1
+    );
 
     assert_eq!(genesis_height_1, 0, "Genesis must be at height 0");
     assert!(genesis_work_1.is_some(), "Genesis must have chainwork");
@@ -356,14 +384,18 @@ fn property_genesis_block_invariants() {
     let tip_hash_after_blocks = node1.best_block_hash().unwrap();
     let tip_work_after_blocks = node1.get_chain_work().unwrap();
 
-    println!("  After 5 blocks: height={}, hash={:?}, work={:?}",
-        height_after_blocks, tip_hash_after_blocks, tip_work_after_blocks);
+    println!(
+        "  After 5 blocks: height={}, hash={:?}, work={:?}",
+        height_after_blocks, tip_hash_after_blocks, tip_work_after_blocks
+    );
 
     // Restart and verify TIP (not genesis) is unchanged
     drop(node1);
     let node2 = {
-        let mut config = Config::default();
-        config.data_dir = temp_dir1.path().to_path_buf();
+        let config = Config {
+            data_dir: temp_dir1.path().to_path_buf(),
+            ..Default::default()
+        };
         Node::new(config).unwrap()
     };
 
@@ -371,8 +403,10 @@ fn property_genesis_block_invariants() {
     let tip_hash_2 = node2.best_block_hash().unwrap();
     let tip_work_2 = node2.get_chain_work().unwrap();
 
-    println!("  Startup 2: height={}, hash={:?}, work={:?}",
-        tip_height_2, tip_hash_2, tip_work_2);
+    println!(
+        "  Startup 2: height={}, hash={:?}, work={:?}",
+        tip_height_2, tip_hash_2, tip_work_2
+    );
 
     // Check tip invariants survived restart (not genesis)
     assert_eq!(
@@ -405,7 +439,11 @@ fn property_output_value_conservation() {
     // Test with values within Amount::MAX (2.1 × 10^15)
     let test_cases = vec![
         (vec![100, 200, 300], 600, "small values"),
-        (vec![1_000_000_000_000, 100_000_000_000], 1_100_000_000_000, "large values within protocol limits"),
+        (
+            vec![1_000_000_000_000, 100_000_000_000],
+            1_100_000_000_000,
+            "large values within protocol limits",
+        ),
     ];
 
     let mut failures = 0;
@@ -463,8 +501,8 @@ fn property_transaction_nonce_uniqueness() {
         // new_coinbase takes u32 block_height, but we need to test nonce preservation
         let tx = Transaction::new_coinbase(vec![output], *nonce as u32);
         let serialized = axiom_protocol::serialize_transaction(&tx);
-        let roundtrip = axiom_protocol::deserialize_transaction(&serialized)
-            .expect("Deserialization failed");
+        let roundtrip =
+            axiom_protocol::deserialize_transaction(&serialized).expect("Deserialization failed");
 
         if roundtrip.nonce != *nonce {
             failures += 1;
@@ -506,7 +544,10 @@ fn property_block_validation_determinism() {
             // Expect: first Ok (accepted), second Err (duplicate rejection)
             // This is correct and deterministic behavior
             match (result1, result2) {
-                (Ok(_), Err(_)) => println!("  ✓ Block {}: first accepted, second rejected (duplicate)", i),
+                (Ok(_), Err(_)) => println!(
+                    "  ✓ Block {}: first accepted, second rejected (duplicate)",
+                    i
+                ),
                 (Ok(_), Ok(_)) => println!("  ✓ Block {}: both accepted (already in chain)", i),
                 (Err(_), Err(_)) => println!("  ✓ Block {}: both rejected (invalid block)", i),
                 (Err(_), Ok(_)) => {

@@ -324,7 +324,9 @@ pub fn deserialize_transaction(bytes: &[u8]) -> Result<Transaction> {
 
         const MAX_CONF_OUTPUTS: usize = 16;
         if conf_count > MAX_CONF_OUTPUTS {
-            return Err(Error::Deserialization("too many confidential outputs".into()));
+            return Err(Error::Deserialization(
+                "too many confidential outputs".into(),
+            ));
         }
 
         confidential_outputs.reserve(conf_count);
@@ -370,25 +372,26 @@ pub fn deserialize_transaction(bytes: &[u8]) -> Result<Transaction> {
         }
     }
 
-    let balance_commitment = if matches!(tx_type, TransactionType::ConfidentialTransfer) && bytes.len() > offset {
-        let has_bc = bytes[offset];
-        offset += 1;
-        if has_bc == 1 {
-            if bytes.len() < offset + 32 {
-                return Err(Error::Deserialization(
-                    "insufficient data for balance_commitment".into(),
-                ));
+    let balance_commitment =
+        if matches!(tx_type, TransactionType::ConfidentialTransfer) && bytes.len() > offset {
+            let has_bc = bytes[offset];
+            offset += 1;
+            if has_bc == 1 {
+                if bytes.len() < offset + 32 {
+                    return Err(Error::Deserialization(
+                        "insufficient data for balance_commitment".into(),
+                    ));
+                }
+                let mut bc = [0u8; 32];
+                bc.copy_from_slice(&bytes[offset..offset + 32]);
+                offset += 32;
+                Some(bc)
+            } else {
+                None
             }
-            let mut bc = [0u8; 32];
-            bc.copy_from_slice(&bytes[offset..offset + 32]);
-            offset += 32;
-            Some(bc)
         } else {
             None
-        }
-    } else {
-        None
-    };
+        };
 
     let _ = offset;
 

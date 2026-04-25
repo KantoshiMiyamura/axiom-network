@@ -1,8 +1,8 @@
 //! Database connection and management
 
+use crate::config::Config;
 use sqlx::postgres::PgPool;
 use sqlx::postgres::PgPoolOptions;
-use crate::config::Config;
 use tracing::info;
 
 /// Database connection pool and operations
@@ -24,9 +24,7 @@ impl Database {
 
     /// Run database migrations from server/migrations/ directory.
     pub async fn run_migrations(&self) -> anyhow::Result<()> {
-        sqlx::migrate!("./migrations")
-            .run(&self.pool)
-            .await?;
+        sqlx::migrate!("./migrations").run(&self.pool).await?;
         info!("Database migrations applied successfully");
         Ok(())
     }
@@ -38,9 +36,7 @@ impl Database {
 
     /// Health check - verify database connectivity
     pub async fn health_check(&self) -> anyhow::Result<()> {
-        sqlx::query("SELECT 1")
-            .fetch_one(&self.pool)
-            .await?;
+        sqlx::query("SELECT 1").fetch_one(&self.pool).await?;
         Ok(())
     }
 
@@ -102,13 +98,11 @@ impl Database {
     /// Revoke a session
     pub async fn revoke_session(&self, session_id: &str) -> anyhow::Result<()> {
         let now = chrono::Utc::now().timestamp();
-        sqlx::query(
-            "UPDATE sessions SET revoked = true, revoked_at = $1 WHERE id = $2"
-        )
-        .bind(now)
-        .bind(session_id)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("UPDATE sessions SET revoked = true, revoked_at = $1 WHERE id = $2")
+            .bind(now)
+            .bind(session_id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }
@@ -182,7 +176,7 @@ impl Database {
         offset: i64,
     ) -> anyhow::Result<Vec<MessageRow>> {
         let messages = sqlx::query_as::<_, MessageRow>(
-            "SELECT * FROM messages WHERE channel = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3"
+            "SELECT * FROM messages WHERE channel = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3",
         )
         .bind(channel)
         .bind(limit)
@@ -195,12 +189,10 @@ impl Database {
 
     /// Get single message by ID
     pub async fn get_message(&self, id: &str) -> anyhow::Result<Option<MessageRow>> {
-        let message = sqlx::query_as::<_, MessageRow>(
-            "SELECT * FROM messages WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let message = sqlx::query_as::<_, MessageRow>("SELECT * FROM messages WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         Ok(message)
     }
@@ -256,7 +248,7 @@ impl Database {
         offset: i64,
     ) -> anyhow::Result<Vec<JobRow>> {
         let jobs = sqlx::query_as::<_, JobRow>(
-            "SELECT * FROM jobs WHERE channel = $1 ORDER BY deadline ASC LIMIT $2 OFFSET $3"
+            "SELECT * FROM jobs WHERE channel = $1 ORDER BY deadline ASC LIMIT $2 OFFSET $3",
         )
         .bind(channel)
         .bind(limit)
@@ -269,12 +261,10 @@ impl Database {
 
     /// Get single job by ID
     pub async fn get_job(&self, id: &str) -> anyhow::Result<Option<JobRow>> {
-        let job = sqlx::query_as::<_, JobRow>(
-            "SELECT * FROM jobs WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let job = sqlx::query_as::<_, JobRow>("SELECT * FROM jobs WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         Ok(job)
     }
@@ -282,14 +272,12 @@ impl Database {
     /// Update job state
     pub async fn update_job_state(&self, id: &str, new_state: &str) -> anyhow::Result<()> {
         let now = chrono::Utc::now().timestamp();
-        sqlx::query(
-            "UPDATE jobs SET state = $1, updated_at = $2 WHERE id = $3"
-        )
-        .bind(new_state)
-        .bind(now)
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("UPDATE jobs SET state = $1, updated_at = $2 WHERE id = $3")
+            .bind(new_state)
+            .bind(now)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }
@@ -329,12 +317,11 @@ impl Database {
 
     /// Get single work submission
     pub async fn get_work_submission(&self, id: &str) -> anyhow::Result<Option<WorkSubmissionRow>> {
-        let submission = sqlx::query_as::<_, WorkSubmissionRow>(
-            "SELECT * FROM work_submissions WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let submission =
+            sqlx::query_as::<_, WorkSubmissionRow>("SELECT * FROM work_submissions WHERE id = $1")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
 
         Ok(submission)
     }
@@ -396,13 +383,9 @@ impl Database {
     }
 
     /// List disputes
-    pub async fn list_disputes(
-        &self,
-        limit: i64,
-        offset: i64,
-    ) -> anyhow::Result<Vec<DisputeRow>> {
+    pub async fn list_disputes(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<DisputeRow>> {
         let disputes = sqlx::query_as::<_, DisputeRow>(
-            "SELECT * FROM disputes ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+            "SELECT * FROM disputes ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
         .bind(limit)
         .bind(offset)
@@ -414,12 +397,10 @@ impl Database {
 
     /// Get single dispute
     pub async fn get_dispute(&self, id: &str) -> anyhow::Result<Option<DisputeRow>> {
-        let dispute = sqlx::query_as::<_, DisputeRow>(
-            "SELECT * FROM disputes WHERE id = $1"
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let dispute = sqlx::query_as::<_, DisputeRow>("SELECT * FROM disputes WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         Ok(dispute)
     }
@@ -427,14 +408,12 @@ impl Database {
     /// Update dispute status
     pub async fn update_dispute_status(&self, id: &str, new_status: &str) -> anyhow::Result<()> {
         let now = chrono::Utc::now().timestamp();
-        sqlx::query(
-            "UPDATE disputes SET status = $1, updated_at = $2 WHERE id = $3"
-        )
-        .bind(new_status)
-        .bind(now)
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("UPDATE disputes SET status = $1, updated_at = $2 WHERE id = $3")
+            .bind(new_status)
+            .bind(now)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }
@@ -484,7 +463,7 @@ impl Database {
         offset: i64,
     ) -> anyhow::Result<Vec<ModerationActionRow>> {
         let actions = sqlx::query_as::<_, ModerationActionRow>(
-            "SELECT * FROM moderation_actions ORDER BY created_at DESC LIMIT $1 OFFSET $2"
+            "SELECT * FROM moderation_actions ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
         .bind(limit)
         .bind(offset)
@@ -495,9 +474,12 @@ impl Database {
     }
 
     /// Get moderation action by ID
-    pub async fn get_moderation_action(&self, id: &str) -> anyhow::Result<Option<ModerationActionRow>> {
+    pub async fn get_moderation_action(
+        &self,
+        id: &str,
+    ) -> anyhow::Result<Option<ModerationActionRow>> {
         let action = sqlx::query_as::<_, ModerationActionRow>(
-            "SELECT * FROM moderation_actions WHERE id = $1"
+            "SELECT * FROM moderation_actions WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -526,14 +508,12 @@ impl Database {
     /// Update user roles
     pub async fn update_user_roles(&self, address: &str, roles: Vec<String>) -> anyhow::Result<()> {
         let now = chrono::Utc::now().timestamp();
-        sqlx::query(
-            "UPDATE users SET roles = $1, updated_at = $2 WHERE address = $3"
-        )
-        .bind(roles)
-        .bind(now)
-        .bind(address)
-        .execute(&self.pool)
-        .await?;
+        sqlx::query("UPDATE users SET roles = $1, updated_at = $2 WHERE address = $3")
+            .bind(roles)
+            .bind(now)
+            .bind(address)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }
@@ -588,33 +568,37 @@ impl Database {
     }
 
     /// Store public key for an address (binds key on first auth)
-    pub async fn store_public_key(&self, address: &str, public_key_hex: &str) -> anyhow::Result<()> {
-        sqlx::query(
-            "UPDATE users SET public_key_hex = $1, updated_at = $2 WHERE address = $3"
-        )
-        .bind(public_key_hex)
-        .bind(chrono::Utc::now().timestamp())
-        .bind(address)
-        .execute(&self.pool)
-        .await?;
+    pub async fn store_public_key(
+        &self,
+        address: &str,
+        public_key_hex: &str,
+    ) -> anyhow::Result<()> {
+        sqlx::query("UPDATE users SET public_key_hex = $1, updated_at = $2 WHERE address = $3")
+            .bind(public_key_hex)
+            .bind(chrono::Utc::now().timestamp())
+            .bind(address)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }
 
     /// Get stored public key for an address
     pub async fn get_public_key(&self, address: &str) -> anyhow::Result<Option<String>> {
-        let row: Option<(Option<String>,)> = sqlx::query_as(
-            "SELECT public_key_hex FROM users WHERE address = $1"
-        )
-        .bind(address)
-        .fetch_optional(&self.pool)
-        .await?;
+        let row: Option<(Option<String>,)> =
+            sqlx::query_as("SELECT public_key_hex FROM users WHERE address = $1")
+                .bind(address)
+                .fetch_optional(&self.pool)
+                .await?;
 
         Ok(row.and_then(|r| r.0))
     }
 
     /// Get session by refresh token hash (for token refresh)
-    pub async fn get_session_by_refresh_token_hash(&self, hash: &str) -> anyhow::Result<Option<SessionRow>> {
+    pub async fn get_session_by_refresh_token_hash(
+        &self,
+        hash: &str,
+    ) -> anyhow::Result<Option<SessionRow>> {
         let session = sqlx::query_as::<_, SessionRow>(
             "SELECT id, address, token_hash, refresh_token_hash, created_at, expires_at, ip_address, user_agent, revoked, revoked_at FROM sessions WHERE refresh_token_hash = $1"
         )
@@ -626,7 +610,13 @@ impl Database {
     }
 
     /// Rotate refresh token for a session
-    pub async fn rotate_refresh_token(&self, session_id: &str, new_refresh_hash: &str, new_token_hash: &str, new_expires_at: i64) -> anyhow::Result<()> {
+    pub async fn rotate_refresh_token(
+        &self,
+        session_id: &str,
+        new_refresh_hash: &str,
+        new_token_hash: &str,
+        new_expires_at: i64,
+    ) -> anyhow::Result<()> {
         sqlx::query(
             "UPDATE sessions SET refresh_token_hash = $1, token_hash = $2, expires_at = $3, last_activity = $4 WHERE id = $5"
         )
@@ -677,7 +667,7 @@ impl Database {
         min_reputation: i64,
     ) -> anyhow::Result<Vec<UserRow>> {
         let users = sqlx::query_as::<_, UserRow>(
-            "SELECT * FROM users WHERE reputation_score < $1 AND is_banned = FALSE"
+            "SELECT * FROM users WHERE reputation_score < $1 AND is_banned = FALSE",
         )
         .bind(min_reputation)
         .fetch_all(&self.pool)
@@ -752,7 +742,7 @@ impl Database {
         let now = chrono::Utc::now().timestamp();
         let row: Option<(i64,)> = sqlx::query_as(
             "SELECT expires_at FROM ip_bans WHERE ip_address = $1::INET
-             AND (expires_at = 0 OR expires_at > $2)"
+             AND (expires_at = 0 OR expires_at > $2)",
         )
         .bind(ip)
         .bind(now)
@@ -778,7 +768,7 @@ impl Database {
                 reason = EXCLUDED.reason,
                 expires_at = EXCLUDED.expires_at,
                 created_at = EXCLUDED.created_at,
-                created_by = EXCLUDED.created_by"
+                created_by = EXCLUDED.created_by",
         )
         .bind(ip)
         .bind(reason)
@@ -876,7 +866,7 @@ impl Database {
         let result = sqlx::query(
             "INSERT INTO used_signatures (sig_prefix, address, action, used_at)
              VALUES ($1, $2, $3, $4)
-             ON CONFLICT (sig_prefix) DO NOTHING"
+             ON CONFLICT (sig_prefix) DO NOTHING",
         )
         .bind(sig_prefix)
         .bind(address)
@@ -925,7 +915,7 @@ impl Database {
                     WHEN rate_limit_counters.window_start < $4 THEN $2
                     ELSE rate_limit_counters.window_start
                 END
-             RETURNING counter"
+             RETURNING counter",
         )
         .bind(key)
         .bind(now)
@@ -942,7 +932,7 @@ impl Database {
         let now = chrono::Utc::now().timestamp();
         // Delete entries whose window is older than 2x their window_secs
         let result = sqlx::query(
-            "DELETE FROM rate_limit_counters WHERE window_start + (window_secs * 2) < $1"
+            "DELETE FROM rate_limit_counters WHERE window_start + (window_secs * 2) < $1",
         )
         .bind(now)
         .execute(&self.pool)
@@ -955,12 +945,10 @@ impl Database {
     /// Check if a session (JWT) has been revoked by checking the sessions table.
     /// This is the distributed replacement for the in-memory HashSet.
     pub async fn is_session_revoked(&self, session_id: &str) -> anyhow::Result<bool> {
-        let row: Option<(bool,)> = sqlx::query_as(
-            "SELECT revoked FROM sessions WHERE id = $1"
-        )
-        .bind(session_id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let row: Option<(bool,)> = sqlx::query_as("SELECT revoked FROM sessions WHERE id = $1")
+            .bind(session_id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         match row {
             Some((revoked,)) => Ok(revoked),
@@ -973,7 +961,7 @@ impl Database {
         let now = chrono::Utc::now().timestamp();
         let result = sqlx::query(
             "UPDATE sessions SET revoked = true, revoked_at = $1
-             WHERE address = $2 AND revoked = false"
+             WHERE address = $2 AND revoked = false",
         )
         .bind(now)
         .bind(address)

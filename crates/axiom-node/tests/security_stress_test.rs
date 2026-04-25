@@ -2,6 +2,11 @@
 
 //! Security stress tests.
 
+// Some tests assert on documentation-style constants (`assert!(100_000_000 > 0)`)
+// to make the constant boundary explicit. Those assertions are intentionally
+// trivial; they exist as in-source documentation of the validated limits.
+#![allow(clippy::assertions_on_constants)]
+
 use axiom_node::network::{DosProtection, PeerScorer};
 use axiom_primitives::Amount;
 use axiom_protocol::{Transaction, TxOutput};

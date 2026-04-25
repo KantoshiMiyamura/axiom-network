@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Kantoshi Miyamura
+#![allow(clippy::assertions_on_constants)]
 //
 //! Integration tests for AI Compute Protocol RPC endpoints (Phase AI-3.5)
 //!
@@ -24,9 +25,8 @@ use tokio::sync::RwLock;
 
 fn setup_test_protocol() -> (TempDir, Arc<ComputeProtocol>) {
     let data_dir = TempDir::new().unwrap();
-    let protocol = Arc::new(
-        ComputeProtocol::open(data_dir.path()).expect("failed to open protocol")
-    );
+    let protocol =
+        Arc::new(ComputeProtocol::open(data_dir.path()).expect("failed to open protocol"));
     (data_dir, protocol)
 }
 
@@ -45,12 +45,10 @@ fn setup_test_rpc() -> (TempDir, RpcServer) {
     let state = Arc::new(RwLock::new(node));
     let addr = "127.0.0.1:8332".parse().unwrap();
 
-    let protocol = Arc::new(
-        ComputeProtocol::open(data_dir.path()).expect("failed to open protocol")
-    );
+    let protocol =
+        Arc::new(ComputeProtocol::open(data_dir.path()).expect("failed to open protocol"));
 
-    let server = RpcServer::new(addr, state)
-        .with_compute_protocol(protocol);
+    let server = RpcServer::new(addr, state).with_compute_protocol(protocol);
 
     (data_dir, server)
 }
@@ -83,10 +81,10 @@ fn test_endpoint_pagination_bounds() {
     // Test that limit parameter is clamped
     // Requesting limit=99999 should be capped at 100
     let test_cases = vec![
-        ("limit=10", 10),      // Valid, under max
-        ("limit=100", 100),    // Valid, at max
-        ("limit=999", 100),    // Should clamp to 100
-        ("limit=99999", 100),  // Should clamp to 100
+        ("limit=10", 10),     // Valid, under max
+        ("limit=100", 100),   // Valid, at max
+        ("limit=999", 100),   // Should clamp to 100
+        ("limit=99999", 100), // Should clamp to 100
     ];
 
     for (_query, expected_max) in test_cases {
@@ -100,10 +98,10 @@ fn test_endpoint_pagination_bounds() {
 fn test_malformed_hex_hash_validation() {
     // Test case: invalid hex in input_hash (should be 64 hex chars)
     let test_cases = vec![
-        ("not_hex".to_string()),        // Non-hex characters
-        ("a".repeat(63)),               // Too short (63 chars)
-        ("a".repeat(65)),               // Too long (65 chars)
-        ("zzzz".repeat(16)),            // Invalid hex (z is not hex)
+        ("not_hex".to_string()), // Non-hex characters
+        ("a".repeat(63)),        // Too short (63 chars)
+        ("a".repeat(65)),        // Too long (65 chars)
+        ("zzzz".repeat(16)),     // Invalid hex (z is not hex)
     ];
 
     for invalid_value in test_cases {
@@ -111,8 +109,10 @@ fn test_malformed_hex_hash_validation() {
         if invalid_value.len() != 64 {
             assert_ne!(invalid_value.len(), 64, "Should validate hex length");
         } else if !invalid_value.chars().all(|c| c.is_ascii_hexdigit()) {
-            assert!(!invalid_value.chars().all(|c| c.is_ascii_hexdigit()),
-                    "Should validate hex characters");
+            assert!(
+                !invalid_value.chars().all(|c| c.is_ascii_hexdigit()),
+                "Should validate hex characters"
+            );
         }
     }
 }
@@ -205,7 +205,10 @@ fn test_duplicate_job_submission_rejected() {
 
     let result2 = protocol.submit_job(req2);
     // Should reject duplicate job_id
-    assert!(result2.is_err(), "Duplicate job submission must be rejected");
+    assert!(
+        result2.is_err(),
+        "Duplicate job submission must be rejected"
+    );
 }
 
 #[test]
@@ -230,11 +233,17 @@ fn test_oversized_payload_rejected() {
         worker_id: "worker_1".to_string(),
         initial_stake_sat: 10000,
     };
-    protocol.register_worker(worker_req).expect("worker should register");
+    protocol
+        .register_worker(worker_req)
+        .expect("worker should register");
 
     // Assign job
-    protocol.assign_job(&job.job_id).expect("assign should work");
-    protocol.acknowledge_job(&job.job_id, "worker_1").expect("ack should work");
+    protocol
+        .assign_job(&job.job_id)
+        .expect("assign should work");
+    protocol
+        .acknowledge_job(&job.job_id, "worker_1")
+        .expect("ack should work");
 
     // Try to submit result larger than allowed (1KB)
     let result_req = axiom_ai::SubmitResultRequest {
@@ -272,14 +281,17 @@ fn test_insufficient_stake_rejected() {
     };
 
     let result = protocol.register_verifier(verifier_req);
-    assert!(result.is_err(), "Insufficient verifier stake must be rejected");
+    assert!(
+        result.is_err(),
+        "Insufficient verifier stake must be rejected"
+    );
 }
 
 #[tokio::test]
 async fn test_rate_limit_constants_defined() {
     use axiom_rpc::RpcRateLimiter;
 
-    let limiter = RpcRateLimiter::new();
+    let _limiter = RpcRateLimiter::new();
 
     // Verify rate limiter exists and is properly initialized
     // The actual rate limiting is enforced via middleware
@@ -294,7 +306,10 @@ async fn test_auth_config_available() {
     assert!(!config.is_protected(), "Auth should be optional by default");
 
     let protected = AuthConfig::with_token("secret".to_string());
-    assert!(protected.is_protected(), "Auth should be enforced when token set");
+    assert!(
+        protected.is_protected(),
+        "Auth should be enforced when token set"
+    );
 }
 
 // Invalid dispute resolution tested in axiom-ai unit tests (all 79 pass)
@@ -306,25 +321,28 @@ async fn test_auth_config_available() {
 fn test_all_endpoints_registered() {
     // Verify all 12 endpoints are registered
     let endpoints = vec![
-        "/ai/compute/job/submit",              // POST
-        "/ai/compute/job/:job_id",             // GET
-        "/ai/compute/jobs/address/:address",   // GET
-        "/ai/compute/worker/register",         // POST
-        "/ai/compute/worker/:worker_id",       // GET
-        "/ai/compute/worker/result",           // POST
-        "/ai/compute/verifier/register",       // POST
-        "/ai/compute/dispute/file",            // POST
-        "/ai/compute/dispute/resolve",         // POST
-        "/ai/compute/job/:job_id/finalize",    // POST
-        "/ai/compute/settlements/recent",      // GET
-        "/ai/compute/workers/active",          // GET
+        "/ai/compute/job/submit",            // POST
+        "/ai/compute/job/:job_id",           // GET
+        "/ai/compute/jobs/address/:address", // GET
+        "/ai/compute/worker/register",       // POST
+        "/ai/compute/worker/:worker_id",     // GET
+        "/ai/compute/worker/result",         // POST
+        "/ai/compute/verifier/register",     // POST
+        "/ai/compute/dispute/file",          // POST
+        "/ai/compute/dispute/resolve",       // POST
+        "/ai/compute/job/:job_id/finalize",  // POST
+        "/ai/compute/settlements/recent",    // GET
+        "/ai/compute/workers/active",        // GET
     ];
 
     assert_eq!(endpoints.len(), 12, "All 12 endpoints must be registered");
 
     for endpoint in endpoints {
         assert!(!endpoint.is_empty(), "Endpoint path must not be empty");
-        assert!(endpoint.starts_with("/ai/compute"), "All endpoints under /ai/compute");
+        assert!(
+            endpoint.starts_with("/ai/compute"),
+            "All endpoints under /ai/compute"
+        );
     }
 }
 
@@ -332,7 +350,7 @@ fn test_all_endpoints_registered() {
 fn test_rate_limiter_initialization() {
     use axiom_rpc::RpcRateLimiter;
 
-    let limiter = RpcRateLimiter::new();
+    let _limiter = RpcRateLimiter::new();
     // Verify limiter is created successfully
     assert!(true, "Rate limiter initializes");
 }

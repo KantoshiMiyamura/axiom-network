@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn test_testnet_seed_nodes_count() {
         let config = TestnetConfig::default();
-        assert!(config.seed_nodes.len() >= 1);
+        assert!(!config.seed_nodes.is_empty());
     }
 
     #[test]

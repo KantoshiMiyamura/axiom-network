@@ -51,10 +51,7 @@ pub enum InvariantError {
         reward_sat: u64,
     },
     /// Coinbase claimed more than `reward + fees` — mint of thin-air coins.
-    CoinbaseOverclaim {
-        claimed_sat: u64,
-        allowed_sat: u64,
-    },
+    CoinbaseOverclaim { claimed_sat: u64, allowed_sat: u64 },
     /// `reward + fees` overflowed u64 before comparison with coinbase claim.
     RewardPlusFeesOverflow { reward_sat: u64, fees_sat: u64 },
 }
@@ -184,13 +181,14 @@ pub fn check_supply_transition(
     let after_burn = prev_sat
         .checked_sub(burn_sat)
         .ok_or(InvariantError::SupplyUnderflow { prev_sat, burn_sat })?;
-    let after_reward = after_burn
-        .checked_add(reward_sat)
-        .ok_or(InvariantError::SupplyOverflow {
-            prev_sat,
-            burn_sat,
-            reward_sat,
-        })?;
+    let after_reward =
+        after_burn
+            .checked_add(reward_sat)
+            .ok_or(InvariantError::SupplyOverflow {
+                prev_sat,
+                burn_sat,
+                reward_sat,
+            })?;
 
     Amount::from_sat(after_reward).map_err(|_| InvariantError::SupplyOverflow {
         prev_sat,
@@ -217,12 +215,13 @@ pub fn check_coinbase_value(
     let claimed_sat = coinbase_value.as_sat();
     let reward_sat = reward.as_sat();
 
-    let allowed_sat = reward_sat
-        .checked_add(total_fees)
-        .ok_or(InvariantError::RewardPlusFeesOverflow {
-            reward_sat,
-            fees_sat: total_fees,
-        })?;
+    let allowed_sat =
+        reward_sat
+            .checked_add(total_fees)
+            .ok_or(InvariantError::RewardPlusFeesOverflow {
+                reward_sat,
+                fees_sat: total_fees,
+            })?;
 
     if claimed_sat > allowed_sat {
         return Err(InvariantError::CoinbaseOverclaim {

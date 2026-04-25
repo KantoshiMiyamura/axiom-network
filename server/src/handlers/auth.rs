@@ -13,9 +13,9 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
-use axiom_community_shared::models::{ChallengeRequest, ChallengeResponse, VerifyRequest};
-use crate::state::AppState;
 use crate::error::Result;
+use crate::state::AppState;
+use axiom_community_shared::models::{ChallengeRequest, ChallengeResponse, VerifyRequest};
 
 /// Request a new authentication challenge
 pub async fn request_challenge(
@@ -48,11 +48,7 @@ pub async fn request_challenge(
         )
         .await;
 
-    info!(
-        "Challenge requested for {} from {}",
-        req.address,
-        addr.ip()
-    );
+    info!("Challenge requested for {} from {}", req.address, addr.ip());
 
     let response = ChallengeResponse {
         nonce,
@@ -163,8 +159,15 @@ pub async fn verify_signature(
     state.ip_ban_manager.reset_auth_failures(&addr.ip()).await;
 
     // Public key binding: on first auth, store the key. On subsequent, verify it matches.
-    let stored_pk = state.db.get_public_key(req.address.as_str()).await
-        .map_err(|e| crate::error::ServerError::Shared(axiom_community_shared::Error::DatabaseError(e.to_string())))?;
+    let stored_pk = state
+        .db
+        .get_public_key(req.address.as_str())
+        .await
+        .map_err(|e| {
+            crate::error::ServerError::Shared(axiom_community_shared::Error::DatabaseError(
+                e.to_string(),
+            ))
+        })?;
 
     match stored_pk {
         Some(ref existing_pk) => {
@@ -188,20 +191,24 @@ pub async fn verify_signature(
         }
         None => {
             // First auth: bind the public key to this address
-            let _ = state.db.store_public_key(req.address.as_str(), &req.public_key).await;
+            let _ = state
+                .db
+                .store_public_key(req.address.as_str(), &req.public_key)
+                .await;
         }
     }
 
     // Ensure user exists (auto-register on first authentication)
     let _ = state.db.create_or_get_user(req.address.as_str()).await;
 
-    let user = state
-        .db
-        .get_user(req.address.as_str())
-        .await?
-        .ok_or(crate::error::ServerError::Shared(
-            axiom_community_shared::Error::InvalidAddress,
-        ))?;
+    let user =
+        state
+            .db
+            .get_user(req.address.as_str())
+            .await?
+            .ok_or(crate::error::ServerError::Shared(
+                axiom_community_shared::Error::InvalidAddress,
+            ))?;
 
     // Check if user is banned
     if user.is_banned {
@@ -279,10 +286,15 @@ pub async fn refresh_token(
     let refresh_hash = axiom_community_shared::crypto::sha256_hex(req.refresh_token.as_bytes());
 
     // Look up the session
-    let session = state.db.get_session(&req.session_id).await
-        .map_err(|e| crate::error::ServerError::Shared(
-            axiom_community_shared::Error::DatabaseError(e.to_string()),
-        ))?
+    let session = state
+        .db
+        .get_session(&req.session_id)
+        .await
+        .map_err(|e| {
+            crate::error::ServerError::Shared(axiom_community_shared::Error::DatabaseError(
+                e.to_string(),
+            ))
+        })?
         .ok_or(crate::error::ServerError::Shared(
             axiom_community_shared::Error::Unauthorized {
                 required: "Session not found".to_string(),
@@ -302,13 +314,16 @@ pub async fn refresh_token(
     if session.refresh_token_hash != refresh_hash {
         // Token mismatch — possible token theft. Revoke the entire session.
         let _ = state.db.revoke_session(&req.session_id).await;
-        let _ = state.db.log_audit(
-            Some(&session.address),
-            "auth_refresh_token_reuse_detected",
-            "failure",
-            None,
-            None,
-        ).await;
+        let _ = state
+            .db
+            .log_audit(
+                Some(&session.address),
+                "auth_refresh_token_reuse_detected",
+                "failure",
+                None,
+                None,
+            )
+            .await;
 
         return Err(crate::error::ServerError::Shared(
             axiom_community_shared::Error::Unauthorized {
@@ -319,7 +334,8 @@ pub async fn refresh_token(
 
     // Check refresh window (7 days from session creation)
     let now = chrono::Utc::now().timestamp();
-    let refresh_window = session.created_at + axiom_community_shared::protocol::REFRESH_TOKEN_EXPIRY_SECS;
+    let refresh_window =
+        session.created_at + axiom_community_shared::protocol::REFRESH_TOKEN_EXPIRY_SECS;
     if now > refresh_window {
         return Err(crate::error::ServerError::Shared(
             axiom_community_shared::Error::Unauthorized {
@@ -329,40 +345,56 @@ pub async fn refresh_token(
     }
 
     // Generate new tokens
-    let new_session_claims = state.session_manager.create_session(
-        &session.address,
-        state.db.get_user(&session.address).await
-            .map_err(|e| crate::error::ServerError::Shared(
-                axiom_community_shared::Error::DatabaseError(e.to_string()),
-            ))?
-            .ok_or(crate::error::ServerError::Shared(
-                axiom_community_shared::Error::InvalidAddress,
-            ))?
-            .roles,
-        &session.ip_address,
-        &session.user_agent,
-    ).await?;
+    let new_session_claims = state
+        .session_manager
+        .create_session(
+            &session.address,
+            state
+                .db
+                .get_user(&session.address)
+                .await
+                .map_err(|e| {
+                    crate::error::ServerError::Shared(axiom_community_shared::Error::DatabaseError(
+                        e.to_string(),
+                    ))
+                })?
+                .ok_or(crate::error::ServerError::Shared(
+                    axiom_community_shared::Error::InvalidAddress,
+                ))?
+                .roles,
+            &session.ip_address,
+            &session.user_agent,
+        )
+        .await?;
 
-    let new_session_token = state.token_manager.generate_token(new_session_claims.clone())?;
+    let new_session_token = state
+        .token_manager
+        .generate_token(new_session_claims.clone())?;
     let new_refresh_token = axiom_community_shared::crypto::random_hex(32);
     let new_refresh_hash = axiom_community_shared::crypto::sha256_hex(new_refresh_token.as_bytes());
     let new_token_hash = axiom_community_shared::crypto::sha256_hex(new_session_token.as_bytes());
 
     // Rotate: update the session in DB with new hashes
-    let _ = state.db.rotate_refresh_token(
-        &req.session_id,
-        &new_refresh_hash,
-        &new_token_hash,
-        new_session_claims.expires_at,
-    ).await;
+    let _ = state
+        .db
+        .rotate_refresh_token(
+            &req.session_id,
+            &new_refresh_hash,
+            &new_token_hash,
+            new_session_claims.expires_at,
+        )
+        .await;
 
-    let _ = state.db.log_audit(
-        Some(&session.address),
-        "auth_refresh_success",
-        "success",
-        None,
-        None,
-    ).await;
+    let _ = state
+        .db
+        .log_audit(
+            Some(&session.address),
+            "auth_refresh_success",
+            "success",
+            None,
+            None,
+        )
+        .await;
 
     let response = json!({
         "status": "ok",

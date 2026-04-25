@@ -35,18 +35,24 @@ impl ConfidentialOutput {
     /// construct the balancing commitment for the transaction.
     pub fn create(value: u64, pubkey_hash: [u8; 32]) -> Result<(Self, BlindingFactor)> {
         let r = BlindingFactor::random();
-        let (proof, commitments) = AxiomRangeProof::prove(&[(value, BlindingFactor::from_bytes(&r.to_bytes()))])?;
+        let (proof, commitments) =
+            AxiomRangeProof::prove(&[(value, BlindingFactor::from_bytes(&r.to_bytes()))])?;
         let commitment = commitments.into_iter().next().unwrap();
 
         Ok((
-            ConfidentialOutput { commitment, range_proof: proof, pubkey_hash },
+            ConfidentialOutput {
+                commitment,
+                range_proof: proof,
+                pubkey_hash,
+            },
             r,
         ))
     }
 
     /// Verify the range proof for this output.
     pub fn verify(&self) -> Result<()> {
-        self.range_proof.verify(std::slice::from_ref(&self.commitment))
+        self.range_proof
+            .verify(std::slice::from_ref(&self.commitment))
     }
 }
 
@@ -90,7 +96,11 @@ impl ConfidentialOutputBatch {
         let pubkey_hashes: Vec<[u8; 32]> = outputs.iter().map(|(_, ph)| *ph).collect();
 
         Ok((
-            ConfidentialOutputBatch { commitments, range_proof, pubkey_hashes },
+            ConfidentialOutputBatch {
+                commitments,
+                range_proof,
+                pubkey_hashes,
+            },
             blindings,
         ))
     }

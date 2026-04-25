@@ -166,12 +166,12 @@ pub fn compute_bumped_outputs(
     }
     let mut new_values = output_values.to_vec();
     let current = new_values[change_index];
-    let reduced = current
-        .checked_sub(extra_fee_sat)
-        .ok_or_else(|| format!(
+    let reduced = current.checked_sub(extra_fee_sat).ok_or_else(|| {
+        format!(
             "change output {} sat is smaller than extra fee {} sat",
             current, extra_fee_sat
-        ))?;
+        )
+    })?;
     if reduced < DUST_THRESHOLD_SAT && reduced != 0 {
         return Err(format!(
             "reduced change ({} sat) would be below dust threshold {} sat",
@@ -231,8 +231,7 @@ async fn main() {
     // Cross-check against the address metadata in the wallet file, if present.
     // This catches accidental keystore/metadata mismatch before we sign anything.
     if let Some(meta_hash_hex) = wallet.pubkey_hash_hex.as_deref() {
-        let expected = decode_hash32("pubkey_hash_hex", meta_hash_hex)
-            .unwrap_or_else(|e| abort(e));
+        let expected = decode_hash32("pubkey_hash_hex", meta_hash_hex).unwrap_or_else(|e| abort(e));
         if expected != own_pubkey_hash {
             abort(
                 "wallet metadata pubkey_hash_hex does not match the key unlocked \
@@ -278,9 +277,9 @@ async fn main() {
             .json()
             .await
             .unwrap_or_else(|e| abort(format!("invalid /status response: {}", e)));
-        s.chain_id
-            .or(s.network)
-            .unwrap_or_else(|| abort("node /status provided no chain_id or network — use --chain-id"))
+        s.chain_id.or(s.network).unwrap_or_else(|| {
+            abort("node /status provided no chain_id or network — use --chain-id")
+        })
     };
 
     // --- Fetch original transaction -----------------------------------------
@@ -401,14 +400,19 @@ async fn main() {
     let submit_url = format!("{}/submit_transaction", rpc_base);
     let submit_resp = client
         .post(&submit_url)
-        .json(&SubmitTransactionRequest { transaction_hex: tx_hex })
+        .json(&SubmitTransactionRequest {
+            transaction_hex: tx_hex,
+        })
         .send()
         .await
         .unwrap_or_else(|e| abort(format!("failed to submit replacement tx: {}", e)));
     if !submit_resp.status().is_success() {
         let status = submit_resp.status();
         let body = submit_resp.text().await.unwrap_or_default();
-        abort(format!("node rejected replacement transaction ({}): {}", status, body));
+        abort(format!(
+            "node rejected replacement transaction ({}): {}",
+            status, body
+        ));
     }
     let submit_result: SubmitTransactionResponse = submit_resp
         .json()
@@ -448,7 +452,10 @@ mod tests {
     #[test]
     fn resolve_change_explicit_index_must_be_owned() {
         let outs = vec![(1_000, own_hash()), (2_000, other_hash())];
-        assert_eq!(resolve_change_index(&outs, &own_hash(), Some(0)).unwrap(), 0);
+        assert_eq!(
+            resolve_change_index(&outs, &own_hash(), Some(0)).unwrap(),
+            0
+        );
         assert!(resolve_change_index(&outs, &own_hash(), Some(1)).is_err());
     }
 

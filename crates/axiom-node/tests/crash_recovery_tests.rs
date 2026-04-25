@@ -7,15 +7,15 @@
 //! - Mempool persistence
 //! - UTXO set integrity
 
-use axiom_consensus::Block;
 use axiom_node::{Config, Node};
-use axiom_primitives::Hash256;
 use std::fs;
 use tempfile::TempDir;
 
 fn create_test_node(dir: &std::path::Path) -> Node {
-    let mut config = Config::default();
-    config.data_dir = dir.to_path_buf();
+    let config = Config {
+        data_dir: dir.to_path_buf(),
+        ..Default::default()
+    };
     Node::new(config).unwrap()
 }
 
@@ -28,7 +28,7 @@ fn crash_during_block_processing_recovery() {
     // Phase 1: Create initial blocks
     {
         let mut node1 = create_test_node(db_path);
-        let genesis_hash = node1.best_block_hash().unwrap();
+        let _genesis_hash = node1.best_block_hash().unwrap();
         let height_before = node1.best_height().unwrap();
 
         // Add a block
@@ -57,8 +57,8 @@ fn mempool_persistence_after_restart() {
     let db_path = temp_dir.path();
 
     // Phase 1: Create transactions in mempool
-    let mempool_size_before = {
-        let mut node1 = create_test_node(db_path);
+    let _mempool_size_before = {
+        let node1 = create_test_node(db_path);
         let initial_size = node1.mempool_size();
         println!("Initial mempool size: {}", initial_size);
         initial_size
@@ -82,7 +82,7 @@ fn utxo_state_consistency_after_unclean_shutdown() {
 
     let initial_best_hash = {
         let mut node1 = create_test_node(db_path);
-        let genesis = node1.best_block_hash().unwrap();
+        let _genesis = node1.best_block_hash().unwrap();
 
         // Add blocks
         for _ in 0..3 {
@@ -100,8 +100,10 @@ fn utxo_state_consistency_after_unclean_shutdown() {
         let recovered_hash = node2.best_block_hash().unwrap();
 
         // UTXO state should be consistent with best block
-        assert_eq!(initial_best_hash, recovered_hash,
-            "Best block hash should persist exactly");
+        assert_eq!(
+            initial_best_hash, recovered_hash,
+            "Best block hash should persist exactly"
+        );
 
         // Verify chainwork is recoverable
         let chainwork = node2.get_chain_work().unwrap();
@@ -170,7 +172,10 @@ fn genesis_state_recovery() {
 
         // Verify chainwork is available
         let chainwork = node2.get_chain_work().unwrap();
-        assert!(chainwork.is_some(), "Genesis chainwork should be recoverable");
+        assert!(
+            chainwork.is_some(),
+            "Genesis chainwork should be recoverable"
+        );
         println!("✓ Genesis recovered with chainwork");
     }
 }
@@ -204,7 +209,9 @@ fn database_corruption_resilience() {
         let _node2 = create_test_node(db_path);
     })) {
         Ok(_) => println!("✓ Node restarted successfully after potential corruption"),
-        Err(_) => println!("Note: Node initialization panicked (expected in some corruption scenarios)"),
+        Err(_) => {
+            println!("Note: Node initialization panicked (expected in some corruption scenarios)")
+        }
     }
 }
 

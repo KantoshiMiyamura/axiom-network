@@ -230,7 +230,8 @@ pub async fn submit_transaction(
     let mut node = state.write().await;
     match node.submit_transaction(tx.clone()) {
         Ok(txid) => {
-            let computed_txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+            let computed_txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
 
             tracing::info!(
                 "TX_SUBMITTED_RPC: txid={}",
@@ -371,8 +372,12 @@ pub async fn get_block_transactions(
                     let tx_type = match tx.tx_type {
                         axiom_protocol::TransactionType::Transfer => "transfer",
                         axiom_protocol::TransactionType::Coinbase => "coinbase",
-                        axiom_protocol::TransactionType::ConfidentialTransfer => "confidential_transfer",
-                        axiom_protocol::TransactionType::UsernameRegistration => "username_registration",
+                        axiom_protocol::TransactionType::ConfidentialTransfer => {
+                            "confidential_transfer"
+                        }
+                        axiom_protocol::TransactionType::UsernameRegistration => {
+                            "username_registration"
+                        }
                     };
 
                     let inputs: Vec<TxInputDetail> = tx
@@ -457,7 +462,7 @@ pub async fn get_transaction(
                 axiom_protocol::TransactionType::Transfer => "transfer",
                 axiom_protocol::TransactionType::Coinbase => "coinbase",
                 axiom_protocol::TransactionType::ConfidentialTransfer => "confidential_transfer",
-                        axiom_protocol::TransactionType::UsernameRegistration => "username_registration",
+                axiom_protocol::TransactionType::UsernameRegistration => "username_registration",
             };
 
             let inputs: Vec<TxInputDetail> = tx
@@ -521,7 +526,7 @@ pub async fn get_transaction(
                 axiom_protocol::TransactionType::Transfer => "transfer",
                 axiom_protocol::TransactionType::Coinbase => "coinbase",
                 axiom_protocol::TransactionType::ConfidentialTransfer => "confidential_transfer",
-                        axiom_protocol::TransactionType::UsernameRegistration => "username_registration",
+                axiom_protocol::TransactionType::UsernameRegistration => "username_registration",
             };
 
             let inputs: Vec<TxInputDetail> = tx
@@ -743,7 +748,6 @@ pub async fn get_utxos(
         Err(e) => Err(RpcError::Internal(format!("Failed to query UTXOs: {}", e))),
     }
 }
-
 
 pub async fn get_metrics(
     State(state): State<SharedNodeState>,
@@ -1419,7 +1423,7 @@ pub async fn decode_raw_tx(
         axiom_protocol::TransactionType::Transfer => "transfer",
         axiom_protocol::TransactionType::Coinbase => "coinbase",
         axiom_protocol::TransactionType::ConfidentialTransfer => "confidential_transfer",
-                        axiom_protocol::TransactionType::UsernameRegistration => "username_registration",
+        axiom_protocol::TransactionType::UsernameRegistration => "username_registration",
     };
 
     let inputs: Vec<crate::types::TxInputDetail> = tx
@@ -1469,7 +1473,9 @@ pub async fn get_guard_status(
 ) -> Result<Json<axiom_guard::GuardStatus>> {
     match guard {
         Some(g) => Ok(Json(g.read().await.status())),
-        None => Err(RpcError::NotFound("AxiomMind guard not active on this node".into())),
+        None => Err(RpcError::NotFound(
+            "AxiomMind guard not active on this node".into(),
+        )),
     }
 }
 
@@ -1483,7 +1489,9 @@ pub async fn get_guard_alerts(
             let limit = params.limit.unwrap_or(20).min(200);
             Ok(Json(g.read().await.recent_alerts(limit)))
         }
-        None => Err(RpcError::NotFound("AxiomMind guard not active on this node".into())),
+        None => Err(RpcError::NotFound(
+            "AxiomMind guard not active on this node".into(),
+        )),
     }
 }
 
@@ -1503,7 +1511,8 @@ pub async fn broadcast_raw_tx(
     let mut node = state.write().await;
     match node.submit_transaction(tx.clone()) {
         Ok(txid) => {
-            let computed_txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+            let computed_txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
             tracing::info!(
                 "TX_BROADCAST_RPC: txid={}",
                 hex::encode(&computed_txid.as_bytes()[..8])
@@ -1588,7 +1597,9 @@ pub async fn community_send_message(
     use axiom_node::network::{ChatMessagePayload, Message};
 
     if req.text.len() > axiom_node::network::MAX_CHAT_TEXT_BYTES {
-        return Err(RpcError::InvalidRequest("message too long (max 512 bytes)".into()));
+        return Err(RpcError::InvalidRequest(
+            "message too long (max 512 bytes)".into(),
+        ));
     }
     if req.username.is_empty() || req.username.len() > 32 {
         return Err(RpcError::InvalidRequest(
@@ -1609,11 +1620,9 @@ pub async fn community_send_message(
         OsRng.next_u64()
     };
 
-    let sig_bytes = base64::Engine::decode(
-        &base64::engine::general_purpose::STANDARD,
-        &req.signature,
-    )
-    .map_err(|_| RpcError::InvalidRequest("signature must be valid base64".into()))?;
+    let sig_bytes =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &req.signature)
+            .map_err(|_| RpcError::InvalidRequest("signature must be valid base64".into()))?;
 
     let payload = ChatMessagePayload {
         username: req.username,
@@ -1649,9 +1658,7 @@ pub async fn community_get_username(
     Extension(ns): Extension<Option<SharedNetworkService>>,
     Path(address): Path<String>,
 ) -> Result<Json<serde_json::Value>> {
-    let ns = ns.ok_or_else(|| {
-        RpcError::Internal("community service unavailable".into())
-    })?;
+    let ns = ns.ok_or_else(|| RpcError::Internal("community service unavailable".into()))?;
     let service = ns.read().await;
 
     match service.community.username_of(&address).await {
@@ -1686,7 +1693,10 @@ pub async fn get_network_analytics(
         return Ok(Json(crate::types::NetworkAnalyticsResponse {
             avg_block_time_secs: 0.0,
             std_block_time_secs: 0.0,
-            avg_tx_per_block: blocks.first().map(|b| b.transactions.len() as f64).unwrap_or(0.0),
+            avg_tx_per_block: blocks
+                .first()
+                .map(|b| b.transactions.len() as f64)
+                .unwrap_or(0.0),
             avg_block_size_bytes: 0.0,
             blocks_per_hour: 0.0,
             estimated_tps: 0.0,
@@ -1718,14 +1728,16 @@ pub async fn get_network_analytics(
 
     let std_block_time_secs = if n_intervals > 1.0 {
         let mean = avg_block_time_secs;
-        let variance =
-            intervals.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / n_intervals;
+        let variance = intervals.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / n_intervals;
         variance.sqrt()
     } else {
         0.0
     };
 
-    let avg_tx_per_block = blocks.iter().map(|b| b.transactions.len() as f64).sum::<f64>()
+    let avg_tx_per_block = blocks
+        .iter()
+        .map(|b| b.transactions.len() as f64)
+        .sum::<f64>()
         / blocks.len() as f64;
 
     let avg_block_size_bytes = blocks
@@ -1764,8 +1776,14 @@ pub async fn get_network_analytics(
 
     // Difficulty trend: ratio of newest block's difficulty vs oldest.
     let difficulty_trend = {
-        let newest_diff = blocks.first().map(|b| b.header.difficulty_target).unwrap_or(1) as f64;
-        let oldest_diff = blocks.last().map(|b| b.header.difficulty_target).unwrap_or(1) as f64;
+        let newest_diff = blocks
+            .first()
+            .map(|b| b.header.difficulty_target)
+            .unwrap_or(1) as f64;
+        let oldest_diff = blocks
+            .last()
+            .map(|b| b.header.difficulty_target)
+            .unwrap_or(1) as f64;
         if oldest_diff > 0.0 {
             newest_diff / oldest_diff
         } else {
@@ -1892,7 +1910,14 @@ pub async fn get_mempool_detail(
 
     if entries.is_empty() {
         let zero_percs = crate::types::FeePercentilesDetail {
-            p5: 0, p10: 0, p25: 0, p50: 0, p75: 0, p90: 0, p95: 0, p99: 0,
+            p5: 0,
+            p10: 0,
+            p25: 0,
+            p50: 0,
+            p75: 0,
+            p90: 0,
+            p95: 0,
+            p99: 0,
         };
         return Ok(Json(crate::types::MempoolDetailResponse {
             count: 0,
@@ -2229,10 +2254,7 @@ pub async fn compute_list_jobs_for_address(
     let protocol =
         protocol.ok_or_else(|| RpcError::Internal("compute protocol not initialised".into()))?;
 
-    let limit = params
-        .limit
-        .unwrap_or(50)
-        .min(100);
+    let limit = params.limit.unwrap_or(50).min(100);
 
     protocol
         .list_jobs_for_requester(&address, limit)
@@ -2326,19 +2348,22 @@ pub async fn compute_resolve_dispute(
 
     let resolution = match req.resolution.as_str() {
         "fraud_confirmed" => axiom_ai::DisputeResolution::FraudConfirmed {
-            worker_slash_sat: 0, // Calculated by protocol
+            worker_slash_sat: 0,    // Calculated by protocol
             verifier_reward_sat: 0, // Calculated by protocol
             resolved_at: now,
         },
         "false_accusation" => axiom_ai::DisputeResolution::FalseAccusation {
             verifier_slash_sat: 0, // Calculated by protocol
-            worker_bonus_sat: 0, // Calculated by protocol
+            worker_bonus_sat: 0,   // Calculated by protocol
             resolved_at: now,
         },
         "inconclusive" => axiom_ai::DisputeResolution::Inconclusive { resolved_at: now },
-        _ => return Err(RpcError::InvalidRequest(
-            format!("Invalid resolution: {}", req.resolution)
-        )),
+        _ => {
+            return Err(RpcError::InvalidRequest(format!(
+                "Invalid resolution: {}",
+                req.resolution
+            )))
+        }
     };
 
     protocol
@@ -2369,10 +2394,7 @@ pub async fn compute_list_settlements(
     let protocol =
         protocol.ok_or_else(|| RpcError::Internal("compute protocol not initialised".into()))?;
 
-    let limit = params
-        .limit
-        .unwrap_or(50)
-        .min(100);
+    let limit = params.limit.unwrap_or(50).min(100);
 
     protocol
         .list_recent_settlements(limit)
@@ -2388,10 +2410,7 @@ pub async fn compute_list_active_workers(
     let protocol =
         protocol.ok_or_else(|| RpcError::Internal("compute protocol not initialised".into()))?;
 
-    let limit = params
-        .limit
-        .unwrap_or(50)
-        .min(1000);
+    let limit = params.limit.unwrap_or(50).min(1000);
 
     protocol
         .list_active_workers(limit)
@@ -2400,6 +2419,7 @@ pub async fn compute_list_active_workers(
 }
 
 #[cfg(test)]
+#[allow(clippy::unnecessary_literal_unwrap)]
 mod pagination_tests {
     use super::*;
 

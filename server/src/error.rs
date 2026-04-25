@@ -64,59 +64,31 @@ impl IntoResponse for ServerError {
         let (status, error_code, message) = match &self {
             ServerError::Shared(e) => {
                 if e.is_auth_error() {
-                    (
-                        StatusCode::UNAUTHORIZED,
-                        "AUTH_ERROR",
-                        e.to_string(),
-                    )
+                    (StatusCode::UNAUTHORIZED, "AUTH_ERROR", e.to_string())
                 } else if e.is_authz_error() {
-                    (
-                        StatusCode::FORBIDDEN,
-                        "AUTHZ_ERROR",
-                        e.to_string(),
-                    )
+                    (StatusCode::FORBIDDEN, "AUTHZ_ERROR", e.to_string())
                 } else if e.is_rate_limited() {
-                    (
-                        StatusCode::TOO_MANY_REQUESTS,
-                        "RATE_LIMITED",
-                        e.to_string(),
-                    )
+                    (StatusCode::TOO_MANY_REQUESTS, "RATE_LIMITED", e.to_string())
                 } else {
-                    (
-                        StatusCode::BAD_REQUEST,
-                        "INVALID_REQUEST",
-                        e.to_string(),
-                    )
+                    (StatusCode::BAD_REQUEST, "INVALID_REQUEST", e.to_string())
                 }
             }
-            ServerError::Database(_) => {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "DATABASE_ERROR",
-                    "An internal database error occurred".to_string(),
-                )
-            }
-            ServerError::Config(_) => {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "CONFIG_ERROR",
-                    "Server configuration error".to_string(),
-                )
-            }
-            ServerError::Http(msg) => {
-                (
-                    StatusCode::BAD_REQUEST,
-                    "HTTP_ERROR",
-                    msg.clone(),
-                )
-            }
-            ServerError::Internal(_) => {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "INTERNAL_ERROR",
-                    "An internal server error occurred".to_string(),
-                )
-            }
+            ServerError::Database(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "DATABASE_ERROR",
+                "An internal database error occurred".to_string(),
+            ),
+            ServerError::Config(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "CONFIG_ERROR",
+                "Server configuration error".to_string(),
+            ),
+            ServerError::Http(msg) => (StatusCode::BAD_REQUEST, "HTTP_ERROR", msg.clone()),
+            ServerError::Internal(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR",
+                "An internal server error occurred".to_string(),
+            ),
         };
 
         let body = Json(json!({

@@ -91,15 +91,17 @@ impl NetworkGuard {
 
         let prev = self.recent_blocks.back().cloned();
 
-        let interval_secs = prev.as_ref().map(|p| {
-            (block.header.timestamp as i64 - p.timestamp as i64).max(0) as f64
-        });
+        let interval_secs = prev
+            .as_ref()
+            .map(|p| (block.header.timestamp as i64 - p.timestamp as i64).max(0) as f64);
 
         // Update learning baselines first
         if let Some(s) = interval_secs {
             self.baselines.block_interval_secs.update(s);
         }
-        self.baselines.tx_count_per_block.update(block.transactions.len() as f64);
+        self.baselines
+            .tx_count_per_block
+            .update(block.transactions.len() as f64);
         if let Some(p) = prev.as_ref() {
             if p.difficulty_target > 0 {
                 let pct = (block.header.difficulty_target as f64 - p.difficulty_target as f64)
@@ -142,19 +144,25 @@ impl NetworkGuard {
         }
 
         // Decay threat level after sustained clean period
-        if alerts.is_empty() && self.clean_blocks_since_last_alert > 50
-            && self.threat_level > ThreatLevel::Safe {
-                let prev_level = self.threat_level;
-                self.threat_level = match self.threat_level {
-                    ThreatLevel::Critical => ThreatLevel::High,
-                    ThreatLevel::High     => ThreatLevel::Medium,
-                    ThreatLevel::Medium   => ThreatLevel::Low,
-                    _                     => ThreatLevel::Safe,
-                };
-                info!("{} AxiomMind threat decayed: {} → {}",
-                      self.threat_level.emoji(), prev_level, self.threat_level);
-                self.clean_blocks_since_last_alert = 0;
-            }
+        if alerts.is_empty()
+            && self.clean_blocks_since_last_alert > 50
+            && self.threat_level > ThreatLevel::Safe
+        {
+            let prev_level = self.threat_level;
+            self.threat_level = match self.threat_level {
+                ThreatLevel::Critical => ThreatLevel::High,
+                ThreatLevel::High => ThreatLevel::Medium,
+                ThreatLevel::Medium => ThreatLevel::Low,
+                _ => ThreatLevel::Safe,
+            };
+            info!(
+                "{} AxiomMind threat decayed: {} → {}",
+                self.threat_level.emoji(),
+                prev_level,
+                self.threat_level
+            );
+            self.clean_blocks_since_last_alert = 0;
+        }
 
         alerts
     }
@@ -193,7 +201,12 @@ impl NetworkGuard {
         use crate::detector::PeerId;
 
         let pid: PeerId = peer_id.to_string();
-        match self.detector.detect_selfish_mining(pid.clone(), block_hashes, timestamps, block_heights) {
+        match self.detector.detect_selfish_mining(
+            pid.clone(),
+            block_hashes,
+            timestamps,
+            block_heights,
+        ) {
             None => vec![],
             Some(threat_level) => {
                 let count = block_hashes.len();
@@ -231,10 +244,18 @@ impl NetworkGuard {
         self.peer_reputation.record_invalid_block(peer_id);
     }
 
-    pub fn threat_level(&self) -> ThreatLevel { self.threat_level }
-    pub fn blocks_analyzed(&self) -> u64 { self.blocks_analyzed }
-    pub fn threats_detected(&self) -> u64 { self.threats_detected }
-    pub fn fingerprint_address(&self) -> &str { self.fingerprint.address() }
+    pub fn threat_level(&self) -> ThreatLevel {
+        self.threat_level
+    }
+    pub fn blocks_analyzed(&self) -> u64 {
+        self.blocks_analyzed
+    }
+    pub fn threats_detected(&self) -> u64 {
+        self.threats_detected
+    }
+    pub fn fingerprint_address(&self) -> &str {
+        self.fingerprint.address()
+    }
 
     pub fn recent_alerts(&self, n: usize) -> Vec<GuardAlert> {
         self.alert_history.iter().rev().take(n).cloned().collect()
@@ -288,8 +309,12 @@ impl NetworkGuard {
 
         // Elevate network threat level
         if threat_level > self.threat_level {
-            warn!("{} AxiomMind threat elevated: {} → {}",
-                  threat_level.emoji(), self.threat_level, threat_level);
+            warn!(
+                "{} AxiomMind threat elevated: {} → {}",
+                threat_level.emoji(),
+                self.threat_level,
+                threat_level
+            );
             self.threat_level = threat_level;
         }
 
@@ -314,8 +339,14 @@ impl NetworkGuard {
             signer_address: self.fingerprint.address().to_string(),
         };
 
-        warn!("{} AxiomMind [{}] score={:.1} h={}: {}",
-              threat_level.emoji(), kind.code(), score, height, details);
+        warn!(
+            "{} AxiomMind [{}] score={:.1} h={}: {}",
+            threat_level.emoji(),
+            kind.code(),
+            score,
+            height,
+            details
+        );
 
         if self.alert_history.len() >= MAX_ALERT_HISTORY {
             self.alert_history.pop_front();

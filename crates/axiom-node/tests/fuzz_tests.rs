@@ -15,8 +15,10 @@ use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }
@@ -44,7 +46,7 @@ fn fuzz_transaction_creation() {
 #[test]
 fn fuzz_transaction_serialization() {
     // Test serialization roundtrips with various transaction shapes
-    for num_outputs in vec![1, 10, 100, 1000] {
+    for num_outputs in [1, 10, 100, 1000] {
         let mut outputs = Vec::new();
         for i in 0..num_outputs {
             outputs.push(TxOutput {
@@ -58,8 +60,12 @@ fn fuzz_transaction_serialization() {
         let deserialized = axiom_protocol::deserialize_transaction(&serialized)
             .expect("serialization roundtrip failed");
 
-        assert_eq!(tx.outputs.len(), deserialized.outputs.len(),
-            "Output count mismatch for {} outputs", num_outputs);
+        assert_eq!(
+            tx.outputs.len(),
+            deserialized.outputs.len(),
+            "Output count mismatch for {} outputs",
+            num_outputs
+        );
     }
 }
 
@@ -74,11 +80,11 @@ fn fuzz_block_creation_edge_cases() {
         .unwrap()
         .as_secs() as u32;
 
-    let timestamps = vec![
-        now - 7200,  // 2 hours old (boundary)
-        now - 3600,  // 1 hour old
-        now,         // current
-        now + 3600,  // 1 hour future (should fail)
+    let timestamps = [
+        now - 7200, // 2 hours old (boundary)
+        now - 3600, // 1 hour old
+        now,        // current
+        now + 3600, // 1 hour future (should fail)
     ];
 
     for (idx, timestamp) in timestamps.iter().enumerate() {
@@ -87,7 +93,9 @@ fn fuzz_block_creation_edge_cases() {
             pubkey_hash: Hash256::zero(),
         };
         let coinbase = Transaction::new_coinbase(vec![output], 1);
-        let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+        let merkle_root = axiom_crypto::double_hash256(
+            &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+        );
 
         let header = BlockHeader {
             version: 1,
@@ -108,13 +116,15 @@ fn fuzz_block_creation_edge_cases() {
             0..=2 => {
                 // Timestamps in valid range should process (or be stored as fork)
                 let _ = result; // Don't assert, may be orphan
-            },
+            }
             3 => {
                 // Future timestamp should fail
-                assert!(result.is_err() || !node.best_height().map(|h| h > 1).unwrap_or(false),
-                    "Future timestamp block was accepted");
-            },
-            _ => {},
+                assert!(
+                    result.is_err() || !node.best_height().map(|h| h > 1).unwrap_or(false),
+                    "Future timestamp block was accepted"
+                );
+            }
+            _ => {}
         }
     }
 }
@@ -124,10 +134,7 @@ fn fuzz_malformed_hash_handling() {
     let (_temp, mut node) = create_test_node();
 
     // Test handling of all-zero and all-0xFF hashes
-    let test_hashes = vec![
-        Hash256::zero(),
-        Hash256::from_bytes([0xFF; 32]),
-    ];
+    let test_hashes = vec![Hash256::zero(), Hash256::from_bytes([0xFF; 32])];
 
     for test_hash in test_hashes {
         // Try to process block with invalid parent
@@ -136,7 +143,9 @@ fn fuzz_malformed_hash_handling() {
             pubkey_hash: Hash256::zero(),
         };
         let coinbase = Transaction::new_coinbase(vec![output], 1);
-        let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+        let merkle_root = axiom_crypto::double_hash256(
+            &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+        );
 
         let header = BlockHeader {
             version: 1,
@@ -157,8 +166,10 @@ fn fuzz_malformed_hash_handling() {
 
         // Should either add to orphan pool or reject, not panic
         let result = node.process_block(block);
-        assert!(result.is_ok() || result.is_err(),
-            "Block processing should complete without panicking");
+        assert!(
+            result.is_ok() || result.is_err(),
+            "Block processing should complete without panicking"
+        );
     }
 }
 
@@ -182,7 +193,9 @@ fn fuzz_coinbase_value_edge_cases() {
             pubkey_hash: Hash256::zero(),
         };
         let coinbase = Transaction::new_coinbase(vec![output], 0);
-        let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+        let merkle_root = axiom_crypto::double_hash256(
+            &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+        );
 
         let header = BlockHeader {
             version: 1,
@@ -204,11 +217,11 @@ fn fuzz_coinbase_value_edge_cases() {
 
     // Test various coinbase values
     let test_values = vec![
-        1_000_000,           // 0.01 AXIOM
-        1_000_000_000,       // 10 AXIOM
-        2_000_000_000,       // 20 AXIOM (safe)
-        3_000_000_000,       // 30 AXIOM (exceeds)
-        5_000_000_000,       // 50 AXIOM (full reward, should pass)
+        1_000_000,     // 0.01 AXIOM
+        1_000_000_000, // 10 AXIOM
+        2_000_000_000, // 20 AXIOM (safe)
+        3_000_000_000, // 30 AXIOM (exceeds)
+        5_000_000_000, // 50 AXIOM (full reward, should pass)
     ];
 
     for value in test_values {
@@ -222,7 +235,9 @@ fn fuzz_coinbase_value_edge_cases() {
             pubkey_hash: Hash256::zero(),
         };
         let coinbase = Transaction::new_coinbase(vec![output], 1);
-        let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+        let merkle_root = axiom_crypto::double_hash256(
+            &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+        );
 
         let header = BlockHeader {
             version: 1,
@@ -284,11 +299,11 @@ fn fuzz_empty_and_oversized_blocks() {
 fn fuzz_difficulty_target_values() {
     // Test handling of various difficulty targets
     let targets = vec![
-        0x00000000,  // Impossible (all zeros)
-        0x00000001,  // Very hard
-        0x00ffffff,  // Hard
-        0x1f00ffff,  // Genesis difficulty
-        0xffffffff,  // Max value
+        0x00000000, // Impossible (all zeros)
+        0x00000001, // Very hard
+        0x00ffffff, // Hard
+        0x1f00ffff, // Genesis difficulty
+        0xffffffff, // Max value
     ];
 
     for target in targets {
@@ -303,13 +318,7 @@ fn fuzz_difficulty_target_values() {
 #[test]
 fn fuzz_nonce_exhaustion() {
     // Test nonce saturation handling in anomaly detection
-    let test_nonces = vec![
-        0u64,
-        1,
-        u64::MAX / 2,
-        u64::MAX - 1,
-        u64::MAX,
-    ];
+    let test_nonces = vec![0u64, 1, u64::MAX / 2, u64::MAX - 1, u64::MAX];
 
     for nonce in test_nonces {
         // Simulate the anomaly detection calculation

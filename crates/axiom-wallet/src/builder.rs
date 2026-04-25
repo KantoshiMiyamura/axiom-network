@@ -183,9 +183,8 @@ impl TransactionBuilder {
         for (value, pubkey_hash) in outputs {
             let r = axiom_ct::BlindingFactor::random();
             let r_copy = axiom_ct::BlindingFactor::from_bytes(&r.to_bytes());
-            let (proof, commitments) =
-                axiom_ct::AxiomRangeProof::prove(&[(*value, r_copy)])
-                    .map_err(|e| WalletError::Other(e.to_string()))?;
+            let (proof, commitments) = axiom_ct::AxiomRangeProof::prove(&[(*value, r_copy)])
+                .map_err(|e| WalletError::Other(e.to_string()))?;
             let commitment_bytes = commitments[0].to_bytes();
 
             conf_outputs.push(ConfidentialTxOutput {

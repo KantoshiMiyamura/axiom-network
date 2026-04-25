@@ -38,8 +38,8 @@ pub mod output;
 pub mod range_proof;
 
 pub use commitment::{
-    sum_blinding_factors, sum_commitments, verify_balance, BlindingFactor, Commitment,
-    generator_g, generator_h,
+    generator_g, generator_h, sum_blinding_factors, sum_commitments, verify_balance,
+    BlindingFactor, Commitment,
 };
 pub use error::{CtError, Result};
 pub use output::{ConfidentialOutput, ConfidentialOutputBatch};
@@ -112,7 +112,10 @@ mod tests {
         let r_sum = BlindingFactor(r_sum_scalar);
         let c7 = Commitment::commit(7u64, &r_sum);
 
-        assert_eq!(c_sum, c7, "commit(3,r1) + commit(4,r2) must equal commit(7, r1+r2)");
+        assert_eq!(
+            c_sum, c7,
+            "commit(3,r1) + commit(4,r2) must equal commit(7, r1+r2)"
+        );
     }
 
     #[test]
@@ -124,7 +127,7 @@ mod tests {
         let r2 = BlindingFactor::from_bytes(&r2_bytes);
 
         let c10 = Commitment::commit(10u64, &r1);
-        let c3  = Commitment::commit(3u64,  &r2);
+        let c3 = Commitment::commit(3u64, &r2);
         let c_diff = (&c10 - &c3).expect("homomorphic sub");
 
         let r_diff_scalar = r1.inner() - r2.inner();
@@ -140,30 +143,30 @@ mod tests {
     fn test_balance_check_passes_for_valid_tx() {
         // value_in = 100, value_out = 95, fee = 5
         // r_in = r_out + r_fee  ← we set r_fee = r_in - r_out
-        let r_in_bytes  = [0xAAu8; 32];
+        let r_in_bytes = [0xAAu8; 32];
         let r_out_bytes = [0x55u8; 32];
-        let r_in  = BlindingFactor::from_bytes(&r_in_bytes);
+        let r_in = BlindingFactor::from_bytes(&r_in_bytes);
         let r_out = BlindingFactor::from_bytes(&r_out_bytes);
 
         let r_fee_scalar = r_in.inner() - r_out.inner();
         let r_fee = BlindingFactor(r_fee_scalar);
 
-        let c_in  = Commitment::commit(100u64, &r_in);
-        let c_out = Commitment::commit(95u64,  &r_out);
-        let c_fee = Commitment::commit(5u64,   &r_fee);
+        let c_in = Commitment::commit(100u64, &r_in);
+        let c_out = Commitment::commit(95u64, &r_out);
+        let c_fee = Commitment::commit(5u64, &r_fee);
 
         verify_balance(&[c_in], &[c_out], &c_fee).expect("balance check must pass");
     }
 
     #[test]
     fn test_balance_check_fails_when_amounts_dont_balance() {
-        let r_in  = BlindingFactor::random();
+        let r_in = BlindingFactor::random();
         let r_out = BlindingFactor::random();
         let r_fee = BlindingFactor::random(); // wrong blinding — won't balance
 
-        let c_in  = Commitment::commit(100u64, &r_in);
-        let c_out = Commitment::commit(90u64,  &r_out); // 90 + 5 ≠ 100
-        let c_fee = Commitment::commit(5u64,   &r_fee);
+        let c_in = Commitment::commit(100u64, &r_in);
+        let c_out = Commitment::commit(90u64, &r_out); // 90 + 5 ≠ 100
+        let c_fee = Commitment::commit(5u64, &r_fee);
 
         let result = verify_balance(&[c_in], &[c_out], &c_fee);
         assert_eq!(result.unwrap_err(), CtError::BalanceCheckFailed);
@@ -181,11 +184,11 @@ mod tests {
         let r_fee_scalar = (r_in1.inner() + r_in2.inner()) - (r_out1.inner() + r_out2.inner());
         let r_fee = BlindingFactor(r_fee_scalar);
 
-        let c_in1  = Commitment::commit(120u64, &r_in1);
-        let c_in2  = Commitment::commit(80u64,  &r_in2);
+        let c_in1 = Commitment::commit(120u64, &r_in1);
+        let c_in2 = Commitment::commit(80u64, &r_in2);
         let c_out1 = Commitment::commit(100u64, &r_out1);
-        let c_out2 = Commitment::commit(90u64,  &r_out2);
-        let c_fee  = Commitment::commit(10u64,  &r_fee);
+        let c_out2 = Commitment::commit(90u64, &r_out2);
+        let c_fee = Commitment::commit(10u64, &r_fee);
 
         verify_balance(&[c_in1, c_in2], &[c_out1, c_out2], &c_fee)
             .expect("multi-input/output balance check must pass");
@@ -197,8 +200,8 @@ mod tests {
     fn test_range_proof_single_output_prove_and_verify() {
         let r = BlindingFactor::random();
         let value = 1_000_000u64;
-        let (proof, commitments) = AxiomRangeProof::prove(&[(value, r)])
-            .expect("prove must succeed");
+        let (proof, commitments) =
+            AxiomRangeProof::prove(&[(value, r)]).expect("prove must succeed");
 
         assert_eq!(commitments.len(), 1);
         assert!(proof.byte_len() > 0);
@@ -208,16 +211,16 @@ mod tests {
     #[test]
     fn test_range_proof_zero_value() {
         let r = BlindingFactor::random();
-        let (proof, commitments) = AxiomRangeProof::prove(&[(0u64, r)])
-            .expect("zero value is valid");
+        let (proof, commitments) =
+            AxiomRangeProof::prove(&[(0u64, r)]).expect("zero value is valid");
         proof.verify(&commitments).expect("verify zero value");
     }
 
     #[test]
     fn test_range_proof_max_u64() {
         let r = BlindingFactor::random();
-        let (proof, commitments) = AxiomRangeProof::prove(&[(u64::MAX, r)])
-            .expect("max u64 is valid");
+        let (proof, commitments) =
+            AxiomRangeProof::prove(&[(u64::MAX, r)]).expect("max u64 is valid");
         proof.verify(&commitments).expect("verify max u64");
     }
 
@@ -227,11 +230,13 @@ mod tests {
         let r2 = BlindingFactor::random();
         let outputs = [(500u64, r1), (300u64, r2)];
 
-        let (proof, commitments) = AxiomRangeProof::prove(&outputs)
-            .expect("batch prove must succeed");
+        let (proof, commitments) =
+            AxiomRangeProof::prove(&outputs).expect("batch prove must succeed");
 
         assert_eq!(commitments.len(), 2);
-        proof.verify(&commitments).expect("batch verify must succeed");
+        proof
+            .verify(&commitments)
+            .expect("batch verify must succeed");
     }
 
     #[test]
@@ -240,8 +245,7 @@ mod tests {
             .map(|i| (i as u64 * 1000, BlindingFactor::random()))
             .collect();
 
-        let (proof, commitments) = AxiomRangeProof::prove(&outputs)
-            .expect("4-output batch prove");
+        let (proof, commitments) = AxiomRangeProof::prove(&outputs).expect("4-output batch prove");
         proof.verify(&commitments).expect("4-output batch verify");
     }
 
@@ -266,8 +270,7 @@ mod tests {
     #[test]
     fn test_corrupted_proof_fails_verification() {
         let r = BlindingFactor::random();
-        let (proof, commitments) = AxiomRangeProof::prove(&[(42u64, r)])
-            .expect("prove");
+        let (proof, commitments) = AxiomRangeProof::prove(&[(42u64, r)]).expect("prove");
 
         // Corrupt the proof by flipping bytes inside the struct.
         // We access via serialization round-trip.
@@ -305,8 +308,8 @@ mod tests {
     #[test]
     fn test_confidential_output_create_and_verify() {
         let pubkey_hash = [0xBEu8; 32];
-        let (output, _blinding) = ConfidentialOutput::create(50_000u64, pubkey_hash)
-            .expect("create must succeed");
+        let (output, _blinding) =
+            ConfidentialOutput::create(50_000u64, pubkey_hash).expect("create must succeed");
 
         assert_eq!(output.pubkey_hash, pubkey_hash);
         output.verify().expect("verify must succeed");
@@ -315,8 +318,7 @@ mod tests {
     #[test]
     fn test_confidential_output_zero_value() {
         let pubkey_hash = [0x01u8; 32];
-        let (output, _) = ConfidentialOutput::create(0u64, pubkey_hash)
-            .expect("zero value output");
+        let (output, _) = ConfidentialOutput::create(0u64, pubkey_hash).expect("zero value output");
         output.verify().expect("verify zero value output");
     }
 
@@ -325,8 +327,7 @@ mod tests {
         // The commitment returned in the output must match manually computing
         // commit(value, blinding).
         let pubkey_hash = [0xFFu8; 32];
-        let (output, blinding) = ConfidentialOutput::create(12345u64, pubkey_hash)
-            .expect("create");
+        let (output, blinding) = ConfidentialOutput::create(12345u64, pubkey_hash).expect("create");
 
         let manual_commitment = Commitment::commit(12345u64, &blinding);
         assert_eq!(
@@ -339,12 +340,9 @@ mod tests {
 
     #[test]
     fn test_confidential_output_batch_create_and_verify() {
-        let outputs = [
-            (10_000u64, [0x01u8; 32]),
-            (20_000u64, [0x02u8; 32]),
-        ];
-        let (batch, blindings) = ConfidentialOutputBatch::create(&outputs)
-            .expect("batch create must succeed");
+        let outputs = [(10_000u64, [0x01u8; 32]), (20_000u64, [0x02u8; 32])];
+        let (batch, blindings) =
+            ConfidentialOutputBatch::create(&outputs).expect("batch create must succeed");
 
         assert_eq!(batch.commitments.len(), 2);
         assert_eq!(batch.pubkey_hashes.len(), 2);
@@ -355,8 +353,7 @@ mod tests {
     #[test]
     fn test_confidential_output_batch_single_output() {
         let outputs = [(99_999u64, [0xABu8; 32])];
-        let (batch, _) = ConfidentialOutputBatch::create(&outputs)
-            .expect("single-output batch");
+        let (batch, _) = ConfidentialOutputBatch::create(&outputs).expect("single-output batch");
         batch.verify().expect("verify single-output batch");
     }
 
@@ -371,8 +368,7 @@ mod tests {
         let outputs: Vec<(u64, [u8; 32])> = (0..4u64)
             .map(|i| (i * 1000 + 1, [(i as u8).wrapping_add(1); 32]))
             .collect();
-        let (batch, _) = ConfidentialOutputBatch::create(&outputs)
-            .expect("4-output batch");
+        let (batch, _) = ConfidentialOutputBatch::create(&outputs).expect("4-output batch");
         batch.verify().expect("verify 4-output batch");
     }
 
@@ -390,7 +386,7 @@ mod tests {
     fn test_sum_commitments_single() {
         let r = BlindingFactor::random();
         let c = Commitment::commit(77u64, &r);
-        let sum = sum_commitments(&[c.clone()]).expect("single sum");
+        let sum = sum_commitments(std::slice::from_ref(&c)).expect("single sum");
         assert_eq!(sum, c);
     }
 }

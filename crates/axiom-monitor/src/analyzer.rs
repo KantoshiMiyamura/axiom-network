@@ -24,50 +24,75 @@ pub struct FeePredictor {
 
 impl FeePredictor {
     pub fn new() -> Self {
-        Self { n: 0, sum_x: 0.0, sum_y: 0.0, sum_xx: 0.0, sum_xy: 0.0,
-               history_x: std::collections::VecDeque::with_capacity(500),
-               history_y: std::collections::VecDeque::with_capacity(500) }
+        Self {
+            n: 0,
+            sum_x: 0.0,
+            sum_y: 0.0,
+            sum_xx: 0.0,
+            sum_xy: 0.0,
+            history_x: std::collections::VecDeque::with_capacity(500),
+            history_y: std::collections::VecDeque::with_capacity(500),
+        }
     }
 
     pub fn update(&mut self, depth: usize, fee_rate: f64) {
         let x = depth as f64;
         let y = fee_rate;
         self.n += 1;
-        self.sum_x += x; self.sum_y += y;
-        self.sum_xx += x * x; self.sum_xy += x * y;
+        self.sum_x += x;
+        self.sum_y += y;
+        self.sum_xx += x * x;
+        self.sum_xy += x * y;
         if self.history_x.len() >= 500 {
             // Remove oldest point from sums
             let ox = self.history_x.pop_front().unwrap_or(0.0);
             let oy = self.history_y.pop_front().unwrap_or(0.0);
-            self.n -= 1; self.sum_x -= ox; self.sum_y -= oy;
-            self.sum_xx -= ox * ox; self.sum_xy -= ox * oy;
+            self.n -= 1;
+            self.sum_x -= ox;
+            self.sum_y -= oy;
+            self.sum_xx -= ox * ox;
+            self.sum_xy -= ox * oy;
         }
         self.history_x.push_back(x);
         self.history_y.push_back(y);
     }
 
     pub fn predict(&self, depth: usize) -> f64 {
-        if self.n < 5 { return 10.0; }
+        if self.n < 5 {
+            return 10.0;
+        }
         let denom = self.n as f64 * self.sum_xx - self.sum_x * self.sum_x;
-        if denom.abs() < 1e-10 { return self.sum_y / self.n as f64; }
+        if denom.abs() < 1e-10 {
+            return self.sum_y / self.n as f64;
+        }
         let slope = (self.n as f64 * self.sum_xy - self.sum_x * self.sum_y) / denom;
         let intercept = (self.sum_y - slope * self.sum_x) / self.n as f64;
         (intercept + slope * depth as f64).max(1.0)
     }
 
     pub fn trend(&self) -> &'static str {
-        if self.history_y.len() < 10 { return "stable"; }
+        if self.history_y.len() < 10 {
+            return "stable";
+        }
         let recent: f64 = self.history_y.iter().rev().take(5).sum::<f64>() / 5.0;
         let older: f64 = self.history_y.iter().rev().skip(5).take(5).sum::<f64>() / 5.0;
-        if older < 0.001 { return "stable"; }
-        if recent > older * 1.15 { "rising" }
-        else if recent < older * 0.85 { "falling" }
-        else { "stable" }
+        if older < 0.001 {
+            return "stable";
+        }
+        if recent > older * 1.15 {
+            "rising"
+        } else if recent < older * 0.85 {
+            "falling"
+        } else {
+            "stable"
+        }
     }
 }
 
 impl Default for FeePredictor {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 pub struct NetworkAnalyzer {
@@ -140,8 +165,10 @@ impl NetworkAnalyzer {
 
         // Update fee predictor with latest mempool depth and p50 fee rate, then
         // fill the new predicted_rate / trend fields on the analysis value.
-        self.fee_predictor
-            .update(fee_analysis.mempool_depth, fee_analysis.median_fee_rate as f64);
+        self.fee_predictor.update(
+            fee_analysis.mempool_depth,
+            fee_analysis.median_fee_rate as f64,
+        );
         let fee_analysis = FeeAnalysis {
             predicted_rate: self.fee_predictor.predict(fee_analysis.mempool_depth) as u64,
             trend: self.fee_predictor.trend().to_string(),
@@ -211,11 +238,7 @@ fn analyze_fee_market(node: &Node) -> FeeAnalysis {
     };
 
     // Estimate blocks to clear: assume 1 MB blocks, variable tx size
-    let avg_tx_size = if count > 0 {
-        size_bytes / count
-    } else {
-        1_000
-    };
+    let avg_tx_size = if count > 0 { size_bytes / count } else { 1_000 };
     let txs_per_block = 1_000_000 / avg_tx_size.max(1);
     let clear_blocks = if txs_per_block > 0 {
         (count / txs_per_block + 1) as u32
@@ -267,11 +290,7 @@ fn analyze_block_times(node: &Node) -> BlockTimeAnalysis {
     let variance = if intervals.len() < 2 {
         0.0
     } else {
-        intervals
-            .iter()
-            .map(|&x| (x - avg).powi(2))
-            .sum::<f64>()
-            / (intervals.len() - 1) as f64
+        intervals.iter().map(|&x| (x - avg).powi(2)).sum::<f64>() / (intervals.len() - 1) as f64
     };
     let std_dev = variance.sqrt();
 
@@ -418,8 +437,8 @@ pub fn generate_alerts(
             severity: AlertSeverity::Warning,
             category: "network_health".to_string(),
             message: format!("Low peer count: {} peers connected", network.peer_count),
-            recommendation:
-                "Consider adding more peer connections for better network coverage.".to_string(),
+            recommendation: "Consider adding more peer connections for better network coverage."
+                .to_string(),
             timestamp_ms: now_ms,
             data: serde_json::json!({"peer_count": network.peer_count}),
         });

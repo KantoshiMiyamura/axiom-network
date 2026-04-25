@@ -10,20 +10,20 @@
 //! 5. Error cases and attack resistance
 
 use axiom_ai::{
-    ComputeJobStatus, ComputeProtocol, DisputeResolution,
-    FileChallengeRequest, RegisterVerifierRequest, RegisterWorkerRequest, SubmitComputeJobRequest,
-    SubmitResultRequest,
+    ComputeJobStatus, ComputeProtocol, DisputeResolution, FileChallengeRequest,
+    RegisterVerifierRequest, RegisterWorkerRequest, SubmitComputeJobRequest, SubmitResultRequest,
 };
 use tempfile::TempDir;
 
 fn setup_protocol() -> (TempDir, ComputeProtocol) {
     let temp_dir = TempDir::new().expect("Failed to create temp directory");
-    let protocol = ComputeProtocol::open(temp_dir.path())
-        .expect("Failed to initialize compute protocol");
+    let protocol =
+        ComputeProtocol::open(temp_dir.path()).expect("Failed to initialize compute protocol");
     (temp_dir, protocol)
 }
 
 /// Generate a valid 64-character hex hash for testing
+#[allow(dead_code)]
 fn valid_hash(prefix: &str) -> String {
     format!("{:0<64}", prefix) // Pad with zeros to 64 chars
 }
@@ -68,7 +68,10 @@ fn test_worker_registration() {
     assert_eq!(worker.worker_id, "ax1worker1234");
     assert_eq!(worker.stake_sat, 5_000);
     assert!(worker.active);
-    assert_eq!(worker.reputation_score, 1.0, "Initial reputation should be 1.0");
+    assert_eq!(
+        worker.reputation_score, 1.0,
+        "Initial reputation should be 1.0"
+    );
     assert_eq!(worker.total_jobs, 0);
     assert_eq!(worker.successful_jobs, 0);
     assert_eq!(worker.fraud_convictions, 0);
@@ -160,7 +163,10 @@ fn test_job_fee_validation() {
     };
 
     let result = protocol.submit_job(req);
-    assert!(result.is_err(), "Job with insufficient fee should be rejected");
+    assert!(
+        result.is_err(),
+        "Job with insufficient fee should be rejected"
+    );
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -205,7 +211,10 @@ fn test_full_job_lifecycle_success() {
     let computing = protocol
         .acknowledge_job(&job_id, "ax1worker_lifecycle")
         .expect("Acknowledge should succeed");
-    assert!(matches!(computing.status, ComputeJobStatus::Computing { .. }));
+    assert!(matches!(
+        computing.status,
+        ComputeJobStatus::Computing { .. }
+    ));
 
     // Step 5: Submit result
     let result_hash = hash_from_seed("result_lifecycle");
@@ -223,14 +232,20 @@ fn test_full_job_lifecycle_success() {
     let completed = protocol
         .submit_result(result_req)
         .expect("Result submission should succeed");
-    assert!(matches!(completed.status, ComputeJobStatus::Completed { .. }));
+    assert!(matches!(
+        completed.status,
+        ComputeJobStatus::Completed { .. }
+    ));
 
     // Step 6: Just verify the job is in completed state (can't finalize immediately due to challenge window)
     let finalized_job = protocol
         .get_job(&job_id)
         .expect("Get job should succeed")
         .expect("Job should exist");
-    assert!(matches!(finalized_job.status, ComputeJobStatus::Completed { .. }));
+    assert!(matches!(
+        finalized_job.status,
+        ComputeJobStatus::Completed { .. }
+    ));
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -285,7 +300,10 @@ fn test_list_active_workers() {
         .expect("List active workers should succeed");
 
     assert_eq!(workers.len(), 5, "Should have 5 active workers");
-    assert!(workers.iter().all(|w| w.active), "All workers should be active");
+    assert!(
+        workers.iter().all(|w| w.active),
+        "All workers should be active"
+    );
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -325,9 +343,7 @@ fn test_dispute_fraud_detected() {
     let job = protocol.submit_job(job_req).expect("Job submission failed");
     let job_id = job.job_id.clone();
 
-    protocol
-        .assign_job(&job_id)
-        .expect("Job assignment failed");
+    protocol.assign_job(&job_id).expect("Job assignment failed");
     protocol
         .acknowledge_job(&job_id, "ax1fraud_worker")
         .expect("Acknowledge failed");
@@ -350,7 +366,8 @@ fn test_dispute_fraud_detected() {
 
     // Verifier challenges the result
     let verifier_result_hash = hash_from_seed("correct_result");
-    let verifier_commitment = compute_commitment(&job_id, "ax1fraud_verifier", &verifier_result_hash);
+    let verifier_commitment =
+        compute_commitment(&job_id, "ax1fraud_verifier", &verifier_result_hash);
     let challenge_req = FileChallengeRequest {
         job_id: job_id.clone(),
         verifier_address: "ax1fraud_verifier".to_string(),
@@ -379,7 +396,10 @@ fn test_dispute_fraud_detected() {
         .expect("Dispute resolution should succeed");
 
     assert!(settlement.slash_sat > 0, "Should have slashed worker");
-    assert!(settlement.verifier_reward_sat > 0, "Verifier should be rewarded");
+    assert!(
+        settlement.verifier_reward_sat > 0,
+        "Verifier should be rewarded"
+    );
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -412,9 +432,7 @@ fn test_list_recent_settlements() {
     let job = protocol.submit_job(job_req).expect("Job submission failed");
     let job_id = job.job_id;
 
-    protocol
-        .assign_job(&job_id)
-        .expect("Assignment failed");
+    protocol.assign_job(&job_id).expect("Assignment failed");
     protocol
         .acknowledge_job(&job_id, "ax1settle_worker")
         .expect("Acknowledge failed");
@@ -440,7 +458,10 @@ fn test_list_recent_settlements() {
         .get_job(&job_id)
         .expect("Get job should succeed")
         .expect("Job should exist");
-    assert!(matches!(completed_job.status, ComputeJobStatus::Completed { .. }));
+    assert!(matches!(
+        completed_job.status,
+        ComputeJobStatus::Completed { .. }
+    ));
 
     // List settlements (may be empty due to challenge window)
     let settlements = protocol
@@ -524,9 +545,7 @@ fn test_result_payload_size_limit() {
     let job = protocol.submit_job(job_req).expect("Job submission failed");
     let job_id = job.job_id;
 
-    protocol
-        .assign_job(&job_id)
-        .expect("Assignment failed");
+    protocol.assign_job(&job_id).expect("Assignment failed");
     protocol
         .acknowledge_job(&job_id, "ax1size_worker")
         .expect("Acknowledge failed");
@@ -626,14 +645,10 @@ fn test_list_jobs_by_status() {
 
         if i == 1 {
             // Assign the second job
-            protocol
-                .assign_job(&job.job_id)
-                .expect("Assignment failed");
+            protocol.assign_job(&job.job_id).expect("Assignment failed");
         } else if i == 2 {
             // Complete the third job
-            protocol
-                .assign_job(&job.job_id)
-                .expect("Assignment failed");
+            protocol.assign_job(&job.job_id).expect("Assignment failed");
             protocol
                 .acknowledge_job(&job.job_id, "ax1status_worker")
                 .expect("Acknowledge failed");
@@ -644,13 +659,19 @@ fn test_list_jobs_by_status() {
     let submitted = protocol
         .list_jobs_by_status("Submitted", 10)
         .expect("List by status should succeed");
-    assert!(submitted.len() > 0, "Should have at least one submitted job");
+    assert!(
+        !submitted.is_empty(),
+        "Should have at least one submitted job"
+    );
 
     // List assigned jobs (should be at least 1)
     let assigned = protocol
         .list_jobs_by_status("Assigned", 10)
         .expect("List by status should succeed");
-    assert!(assigned.len() > 0, "Should have at least one assigned job");
+    assert!(
+        !assigned.is_empty(),
+        "Should have at least one assigned job"
+    );
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -675,7 +696,10 @@ fn test_worker_reputation_updates() {
         .expect("Get worker should succeed")
         .expect("Worker should exist");
 
-    assert_eq!(initial.reputation_score, 1.0, "Initial reputation should be 1.0");
+    assert_eq!(
+        initial.reputation_score, 1.0,
+        "Initial reputation should be 1.0"
+    );
     assert_eq!(initial.total_jobs, 0);
     assert_eq!(initial.successful_jobs, 0);
 }
@@ -717,9 +741,7 @@ fn test_dispute_false_accusation() {
     let job = protocol.submit_job(job_req).expect("Job submission failed");
     let job_id = job.job_id.clone();
 
-    protocol
-        .assign_job(&job_id)
-        .expect("Assignment failed");
+    protocol.assign_job(&job_id).expect("Assignment failed");
     protocol
         .acknowledge_job(&job_id, "ax1false_worker")
         .expect("Acknowledge failed");
@@ -742,7 +764,8 @@ fn test_dispute_false_accusation() {
 
     // Verifier falsely challenges the correct result
     let false_verifier_hash = hash_from_seed("wrong_challenger_hash");
-    let false_verifier_commitment = compute_commitment(&job_id, "ax1false_verifier", &false_verifier_hash);
+    let false_verifier_commitment =
+        compute_commitment(&job_id, "ax1false_verifier", &false_verifier_hash);
     let challenge_req = FileChallengeRequest {
         job_id: job_id.clone(),
         verifier_address: "ax1false_verifier".to_string(),

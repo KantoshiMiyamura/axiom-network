@@ -1,6 +1,6 @@
 //! Message posting and retrieval handlers
 
-use axum::extract::{State, Path, Query, ConnectInfo, Extension};
+use axum::extract::{ConnectInfo, Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::Deserialize;
@@ -9,10 +9,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
-use axiom_community_shared::crypto;
-use crate::state::AppState;
 use crate::error::{Result, ServerError};
 use crate::middleware::auth::UserContext;
+use crate::state::AppState;
+use axiom_community_shared::crypto;
 
 /// List messages in a channel
 pub async fn list_messages(
@@ -96,7 +96,11 @@ pub async fn post_message(
     }
 
     // Replay protection: reject if this signature was already used
-    if !state.signature_nonce_tracker.check_and_record(&req.signature, &user_ctx.address, "message_posted").await {
+    if !state
+        .signature_nonce_tracker
+        .check_and_record(&req.signature, &user_ctx.address, "message_posted")
+        .await
+    {
         return Err(ServerError::Shared(
             axiom_community_shared::Error::InvalidSignature,
         ));
@@ -153,13 +157,9 @@ pub async fn get_message(
     Extension(_user_ctx): Extension<UserContext>,
     Path(id): Path<String>,
 ) -> Result<(StatusCode, Json<serde_json::Value>)> {
-    let message = state
-        .db
-        .get_message(&id)
-        .await?
-        .ok_or(ServerError::Shared(
-            axiom_community_shared::Error::InternalError(format!("Message not found: {}", id)),
-        ))?;
+    let message = state.db.get_message(&id).await?.ok_or(ServerError::Shared(
+        axiom_community_shared::Error::InternalError(format!("Message not found: {}", id)),
+    ))?;
 
     let response = json!({
         "status": "ok",

@@ -3,9 +3,9 @@
 //! Common types, protocols, and cryptography utilities used by
 //! both client and server.
 
+pub mod crypto;
 pub mod error;
 pub mod models;
-pub mod crypto;
 pub mod protocol;
 
 // Re-exports for convenience

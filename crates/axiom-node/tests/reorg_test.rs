@@ -10,8 +10,10 @@ use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }
@@ -24,7 +26,7 @@ fn create_block_at_height(height: u32, prev_hash: Hash256) -> Block {
     };
     let coinbase = Transaction::new_coinbase(vec![output], height);
 
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
     // Use current Unix time + height so the timestamp is always:
     // (a) strictly increasing with height — satisfies MTP,
@@ -184,7 +186,11 @@ fn test_fork_detection() {
     let result = node.process_block(orphan_block);
 
     // Orphan should be stored successfully
-    assert!(result.is_ok(), "Orphan processing failed: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Orphan processing failed: {:?}",
+        result.err()
+    );
 
     // Chain tip should still be at block1 (orphan didn't change the tip)
     assert_eq!(node.best_height(), Some(1));

@@ -102,10 +102,12 @@ impl Connection {
             Ok::<[u8; 5], std::io::Error>(header)
         })
         .await
-        .map_err(|_| TransportError::Io(std::io::Error::new(
-            std::io::ErrorKind::TimedOut,
-            "message header read timed out",
-        )))??;
+        .map_err(|_| {
+            TransportError::Io(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "message header read timed out",
+            ))
+        })??;
 
         let header = read_result;
         let msg_type = header[0];
@@ -133,10 +135,12 @@ impl Connection {
         let mut payload = vec![0u8; length];
         tokio::time::timeout(MESSAGE_READ_TIMEOUT, reader.read_exact(&mut payload))
             .await
-            .map_err(|_| TransportError::Io(std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
-                "message payload read timed out",
-            )))??;
+            .map_err(|_| {
+                TransportError::Io(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "message payload read timed out",
+                ))
+            })??;
 
         let mut full_message = header.to_vec();
         full_message.extend_from_slice(&payload);
@@ -237,6 +241,7 @@ impl Transport {
 }
 
 #[cfg(test)]
+#[allow(clippy::assertions_on_constants)]
 mod tests {
     use super::*;
     use crate::network::encryption::MAX_ENCRYPTED_FRAME_SIZE;

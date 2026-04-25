@@ -1,6 +1,6 @@
 //! Audit log handlers (CoreDev role required)
 
-use axum::extract::{State, Query, Extension};
+use axum::extract::{Extension, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::Deserialize;
@@ -8,10 +8,10 @@ use serde_json::json;
 use std::sync::Arc;
 use tracing::info;
 
-use crate::permissions;
-use crate::state::AppState;
 use crate::error::Result;
 use crate::middleware::auth::UserContext;
+use crate::permissions;
+use crate::state::AppState;
 
 /// List audit logs
 pub async fn list_audit_logs(

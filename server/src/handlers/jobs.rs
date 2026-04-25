@@ -1,6 +1,6 @@
 //! Job posting and work submission handlers
 
-use axum::extract::{State, Path, Query, ConnectInfo, Extension};
+use axum::extract::{ConnectInfo, Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::Deserialize;
@@ -9,10 +9,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
-use axiom_community_shared::crypto;
-use crate::state::AppState;
 use crate::error::{Result, ServerError};
 use crate::middleware::auth::UserContext;
+use crate::state::AppState;
+use axiom_community_shared::crypto;
 
 /// List jobs in a channel
 pub async fn list_jobs(
@@ -54,11 +54,7 @@ pub async fn list_jobs(
         })
         .collect();
 
-    info!(
-        "Listed {} jobs in channel '{}'",
-        job_list.len(),
-        channel
-    );
+    info!("Listed {} jobs in channel '{}'", job_list.len(), channel);
 
     let response = json!({
         "status": "ok",
@@ -121,7 +117,11 @@ pub async fn create_job(
     }
 
     // Replay protection: reject if this signature was already used
-    if !state.signature_nonce_tracker.check_and_record(&req.signature, &user_ctx.address, "job_action").await {
+    if !state
+        .signature_nonce_tracker
+        .check_and_record(&req.signature, &user_ctx.address, "job_action")
+        .await
+    {
         return Err(ServerError::Shared(
             axiom_community_shared::Error::InvalidSignature,
         ));
@@ -179,13 +179,9 @@ pub async fn get_job(
     Extension(_user_ctx): Extension<UserContext>,
     Path(id): Path<String>,
 ) -> Result<(StatusCode, Json<serde_json::Value>)> {
-    let job = state
-        .db
-        .get_job(&id)
-        .await?
-        .ok_or(ServerError::Shared(
-            axiom_community_shared::Error::JobNotFound,
-        ))?;
+    let job = state.db.get_job(&id).await?.ok_or(ServerError::Shared(
+        axiom_community_shared::Error::JobNotFound,
+    ))?;
 
     let response = json!({
         "status": "ok",
@@ -218,13 +214,9 @@ pub async fn submit_result(
     Json(req): Json<SubmitResultRequest>,
 ) -> Result<(StatusCode, Json<serde_json::Value>)> {
     // Verify job exists
-    let job = state
-        .db
-        .get_job(&job_id)
-        .await?
-        .ok_or(ServerError::Shared(
-            axiom_community_shared::Error::JobNotFound,
-        ))?;
+    let job = state.db.get_job(&job_id).await?.ok_or(ServerError::Shared(
+        axiom_community_shared::Error::JobNotFound,
+    ))?;
 
     // Check job is still open
     if job.state != "open" && job.state != "assigned" && job.state != "in_progress" {
@@ -256,7 +248,11 @@ pub async fn submit_result(
     }
 
     // Replay protection: reject if this signature was already used
-    if !state.signature_nonce_tracker.check_and_record(&req.signature, &user_ctx.address, "job_action").await {
+    if !state
+        .signature_nonce_tracker
+        .check_and_record(&req.signature, &user_ctx.address, "job_action")
+        .await
+    {
         return Err(ServerError::Shared(
             axiom_community_shared::Error::InvalidSignature,
         ));

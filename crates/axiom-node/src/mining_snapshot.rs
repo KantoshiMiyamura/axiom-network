@@ -61,14 +61,7 @@ mod tests {
 
     #[test]
     fn test_mining_snapshot_creation() {
-        let snapshot = MiningSnapshot::new(
-            Hash256::zero(),
-            0,
-            0x207fffff,
-            vec![],
-            0,
-            1,
-        );
+        let snapshot = MiningSnapshot::new(Hash256::zero(), 0, 0x207fffff, vec![], 0, 1);
 
         assert_eq!(snapshot.parent_height, 0);
         assert_eq!(snapshot.mining_height(), 1);
@@ -77,14 +70,7 @@ mod tests {
 
     #[test]
     fn test_mining_snapshot_staleness() {
-        let snapshot = MiningSnapshot::new(
-            Hash256::zero(),
-            0,
-            0x207fffff,
-            vec![],
-            0,
-            1,
-        );
+        let snapshot = MiningSnapshot::new(Hash256::zero(), 0, 0x207fffff, vec![], 0, 1);
 
         // Same tip and version: not stale
         assert!(!snapshot.is_stale(&Hash256::zero(), 1));

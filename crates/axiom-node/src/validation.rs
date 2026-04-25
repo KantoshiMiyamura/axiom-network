@@ -3,10 +3,10 @@
 //! Transaction validation.
 
 use axiom_consensus::{check_value_conservation, InvariantError};
+use axiom_ct;
 use axiom_primitives::{Amount, Signature};
 use axiom_protocol::{Transaction, TxInput};
 use axiom_storage::{NonceTracker, UtxoSet};
-use axiom_ct;
 use thiserror::Error;
 
 /// Controls signature verification depth.
@@ -246,10 +246,13 @@ impl<'a> TransactionValidator<'a> {
         // of the last transaction (permanent account lockout).
         // checked_add returns None at overflow, which we convert to InvalidNonce error.
         let last_used_nonce = self.nonce_tracker.get_nonce(&pubkey_hash)?.unwrap_or(0);
-        let expected_nonce = last_used_nonce.checked_add(1).ok_or(ValidationError::InvalidNonce {
-            expected: u64::MAX,
-            actual: tx.nonce,
-        })?;
+        let expected_nonce =
+            last_used_nonce
+                .checked_add(1)
+                .ok_or(ValidationError::InvalidNonce {
+                    expected: u64::MAX,
+                    actual: tx.nonce,
+                })?;
 
         if tx.nonce != expected_nonce {
             return Err(ValidationError::InvalidNonce {
@@ -463,10 +466,13 @@ impl<'a> TransactionValidator<'a> {
         // CRITICAL FIX: Use checked_add instead of saturating_add (assumevalid path).
         // Prevents nonce saturation replay at u64::MAX.
         let last_used_nonce = self.nonce_tracker.get_nonce(&pubkey_hash)?.unwrap_or(0);
-        let expected_nonce = last_used_nonce.checked_add(1).ok_or(ValidationError::InvalidNonce {
-            expected: u64::MAX,
-            actual: tx.nonce,
-        })?;
+        let expected_nonce =
+            last_used_nonce
+                .checked_add(1)
+                .ok_or(ValidationError::InvalidNonce {
+                    expected: u64::MAX,
+                    actual: tx.nonce,
+                })?;
 
         if tx.nonce != expected_nonce {
             return Err(ValidationError::InvalidNonce {
@@ -579,11 +585,13 @@ impl<'a> TransactionValidator<'a> {
                         "output {i}: range proof deserialization failed: {e}"
                     ))
                 })?;
-            proof.verify(std::slice::from_ref(&commitment)).map_err(|_| {
-                ValidationError::ConfidentialTx(format!(
-                    "output {i}: range proof verification failed"
-                ))
-            })?;
+            proof
+                .verify(std::slice::from_ref(&commitment))
+                .map_err(|_| {
+                    ValidationError::ConfidentialTx(format!(
+                        "output {i}: range proof verification failed"
+                    ))
+                })?;
             output_commitments.push(commitment);
         }
 
@@ -591,16 +599,14 @@ impl<'a> TransactionValidator<'a> {
         let zero_blinding = axiom_ct::BlindingFactor::from_bytes(&[0u8; 32]);
         let c_inputs = axiom_ct::Commitment::commit(input_sum, &zero_blinding);
         let c_fee = axiom_ct::Commitment::commit(fee, &zero_blinding);
-        let lhs = (&c_inputs - &c_fee).map_err(|e| {
-            ValidationError::ConfidentialTx(format!("commitment arithmetic: {e}"))
-        })?;
+        let lhs = (&c_inputs - &c_fee)
+            .map_err(|e| ValidationError::ConfidentialTx(format!("commitment arithmetic: {e}")))?;
 
         let c_out_sum = axiom_ct::sum_commitments(&output_commitments)
             .map_err(|e| ValidationError::ConfidentialTx(format!("output sum: {e}")))?;
         let c_balance = axiom_ct::Commitment::from_bytes(balance_bytes);
-        let rhs = (&c_out_sum + &c_balance).map_err(|e| {
-            ValidationError::ConfidentialTx(format!("commitment arithmetic: {e}"))
-        })?;
+        let rhs = (&c_out_sum + &c_balance)
+            .map_err(|e| ValidationError::ConfidentialTx(format!("commitment arithmetic: {e}")))?;
 
         if lhs != rhs {
             return Err(ValidationError::ConfidentialTx(

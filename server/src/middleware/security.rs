@@ -111,7 +111,10 @@ impl IpBanManager {
         let banned = self.db.is_ip_banned(&ip_str).await.unwrap_or(false);
 
         // Update cache
-        self.cache.write().await.insert(*ip, (banned, now + BAN_CACHE_TTL_SECS));
+        self.cache
+            .write()
+            .await
+            .insert(*ip, (banned, now + BAN_CACHE_TTL_SECS));
 
         banned
     }
@@ -120,21 +123,31 @@ impl IpBanManager {
     pub async fn ban(&self, ip: IpAddr, expires_at: i64) {
         let ip_str = ip.to_string();
         let _ = self.db.ban_ip(&ip_str, "auto", expires_at, None).await;
-        self.cache.write().await.insert(ip, (true, current_timestamp() + BAN_CACHE_TTL_SECS));
+        self.cache
+            .write()
+            .await
+            .insert(ip, (true, current_timestamp() + BAN_CACHE_TTL_SECS));
     }
 
     /// Unban an IP. Writes to DB + cache.
     pub async fn unban(&self, ip: &IpAddr) {
         let ip_str = ip.to_string();
         let _ = self.db.unban_ip(&ip_str).await;
-        self.cache.write().await.insert(*ip, (false, current_timestamp() + BAN_CACHE_TTL_SECS));
+        self.cache
+            .write()
+            .await
+            .insert(*ip, (false, current_timestamp() + BAN_CACHE_TTL_SECS));
     }
 
     /// Record an auth failure. Atomically increments the counter in DB.
     /// Auto-bans if threshold exceeded.
     pub async fn record_auth_failure(&self, ip: IpAddr) {
         let ip_str = ip.to_string();
-        let count = self.db.record_auth_failure(&ip_str, AUTH_FAILURE_WINDOW_SECS).await.unwrap_or(0);
+        let count = self
+            .db
+            .record_auth_failure(&ip_str, AUTH_FAILURE_WINDOW_SECS)
+            .await
+            .unwrap_or(0);
 
         if count >= AUTH_FAILURE_BAN_THRESHOLD {
             let now = current_timestamp();
@@ -152,7 +165,10 @@ impl IpBanManager {
     /// Evict stale entries from the local cache.
     pub async fn cleanup_cache(&self) {
         let now = current_timestamp();
-        self.cache.write().await.retain(|_, (_, expires)| *expires > now);
+        self.cache
+            .write()
+            .await
+            .retain(|_, (_, expires)| *expires > now);
     }
 }
 
@@ -172,7 +188,10 @@ impl GlobalRateLimiter {
     /// Returns true if the request is allowed. Atomically increments the
     /// shared counter in the database.
     pub async fn check(&self) -> bool {
-        self.db.check_rate_limit("global", self.max_rps, 1).await.unwrap_or(false)
+        self.db
+            .check_rate_limit("global", self.max_rps, 1)
+            .await
+            .unwrap_or(false)
     }
 }
 
@@ -194,7 +213,10 @@ impl PerIpRateLimiter {
             return true;
         }
         let key = format!("ip:{}", ip);
-        self.db.check_rate_limit(&key, self.max_per_minute, 60).await.unwrap_or(false)
+        self.db
+            .check_rate_limit(&key, self.max_per_minute, 60)
+            .await
+            .unwrap_or(false)
     }
 }
 

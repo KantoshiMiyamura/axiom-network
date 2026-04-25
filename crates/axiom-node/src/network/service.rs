@@ -159,7 +159,7 @@ impl NetworkService {
     ) -> Result<Option<Message>, ServiceError> {
         // SECURITY: Rate limit check on all incoming messages
         // Note: peer address not available in current API, but dos_protection is ready for integration
-        
+
         match message {
             Message::GetTip => {
                 let node = self.node.read().await;
@@ -257,7 +257,8 @@ impl NetworkService {
             Message::ChatMessage(payload) => {
                 let should_relay = self.community.handle_chat_message(payload.clone()).await;
                 if should_relay {
-                    let _ = self.peer_manager
+                    let _ = self
+                        .peer_manager
                         .broadcast_except(peer_id, Message::ChatMessage(payload))
                         .await;
                 }
@@ -267,7 +268,8 @@ impl NetworkService {
             Message::ChatBan(payload) => {
                 let should_relay = self.community.handle_chat_ban(payload.clone()).await;
                 if should_relay {
-                    let _ = self.peer_manager
+                    let _ = self
+                        .peer_manager
                         .broadcast_except(peer_id, Message::ChatBan(payload))
                         .await;
                 }
@@ -275,9 +277,13 @@ impl NetworkService {
             }
 
             Message::UsernameAnnounce(payload) => {
-                let should_relay = self.community.handle_username_announce(payload.clone()).await;
+                let should_relay = self
+                    .community
+                    .handle_username_announce(payload.clone())
+                    .await;
                 if should_relay {
-                    let _ = self.peer_manager
+                    let _ = self
+                        .peer_manager
                         .broadcast_except(peer_id, Message::UsernameAnnounce(payload))
                         .await;
                 }
@@ -517,7 +523,8 @@ impl NetworkService {
                 match node.get_block(&first_parent) {
                     Ok(Some(_)) => {
                         // Try the height index
-                        node.state.db_get_hash_by_height(tip_h)
+                        node.state
+                            .db_get_hash_by_height(tip_h)
                             .ok()
                             .flatten()
                             .and_then(|h| if h == first_parent { Some(tip_h) } else { None })
@@ -727,7 +734,8 @@ impl NetworkService {
         tx: Transaction,
         peer_id: PeerId,
     ) -> Result<(), ServiceError> {
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
 
         {
             let seen = self.seen_txs.read().await;
@@ -1029,7 +1037,8 @@ impl NetworkService {
     }
 
     pub async fn submit_local_transaction(&self, tx: Transaction) -> Result<Hash256, ServiceError> {
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
 
         let mut node = self.node.write().await;
         node.submit_transaction(tx.clone())?;
@@ -1050,7 +1059,8 @@ impl NetworkService {
         tx: Transaction,
         exclude_peer: Option<PeerId>,
     ) -> Result<usize, ServiceError> {
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
 
         let msg = Message::Tx(tx);
 
@@ -1145,10 +1155,7 @@ impl NetworkService {
         let local_work = node.state.get_chain_work(&local_hash)?.unwrap_or(0);
 
         // If we already have the peer's tip, compare chainwork directly.
-        let peer_work = node
-            .state
-            .get_chain_work(&peer_tip.best_hash)?
-            .unwrap_or(0);
+        let peer_work = node.state.get_chain_work(&peer_tip.best_hash)?.unwrap_or(0);
 
         tracing::info!(
             "SYNC_CHECK: peer_height={}, peer_hash={}, local_height={}, peer_work={}, local_work={}",
@@ -1356,13 +1363,14 @@ fn block_reject_code(reason: &str) -> u8 {
 mod tests {
     use super::*;
     use crate::Config;
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
     use tempfile::TempDir;
 
     fn create_test_service() -> (TempDir, NetworkService) {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = Config::default();
-        config.data_dir = temp_dir.path().to_path_buf();
+        let config = Config {
+            data_dir: temp_dir.path().to_path_buf(),
+            ..Config::default()
+        };
         let node = Node::new(config).unwrap();
         let peer_manager = PeerManager::new("dev".to_string());
         let service = NetworkService::new(node, peer_manager);
@@ -1469,12 +1477,16 @@ mod tests {
         let tx = axiom_protocol::Transaction::new_transfer(vec![], vec![], 0, 0);
 
         // First submission (empty tx will be rejected due to validation, not added)
-        let result1 = service.handle_received_transaction(tx.clone(), peer_id).await;
+        let result1 = service
+            .handle_received_transaction(tx.clone(), peer_id)
+            .await;
         // Result can be error or ok depending on validation
         let _ = result1;
 
         // Second submission from same peer should have same result (idempotent)
-        let result2 = service.handle_received_transaction(tx.clone(), peer_id).await;
+        let result2 = service
+            .handle_received_transaction(tx.clone(), peer_id)
+            .await;
         // Should behave consistently
         let _ = result2;
 
@@ -1515,11 +1527,15 @@ mod tests {
         let tx = axiom_protocol::Transaction::new_transfer(vec![], vec![], 0, 0);
 
         // First peer submits
-        let result1 = service.handle_received_transaction(tx.clone(), peer_id1).await;
+        let result1 = service
+            .handle_received_transaction(tx.clone(), peer_id1)
+            .await;
         assert!(result1.is_ok());
 
         // Second peer tries to submit SAME tx should also succeed but not duplicate it
-        let result2 = service.handle_received_transaction(tx.clone(), peer_id2).await;
+        let result2 = service
+            .handle_received_transaction(tx.clone(), peer_id2)
+            .await;
         assert!(result2.is_ok());
     }
 

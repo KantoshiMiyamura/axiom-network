@@ -11,10 +11,14 @@ pub struct RpcClient {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct BalanceResponse { pub balance: u64 }
+pub struct BalanceResponse {
+    pub balance: u64,
+}
 
 #[derive(Debug, Deserialize)]
-pub struct NonceResponse { pub nonce: u64 }
+pub struct NonceResponse {
+    pub nonce: u64,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UtxoEntry {
@@ -32,13 +36,21 @@ pub struct UtxoListResponse {
 }
 
 #[derive(Debug, Serialize)]
-struct SubmitReq { transaction_hex: String }
+struct SubmitReq {
+    transaction_hex: String,
+}
 
 #[derive(Debug, Deserialize)]
-pub struct SubmitResp { pub txid: String }
+pub struct SubmitResp {
+    pub txid: String,
+}
 
 #[derive(Debug, Deserialize)]
-pub struct FeeEstimate { pub low: u64, pub medium: u64, pub high: u64 }
+pub struct FeeEstimate {
+    pub low: u64,
+    pub medium: u64,
+    pub high: u64,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TxSummary {
@@ -49,7 +61,10 @@ pub struct TxSummary {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct TxHistoryResp { pub transactions: Vec<TxSummary>, pub count: usize }
+pub struct TxHistoryResp {
+    pub transactions: Vec<TxSummary>,
+    pub count: usize,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct StatusResp {
@@ -64,21 +79,33 @@ pub struct StatusResp {
 impl RpcClient {
     pub fn new(base_url: &str) -> Self {
         Self {
-            client: reqwest::Client::builder().timeout(TIMEOUT).build().expect("http client"),
+            client: reqwest::Client::builder()
+                .timeout(TIMEOUT)
+                .build()
+                .expect("http client"),
             base: base_url.trim_end_matches('/').to_string(),
         }
     }
 
     pub async fn balance(&self, addr: &str) -> AppResult<u64> {
-        Ok(self.get::<BalanceResponse>(&format!("{}/balance/{}", self.base, addr)).await?.balance)
+        Ok(self
+            .get::<BalanceResponse>(&format!("{}/balance/{}", self.base, addr))
+            .await?
+            .balance)
     }
 
     pub async fn nonce(&self, addr: &str) -> AppResult<u64> {
-        Ok(self.get::<NonceResponse>(&format!("{}/nonce/{}", self.base, addr)).await?.nonce)
+        Ok(self
+            .get::<NonceResponse>(&format!("{}/nonce/{}", self.base, addr))
+            .await?
+            .nonce)
     }
 
     pub async fn utxos(&self, addr: &str) -> AppResult<Vec<UtxoEntry>> {
-        Ok(self.get::<UtxoListResponse>(&format!("{}/utxos/{}", self.base, addr)).await?.utxos)
+        Ok(self
+            .get::<UtxoListResponse>(&format!("{}/utxos/{}", self.base, addr))
+            .await?
+            .utxos)
     }
 
     pub async fn fee_estimate(&self) -> AppResult<FeeEstimate> {
@@ -87,15 +114,25 @@ impl RpcClient {
 
     pub async fn submit_tx(&self, hex: &str) -> AppResult<String> {
         let url = format!("{}/submit_transaction", self.base);
-        let resp = self.client.post(&url)
-            .json(&SubmitReq { transaction_hex: hex.to_string() })
-            .send().await.map_err(|e| AppError::Network(e.to_string()))?;
+        let resp = self
+            .client
+            .post(&url)
+            .json(&SubmitReq {
+                transaction_hex: hex.to_string(),
+            })
+            .send()
+            .await
+            .map_err(|e| AppError::Network(e.to_string()))?;
         if !resp.status().is_success() {
             let s = resp.status();
             let t = resp.text().await.unwrap_or_default();
             return Err(AppError::Network(format!("{s}: {t}")));
         }
-        Ok(resp.json::<SubmitResp>().await.map_err(|e| AppError::Network(e.to_string()))?.txid)
+        Ok(resp
+            .json::<SubmitResp>()
+            .await
+            .map_err(|e| AppError::Network(e.to_string()))?
+            .txid)
     }
 
     pub async fn tx_history(&self, addr: &str) -> AppResult<Vec<TxSummary>> {
@@ -116,16 +153,27 @@ impl RpcClient {
     }
 
     pub async fn is_online(&self) -> bool {
-        self.client.get(&format!("{}/health", self.base)).send().await.is_ok()
+        self.client
+            .get(&format!("{}/health", self.base))
+            .send()
+            .await
+            .is_ok()
     }
 
     async fn get<T: serde::de::DeserializeOwned>(&self, url: &str) -> AppResult<T> {
-        let resp = self.client.get(url).send().await.map_err(|e| AppError::Network(e.to_string()))?;
+        let resp = self
+            .client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| AppError::Network(e.to_string()))?;
         if !resp.status().is_success() {
             let s = resp.status();
             let t = resp.text().await.unwrap_or_default();
             return Err(AppError::Network(format!("{s}: {t}")));
         }
-        resp.json().await.map_err(|e| AppError::Network(format!("parse: {e}")))
+        resp.json()
+            .await
+            .map_err(|e| AppError::Network(format!("parse: {e}")))
     }
 }

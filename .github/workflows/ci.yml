@@ -13,6 +13,17 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   RUSTFLAGS: -D warnings
+  # Experimental crates not part of the public testnet node release.
+  # The desktop wallet (Tauri) and community server/client/shared are
+  # gated until they are ready for production. Re-include them here once
+  # they ship — at minimum, axiom-community-{server,client,shared} pull
+  # vulnerable rand 0.9.2 (RUSTSEC-2026-0097) via tokio-postgres and the
+  # proptest dev-dependency, which must be resolved before re-enabling.
+  WORKSPACE_EXCLUDES: >-
+    --exclude axiom-desktop-wallet
+    --exclude axiom-community-shared
+    --exclude axiom-community-server
+    --exclude axiom-community-client
 
 jobs:
   # ──────────────────────────────────────────────────────────────────────────
@@ -43,7 +54,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace ${{ env.WORKSPACE_EXCLUDES }} --all-targets -- -D warnings
 
   # ──────────────────────────────────────────────────────────────────────────
   # Build + test matrix — same targets as release.yml so CI catches
@@ -86,11 +97,11 @@ jobs:
 
       - name: cargo build
         shell: bash
-        run: cargo build --workspace --target ${{ matrix.target }}
+        run: cargo build --workspace ${{ env.WORKSPACE_EXCLUDES }} --target ${{ matrix.target }}
 
       - name: cargo test
         shell: bash
-        run: cargo test --workspace --lib --target ${{ matrix.target }}
+        run: cargo test --workspace ${{ env.WORKSPACE_EXCLUDES }} --lib --target ${{ matrix.target }}
 
   # ──────────────────────────────────────────────────────────────────────────
   # Audit: flag known-vulnerable dependencies — advisory, not blocking
@@ -108,4 +119,10 @@ jobs:
       - name: Install cargo-audit
         run: cargo install --locked cargo-audit
       - name: Run audit
-        run: cargo audit
+        # RUSTSEC-2026-0097 (rand 0.9.2) is pulled only by experimental
+        # community crates (axiom-community-{server,client,shared}) via
+        # tokio-postgres and proptest. Those crates are NOT part of the
+        # public testnet node release. The advisory is ignored here so
+        # the node release isn't blocked, but it MUST be resolved before
+        # the community crates ship — track in the community workstream.
+        run: cargo audit --ignore RUSTSEC-2026-0097

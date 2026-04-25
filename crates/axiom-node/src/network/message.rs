@@ -562,11 +562,9 @@ impl Message {
                 // Try v2 wire format first (nonce_hash appended). Old peers
                 // omit that field, so bincode's sequential decoder fails
                 // partway through — in that case, retry as v1 and upconvert.
-                let v: VersionMessage = match bincode::serde::decode_from_slice::<
-                    VersionMessage,
-                    _,
-                >(
-                    payload, bincode::config::standard()
+                let v: VersionMessage = match bincode::serde::decode_from_slice::<VersionMessage, _>(
+                    payload,
+                    bincode::config::standard(),
                 ) {
                     Ok((v, _)) => v,
                     Err(_) => {

@@ -2,12 +2,15 @@
 // Peer reputation tracking. AxiomMind remembers who behaves well and who doesn't.
 // reputation.rs — Per-peer reputation with temporal decay and adaptive thresholds
 
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::{Deserialize, Serialize};
 
 fn now_secs() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
 }
 
 // ── EWMA-based adaptive thresholds ───────────────────────────────────────────
@@ -18,12 +21,17 @@ pub struct Ewma {
     pub value: f64,
     pub alpha: f64,
     initialized: bool,
-    recent: VecDeque<f64>,  // last 50 samples for variance
+    recent: VecDeque<f64>, // last 50 samples for variance
 }
 
 impl Ewma {
     pub fn new(alpha: f64, initial: f64) -> Self {
-        Self { value: initial, alpha, initialized: false, recent: VecDeque::with_capacity(50) }
+        Self {
+            value: initial,
+            alpha,
+            initialized: false,
+            recent: VecDeque::with_capacity(50),
+        }
     }
 
     pub fn update(&mut self, x: f64) -> f64 {
@@ -33,19 +41,26 @@ impl Ewma {
         } else {
             self.value = self.alpha * x + (1.0 - self.alpha) * self.value;
         }
-        if self.recent.len() >= 50 { self.recent.pop_front(); }
+        if self.recent.len() >= 50 {
+            self.recent.pop_front();
+        }
         self.recent.push_back(x);
         self.value
     }
 
     pub fn variance(&self) -> f64 {
-        if self.recent.len() < 2 { return self.value * 0.01; }
+        if self.recent.len() < 2 {
+            return self.value * 0.01;
+        }
         let mean = self.recent.iter().sum::<f64>() / self.recent.len() as f64;
-        let var = self.recent.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / self.recent.len() as f64;
+        let var =
+            self.recent.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / self.recent.len() as f64;
         var.max(0.001)
     }
 
-    pub fn std_dev(&self) -> f64 { self.variance().sqrt() }
+    pub fn std_dev(&self) -> f64 {
+        self.variance().sqrt()
+    }
 
     /// Returns sigma deviation of x from learned baseline
     pub fn z_score(&self, x: f64) -> f64 {
@@ -53,11 +68,15 @@ impl Ewma {
         (x - self.value).abs() / sd
     }
 
-    pub fn is_initialized(&self) -> bool { self.initialized }
+    pub fn is_initialized(&self) -> bool {
+        self.initialized
+    }
 }
 
 impl Default for Ewma {
-    fn default() -> Self { Self::new(0.1, 0.0) }
+    fn default() -> Self {
+        Self::new(0.1, 0.0)
+    }
 }
 
 /// Violation record
@@ -72,7 +91,7 @@ pub struct Violation {
 #[derive(Debug, Clone)]
 pub struct PeerScore {
     pub addr: String,
-    pub score: f64,           // 0.0 (banned) – 1.0 (trusted)
+    pub score: f64, // 0.0 (banned) – 1.0 (trusted)
     pub violations: Vec<Violation>,
     pub rewards: u32,
     pub last_seen: u64,
@@ -82,14 +101,27 @@ pub struct PeerScore {
 impl PeerScore {
     pub fn new(addr: String) -> Self {
         let now = now_secs();
-        Self { addr, score: 1.0, violations: Vec::new(), rewards: 0, last_seen: now, last_decay: now }
+        Self {
+            addr,
+            score: 1.0,
+            violations: Vec::new(),
+            rewards: 0,
+            last_seen: now,
+            last_decay: now,
+        }
     }
 
     pub fn penalize(&mut self, severity: f32, reason: &str) {
         self.score = (self.score - severity as f64).max(0.0);
-        self.violations.push(Violation { ts: now_secs(), severity, reason: reason.to_string() });
+        self.violations.push(Violation {
+            ts: now_secs(),
+            severity,
+            reason: reason.to_string(),
+        });
         // Keep last 50 violations
-        if self.violations.len() > 50 { self.violations.remove(0); }
+        if self.violations.len() > 50 {
+            self.violations.remove(0);
+        }
     }
 
     pub fn reward(&mut self, amount: f64) {
@@ -108,9 +140,15 @@ impl PeerScore {
         }
     }
 
-    pub fn is_suspicious(&self) -> bool { self.score < 0.5 }
-    pub fn is_banned(&self) -> bool { self.score < 0.2 }
-    pub fn violation_count(&self) -> usize { self.violations.len() }
+    pub fn is_suspicious(&self) -> bool {
+        self.score < 0.5
+    }
+    pub fn is_banned(&self) -> bool {
+        self.score < 0.2
+    }
+    pub fn violation_count(&self) -> usize {
+        self.violations.len()
+    }
 }
 
 /// Registry of all peer reputations with EWMA adaptive thresholds
@@ -129,16 +167,18 @@ impl ReputationRegistry {
     pub fn new() -> Self {
         Self {
             peers: HashMap::new(),
-            block_time_ewma: Ewma::new(0.05, 30.0),   // slow — block time baseline
-            peer_count_ewma: Ewma::new(0.10, 8.0),    // peer count baseline
-            mempool_ewma: Ewma::new(0.10, 0.0),        // mempool size baseline
-            fee_ewma: Ewma::new(0.10, 10.0),           // fee rate baseline
-            orphan_ewma: Ewma::new(0.05, 0.0),         // orphan rate baseline
+            block_time_ewma: Ewma::new(0.05, 30.0), // slow — block time baseline
+            peer_count_ewma: Ewma::new(0.10, 8.0),  // peer count baseline
+            mempool_ewma: Ewma::new(0.10, 0.0),     // mempool size baseline
+            fee_ewma: Ewma::new(0.10, 10.0),        // fee rate baseline
+            orphan_ewma: Ewma::new(0.05, 0.0),      // orphan rate baseline
         }
     }
 
     pub fn get_or_create(&mut self, addr: &str) -> &mut PeerScore {
-        self.peers.entry(addr.to_string()).or_insert_with(|| PeerScore::new(addr.to_string()))
+        self.peers
+            .entry(addr.to_string())
+            .or_insert_with(|| PeerScore::new(addr.to_string()))
     }
 
     pub fn penalize(&mut self, addr: &str, severity: f32, reason: &str) {
@@ -185,7 +225,9 @@ impl ReputationRegistry {
         self.fee_ewma.z_score(sat_per_byte)
     }
 
-    pub fn peer_count(&self) -> usize { self.peers.len() }
+    pub fn peer_count(&self) -> usize {
+        self.peers.len()
+    }
 
     pub fn suspicious_peers(&self) -> Vec<&PeerScore> {
         self.peers.values().filter(|p| p.is_suspicious()).collect()
@@ -233,9 +275,15 @@ impl PeerRepScore {
         self.score = (self.score - 0.15).max(0.0);
     }
 
-    pub fn is_trusted(&self) -> bool { self.score > 0.65 }
-    pub fn is_suspect(&self) -> bool { self.score < 0.25 }
-    pub fn is_banned(&self) -> bool { self.score < 0.05 }
+    pub fn is_trusted(&self) -> bool {
+        self.score > 0.65
+    }
+    pub fn is_suspect(&self) -> bool {
+        self.score < 0.25
+    }
+    pub fn is_banned(&self) -> bool {
+        self.score < 0.05
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -244,7 +292,9 @@ pub struct PeerReputationTable {
 }
 
 impl PeerReputationTable {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn record_valid_block(&mut self, peer_id: &str, height: u64) {
         self.peers
@@ -272,11 +322,17 @@ impl PeerReputationTable {
         self.peers.values().filter(|p| p.is_banned()).count()
     }
 
-    pub fn total_count(&self) -> usize { self.peers.len() }
+    pub fn total_count(&self) -> usize {
+        self.peers.len()
+    }
 
     pub fn top_peers(&self, n: usize) -> Vec<&PeerRepScore> {
         let mut peers: Vec<&PeerRepScore> = self.peers.values().collect();
-        peers.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        peers.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         peers.into_iter().take(n).collect()
     }
 }

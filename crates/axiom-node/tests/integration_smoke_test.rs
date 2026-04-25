@@ -23,8 +23,10 @@ use tempfile::TempDir;
 /// Create a fresh Dev-network node backed by a temp directory.
 fn make_node() -> (TempDir, Node) {
     let dir = TempDir::new().unwrap();
-    let mut cfg = Config::default();
-    cfg.data_dir = dir.path().to_path_buf();
+    let cfg = Config {
+        data_dir: dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(cfg).unwrap();
     (dir, node)
 }
@@ -40,7 +42,7 @@ fn make_coinbase_block(height: u32, prev_hash: Hash256) -> Block {
         pubkey_hash: Hash256::zero(),
     };
     let coinbase = Transaction::new_coinbase(vec![output], height);
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
     // Timestamp must exceed MTP; use current time + height as a safe value.
     let now = std::time::SystemTime::now()
@@ -130,9 +132,11 @@ fn test_mempool_empty_after_genesis() {
 #[test]
 fn test_node_config_validation() {
     let dir = TempDir::new().unwrap();
-    let mut cfg = Config::default();
-    cfg.data_dir = dir.path().to_path_buf();
-    cfg.mempool_max_size = 0; // invalid
+    let cfg = Config {
+        data_dir: dir.path().to_path_buf(),
+        mempool_max_size: 0, // invalid
+        ..Default::default()
+    };
 
     let result = Node::new(cfg);
     assert!(result.is_err(), "zero mempool_max_size must be rejected");
@@ -270,8 +274,10 @@ fn test_chain_state_persists_across_restart() {
 
     // First session: mine 3 blocks
     {
-        let mut cfg = Config::default();
-        cfg.data_dir = data_dir.clone();
+        let cfg = Config {
+            data_dir: data_dir.clone(),
+            ..Default::default()
+        };
         let mut node = Node::new(cfg).unwrap();
 
         for _ in 0..3 {
@@ -285,8 +291,10 @@ fn test_chain_state_persists_across_restart() {
 
     // Second session: verify height and hash survived
     {
-        let mut cfg = Config::default();
-        cfg.data_dir = data_dir;
+        let cfg = Config {
+            data_dir,
+            ..Default::default()
+        };
         let node = Node::new(cfg).unwrap();
 
         assert_eq!(node.best_height(), Some(3), "height must survive restart");
@@ -380,11 +388,13 @@ fn test_has_block_consistent() {
 #[test]
 fn test_mempool_config_accessors() {
     let dir = TempDir::new().unwrap();
-    let mut cfg = Config::default();
-    cfg.data_dir = dir.path().to_path_buf();
-    cfg.mempool_max_count = 12_345;
-    cfg.mempool_max_size = 1_000_000;
-    cfg.min_fee_rate = 42;
+    let cfg = Config {
+        data_dir: dir.path().to_path_buf(),
+        mempool_max_count: 12_345,
+        mempool_max_size: 1_000_000,
+        min_fee_rate: 42,
+        ..Default::default()
+    };
     let node = Node::new(cfg).unwrap();
 
     assert_eq!(node.mempool_max_count(), 12_345);
@@ -425,8 +435,10 @@ fn test_dev_network_no_pow() {
 #[test]
 fn test_persist_mempool_creates_file() {
     let dir = TempDir::new().unwrap();
-    let mut cfg = Config::default();
-    cfg.data_dir = dir.path().to_path_buf();
+    let cfg = Config {
+        data_dir: dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(cfg).unwrap();
 
     // Persist should succeed even with empty mempool
@@ -450,8 +462,10 @@ fn test_persist_mempool_creates_file() {
 #[test]
 fn test_mempool_survives_restart() {
     let dir = TempDir::new().unwrap();
-    let mut cfg = Config::default();
-    cfg.data_dir = dir.path().to_path_buf();
+    let cfg = Config {
+        data_dir: dir.path().to_path_buf(),
+        ..Default::default()
+    };
 
     {
         let node = Node::new(cfg.clone()).unwrap();

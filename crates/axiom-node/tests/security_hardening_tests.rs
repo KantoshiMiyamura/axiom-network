@@ -71,9 +71,11 @@ fn test_coinbase_invalid_inflated() {
 
     let height = 1;
     let reward = calculate_block_reward(height);
-    
+
     // Inflate coinbase by 100 AXM
-    let inflated_value = reward.checked_add(Amount::from_sat(10_000_000_000).unwrap()).unwrap();
+    let inflated_value = reward
+        .checked_add(Amount::from_sat(10_000_000_000).unwrap())
+        .unwrap();
     let coinbase_output = TxOutput {
         value: inflated_value,
         pubkey_hash: Hash256::zero(),
@@ -93,7 +95,7 @@ fn test_coinbase_invalid_inflated() {
 fn test_range_proof_normal_size_accepted() {
     // Normal bulletproof is ~13KB, well under 16KB limit
     let proof_bytes = vec![0u8; 13_000];
-    
+
     // This would be validated in the actual validation flow
     // The fix ensures size check happens BEFORE deserialization
     assert!(proof_bytes.len() <= 16_384);
@@ -103,7 +105,7 @@ fn test_range_proof_normal_size_accepted() {
 fn test_range_proof_oversized_rejected() {
     // Oversized proof (1MB) should be rejected before deserialization
     let proof_bytes = vec![0u8; 1_000_000];
-    
+
     // The fix in validation.rs checks size BEFORE deserialize
     assert!(proof_bytes.len() > 16_384);
 }
@@ -151,13 +153,14 @@ fn test_timestamp_future_rejected() {
         pubkey_hash: Hash256::zero(),
     };
     let coinbase = Transaction::new_coinbase(vec![coinbase_output], height);
-    
+
     // Future timestamp (2 hours ahead - exceeds 10 minute limit)
     let future = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
-        .as_secs() as u32 + 7200;
-    
+        .as_secs() as u32
+        + 7200;
+
     let mut block = create_block_with_coinbase(height, genesis.hash(), coinbase);
     block.header.timestamp = future;
 
@@ -182,7 +185,11 @@ fn test_orphan_pool_per_peer_limit_enforced() {
         bytes[1] = ((i >> 8) & 0xFF) as u8;
         let block = create_test_block(i + 1, Hash256::from_bytes(bytes));
         let result = pool.add_orphan_from_peer(block, Some(peer_id.clone()));
-        assert!(result.is_ok(), "Should accept orphan {} (within per-peer limit)", i);
+        assert!(
+            result.is_ok(),
+            "Should accept orphan {} (within per-peer limit)",
+            i
+        );
     }
 
     // 11th orphan from same peer must be rejected.
@@ -190,7 +197,10 @@ fn test_orphan_pool_per_peer_limit_enforced() {
     bytes[0] = 10;
     let block = create_test_block(11, Hash256::from_bytes(bytes));
     let result = pool.add_orphan_from_peer(block, Some(peer_id.clone()));
-    assert!(result.is_err(), "Should reject orphan 11 (per-peer limit exceeded)");
+    assert!(
+        result.is_err(),
+        "Should reject orphan 11 (per-peer limit exceeded)"
+    );
     assert_eq!(pool.len(), 10);
 }
 
@@ -210,7 +220,11 @@ fn test_orphan_pool_per_peer_limit_integration() {
         orphan.header.prev_block_hash = Hash256::from_bytes([99u8; 32]); // Non-existent parent
 
         let result = node.process_block_from_peer(orphan, Some(peer_id.clone()));
-        assert!(result.is_ok(), "Orphan {} should be accepted (within per-peer limit)", i);
+        assert!(
+            result.is_ok(),
+            "Orphan {} should be accepted (within per-peer limit)",
+            i
+        );
     }
 
     assert_eq!(node.orphan_count(), 10, "Should have exactly 10 orphans");
@@ -221,7 +235,10 @@ fn test_orphan_pool_per_peer_limit_integration() {
     let mut orphan = create_test_block(110, Hash256::from_bytes(bytes));
     orphan.header.prev_block_hash = Hash256::from_bytes([99u8; 32]);
     let result = node.process_block_from_peer(orphan, Some(peer_id.clone()));
-    assert!(result.is_err(), "11th orphan should be rejected (per-peer limit exceeded)");
+    assert!(
+        result.is_err(),
+        "11th orphan should be rejected (per-peer limit exceeded)"
+    );
 }
 
 #[test]
@@ -236,10 +253,7 @@ fn test_orphan_pool_different_peers_independent() {
             let idx = peer_num * 10 + i;
             bytes[0] = (idx & 0xFF) as u8;
             bytes[1] = ((idx >> 8) & 0xFF) as u8;
-            let block = create_test_block(
-                i + 1,
-                Hash256::from_bytes(bytes),
-            );
+            let block = create_test_block(i + 1, Hash256::from_bytes(bytes));
             let result = pool.add_orphan_from_peer(block, Some(peer_id.clone()));
             assert!(result.is_ok());
         }
@@ -295,10 +309,10 @@ fn test_fork_bombing_different_heights_independent() {
     let genesis_hash = node.best_block_hash().unwrap();
 
     // Each height can have up to 8 forks
-    for height in 1..=3 {
-        for i in 0..8 {
+    for height in 1u32..=3 {
+        for i in 0u32..8 {
             let mut block = create_test_block(height, genesis_hash);
-            block.header.nonce = (height * 100 + i) as u32;
+            block.header.nonce = height * 100 + i;
             let _ = node.process_block(block);
         }
     }
@@ -317,7 +331,7 @@ fn test_mempool_ancestor_limit_enforced() {
 
     // Create a chain of 30 transactions (limit is 25)
     let mut prev_txid = Hash256::zero();
-    
+
     for i in 0..30 {
         let input = TxInput {
             prev_tx_hash: prev_txid,
@@ -330,13 +344,16 @@ fn test_mempool_ancestor_limit_enforced() {
             pubkey_hash: Hash256::zero(),
         };
         let tx = Transaction::new_transfer(vec![input], vec![output], i, 0);
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
-        
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+
         let result = mempool.add_transaction(tx, 100);
-        
+
         if i < 25 {
             // First 25 should be accepted
-            assert!(result.is_ok() || matches!(result, Err(axiom_node::MempoolError::AlreadyInMempool)));
+            assert!(
+                result.is_ok() || matches!(result, Err(axiom_node::MempoolError::AlreadyInMempool))
+            );
         } else {
             // 26th+ should be rejected due to ancestor limit
             if let Err(e) = result {
@@ -347,7 +364,7 @@ fn test_mempool_ancestor_limit_enforced() {
                 );
             }
         }
-        
+
         prev_txid = txid;
     }
 }
@@ -358,7 +375,7 @@ fn test_mempool_short_chain_accepted() {
 
     // Create a chain of 10 transactions (well under limit)
     let mut prev_txid = Hash256::zero();
-    
+
     for i in 0..10 {
         let input = TxInput {
             prev_tx_hash: prev_txid,
@@ -371,11 +388,14 @@ fn test_mempool_short_chain_accepted() {
             pubkey_hash: Hash256::zero(),
         };
         let tx = Transaction::new_transfer(vec![input], vec![output], i, 0);
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
-        
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+
         let result = mempool.add_transaction(tx, 100);
-        assert!(result.is_ok() || matches!(result, Err(axiom_node::MempoolError::AlreadyInMempool)));
-        
+        assert!(
+            result.is_ok() || matches!(result, Err(axiom_node::MempoolError::AlreadyInMempool))
+        );
+
         prev_txid = txid;
     }
 }
@@ -387,7 +407,7 @@ fn test_mempool_short_chain_accepted() {
 #[test]
 fn test_x_forwarded_for_trusted_from_loopback() {
     use axiom_node::network::dos_protection::RateLimiter;
-    
+
     let mut limiter = RateLimiter::new();
     let loopback = IpAddr::from_str("127.0.0.1").unwrap();
     let forwarded = IpAddr::from_str("10.0.0.1").unwrap();
@@ -400,7 +420,7 @@ fn test_x_forwarded_for_trusted_from_loopback() {
 #[test]
 fn test_x_forwarded_for_not_trusted_from_remote() {
     use axiom_node::network::dos_protection::RateLimiter;
-    
+
     let mut limiter = RateLimiter::new();
     let remote = IpAddr::from_str("10.0.0.1").unwrap();
     let spoofed_loopback = IpAddr::from_str("127.0.0.1").unwrap();
@@ -414,7 +434,7 @@ fn test_x_forwarded_for_not_trusted_from_remote() {
 #[test]
 fn test_x_forwarded_for_cannot_bypass_rate_limit() {
     use axiom_node::network::dos_protection::{RateLimiter, RATE_LIMIT_PER_SECOND};
-    
+
     let mut limiter = RateLimiter::new();
     let attacker = IpAddr::from_str("10.0.0.1").unwrap();
     let spoofed = IpAddr::from_str("127.0.0.1").unwrap();
@@ -426,7 +446,10 @@ fn test_x_forwarded_for_cannot_bypass_rate_limit() {
 
     // Next request should be rate limited (using actual IP, not spoofed)
     let result = limiter.check_rate_limit_with_forwarding(attacker, Some(spoofed));
-    assert!(result.is_err(), "Should be rate limited despite spoofed header");
+    assert!(
+        result.is_err(),
+        "Should be rate limited despite spoofed header"
+    );
 }
 
 // ============================================================================
@@ -442,11 +465,13 @@ fn create_test_state() -> (TempDir, ChainState) {
 
 fn create_test_config() -> (TempDir, Config) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
-    config.mempool_max_size = 10_000_000;
-    config.mempool_max_count = 10_000;
-    config.min_fee_rate = 1;
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        mempool_max_size: 10_000_000,
+        mempool_max_count: 10_000,
+        min_fee_rate: 1,
+        ..Default::default()
+    };
     (temp_dir, config)
 }
 
@@ -456,7 +481,8 @@ fn create_genesis() -> axiom_consensus::Block {
         pubkey_hash: Hash256::zero(),
     };
     let coinbase = Transaction::new_coinbase(vec![output], 0);
-    let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+    let merkle_root =
+        axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -486,7 +512,7 @@ fn create_test_block(height: u32, prev_hash: Hash256) -> axiom_consensus::Block 
     };
     let coinbase = Transaction::new_coinbase(vec![output], height);
 
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -514,7 +540,7 @@ fn create_block_with_coinbase(
     prev_hash: Hash256,
     coinbase: Transaction,
 ) -> axiom_consensus::Block {
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

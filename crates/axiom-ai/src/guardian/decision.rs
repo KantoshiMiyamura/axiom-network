@@ -46,7 +46,9 @@ pub enum PeerFlagKind {
 }
 
 impl PeerFlagKind {
-    fn as_byte(self) -> u8 { self as u8 }
+    fn as_byte(self) -> u8 {
+        self as u8
+    }
 }
 
 /// Advisory hint consumed by local mempool / relay policy. The Guardian
@@ -109,17 +111,26 @@ impl GuardianDecision {
             out.push(f.kind.as_byte());
         }
 
-        out.extend_from_slice(&self.tx_priority_hint.median_fee_floor_millisat.to_le_bytes());
+        out.extend_from_slice(
+            &self
+                .tx_priority_hint
+                .median_fee_floor_millisat
+                .to_le_bytes(),
+        );
 
         let mut promote = self.tx_priority_hint.promote_senders.clone();
         promote.sort();
         out.extend_from_slice(&(promote.len() as u32).to_le_bytes());
-        for s in &promote { out.extend_from_slice(s); }
+        for s in &promote {
+            out.extend_from_slice(s);
+        }
 
         let mut demote = self.tx_priority_hint.demote_senders.clone();
         demote.sort();
         out.extend_from_slice(&(demote.len() as u32).to_le_bytes());
-        for s in &demote { out.extend_from_slice(s); }
+        for s in &demote {
+            out.extend_from_slice(s);
+        }
 
         out
     }
@@ -153,21 +164,40 @@ impl GuardianProof {
         Self::compute(state, decision, model).0 == self.0
     }
 
-    pub fn as_hash(&self) -> Hash256 { Hash256::from_bytes(self.0) }
+    pub fn as_hash(&self) -> Hash256 {
+        Hash256::from_bytes(self.0)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::state::{
+        BlockSummary, DeterministicState, GuardianObservation, PeerStats, TxPatternStats,
+    };
     use super::*;
-    use super::super::state::{BlockSummary, DeterministicState, GuardianObservation, PeerStats, TxPatternStats};
 
     fn obs() -> GuardianObservation {
         GuardianObservation {
             height: 1,
             tip_hash: [0u8; 32],
-            block_window: vec![BlockSummary { hash: [1u8; 32], height: 1, tx_count: 1, size_bytes: 100, timestamp: 1 }],
-            tx_patterns: TxPatternStats { mempool_size: 0, avg_fee_rate_millisat: 0, unique_senders: 0, dust_count: 0 },
-            peer_stats: PeerStats { peer_count: 3, handshake_failures: 0, median_latency_ms: 10 },
+            block_window: vec![BlockSummary {
+                hash: [1u8; 32],
+                height: 1,
+                tx_count: 1,
+                size_bytes: 100,
+                timestamp: 1,
+            }],
+            tx_patterns: TxPatternStats {
+                mempool_size: 0,
+                avg_fee_rate_millisat: 0,
+                unique_senders: 0,
+                dust_count: 0,
+            },
+            peer_stats: PeerStats {
+                peer_count: 3,
+                handshake_failures: 0,
+                median_latency_ms: 10,
+            },
         }
     }
 
@@ -175,8 +205,14 @@ mod tests {
         GuardianDecision {
             anomaly_score: 1234,
             peer_flags: vec![
-                PeerFlag { peer_id_hash: [9u8; 32], kind: PeerFlagKind::Suspect },
-                PeerFlag { peer_id_hash: [2u8; 32], kind: PeerFlagKind::Trusted },
+                PeerFlag {
+                    peer_id_hash: [9u8; 32],
+                    kind: PeerFlagKind::Suspect,
+                },
+                PeerFlag {
+                    peer_id_hash: [2u8; 32],
+                    kind: PeerFlagKind::Trusted,
+                },
             ],
             tx_priority_hint: TxPriorityHint {
                 median_fee_floor_millisat: 1500,

@@ -198,7 +198,8 @@ impl Mempool {
         self.evict_expired();
 
         let serialized = axiom_protocol::serialize_transaction(&tx);
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
         let tx_size = serialized.len();
 
         if self.entries.contains_key(&txid) {
@@ -934,7 +935,8 @@ mod tests {
             pubkey_hash: Hash256::zero(),
         };
         let tx = Transaction::new_transfer(vec![], vec![output], nonce, 0);
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
         (txid, tx)
     }
 
@@ -957,7 +959,8 @@ mod tests {
             pubkey_hash: Hash256::zero(),
         };
         let tx = Transaction::new_transfer(vec![input], vec![output], nonce, 0);
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
         (txid, tx)
     }
 

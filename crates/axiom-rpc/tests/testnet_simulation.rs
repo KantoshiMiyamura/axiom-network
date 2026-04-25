@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Kantoshi Miyamura
+#![allow(dead_code)]
 //
 //! AI Compute Protocol — Testnet Simulation & Monitoring
 //!
@@ -102,10 +103,8 @@ struct VirtualNode {
 impl VirtualNode {
     fn new(node_id: usize) -> Self {
         let data_dir = TempDir::new().unwrap();
-        let protocol = Arc::new(
-            ComputeProtocol::open(data_dir.path())
-                .expect("failed to open protocol")
-        );
+        let protocol =
+            Arc::new(ComputeProtocol::open(data_dir.path()).expect("failed to open protocol"));
 
         VirtualNode {
             node_id,
@@ -122,7 +121,7 @@ impl VirtualNode {
         };
 
         match self.protocol.register_worker(req) {
-            Ok(worker) => {
+            Ok(_worker) => {
                 let mut m = self.metrics.lock().unwrap();
                 m.active_workers += 1;
                 Ok(())
@@ -135,7 +134,13 @@ impl VirtualNode {
         }
     }
 
-    fn submit_job(&self, requester: &str, fee: u64, model_hash: &str, input_hash: &str) -> Result<String, String> {
+    fn submit_job(
+        &self,
+        requester: &str,
+        fee: u64,
+        model_hash: &str,
+        input_hash: &str,
+    ) -> Result<String, String> {
         let start = Instant::now();
 
         let req = axiom_ai::SubmitComputeJobRequest {
@@ -233,7 +238,7 @@ fn testnet_simulation_10_nodes_continuous_load() {
         let worker_id = format!("worker_{:04}", i);
         let stake = 10000 + (i as u64 * 100);
 
-        let result = nodes[node_idx].register_worker(&worker_id, stake);
+        let _result = nodes[node_idx].register_worker(&worker_id, stake);
         if (i + 1) % 10 == 0 {
             println!("  ✅ Registered {} workers", i + 1);
         }
@@ -256,7 +261,11 @@ fn testnet_simulation_10_nodes_continuous_load() {
             Ok(job_id) => {
                 submitted_jobs.push((node_idx, job_id.clone(), fee));
                 if (i + 1) % 100 == 0 {
-                    println!("  ✅ Submitted {} jobs ({:.1}%)", i + 1, ((i + 1) as f64 / num_jobs as f64) * 100.0);
+                    println!(
+                        "  ✅ Submitted {} jobs ({:.1}%)",
+                        i + 1,
+                        ((i + 1) as f64 / num_jobs as f64) * 100.0
+                    );
                 }
             }
             Err(_e) => {
@@ -267,7 +276,11 @@ fn testnet_simulation_10_nodes_continuous_load() {
         }
     }
     let load_time = start_load.elapsed();
-    println!("  ⏱️  Load time: {:?} ({:.0} jobs/sec)", load_time, submitted_jobs.len() as f64 / load_time.as_secs_f64());
+    println!(
+        "  ⏱️  Load time: {:?} ({:.0} jobs/sec)",
+        load_time,
+        submitted_jobs.len() as f64 / load_time.as_secs_f64()
+    );
 
     // Phase 4: Job assignments (attempt all submitted jobs)
     println!("\n📍 PHASE 4: Job Assignment");
@@ -283,7 +296,11 @@ fn testnet_simulation_10_nodes_continuous_load() {
             }
             Err(e) => {
                 failed_count += 1;
-                let error_key = format!("{:?}", e).split(':').next().unwrap_or("Unknown").to_string();
+                let error_key = format!("{:?}", e)
+                    .split(':')
+                    .next()
+                    .unwrap_or("Unknown")
+                    .to_string();
                 *error_types.entry(error_key).or_insert(0) += 1;
                 if failed_count <= 5 {
                     println!("  ⚠️  Job {} failed: {}", job_id, e);
@@ -294,7 +311,7 @@ fn testnet_simulation_10_nodes_continuous_load() {
             println!("  ✅ Assigned {} jobs", assigned);
         }
     }
-    let assign_time = start_assign.elapsed();
+    let _assign_time = start_assign.elapsed();
 
     if failed_count > 0 {
         println!("\n  📊 FAILURE ANALYSIS ({} failures):", failed_count);
@@ -323,8 +340,7 @@ fn testnet_simulation_10_nodes_continuous_load() {
     // Phase 7: Partial failure simulation
     println!("\n📍 PHASE 7: Partial Failure Handling");
     let failed_node = 5;
-    let mut metrics = nodes[failed_node].get_metrics();
-    metrics.partial_failures += 1;
+    let _ = nodes[failed_node].get_metrics();
     println!("  ✅ Node {} simulated partial failure", failed_node);
 
     // Phase 8: Metrics aggregation
@@ -343,7 +359,8 @@ fn testnet_simulation_10_nodes_continuous_load() {
 
     // Calculate success rates
     if aggregated.jobs_submitted > 0 {
-        aggregated.job_success_rate = (aggregated.jobs_assigned as f64 / aggregated.jobs_submitted as f64) * 100.0;
+        aggregated.job_success_rate =
+            (aggregated.jobs_assigned as f64 / aggregated.jobs_submitted as f64) * 100.0;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -357,27 +374,48 @@ fn testnet_simulation_10_nodes_continuous_load() {
     println!("📊 JOB METRICS:");
     println!("  Total Submitted:        {}", aggregated.jobs_submitted);
     println!("  Total Assigned:         {}", aggregated.jobs_assigned);
-    println!("  Success Rate:           {:.1}%", aggregated.job_success_rate);
+    println!(
+        "  Success Rate:           {:.1}%",
+        aggregated.job_success_rate
+    );
     println!("  Failed:                 {}", aggregated.jobs_failed);
 
     println!("\n💰 ECONOMIC METRICS:");
-    println!("  Total Fees Collected:   {} sat", aggregated.total_fees_collected);
-    println!("  Avg Fee per Job:        {} sat", if aggregated.jobs_submitted > 0 {
-        aggregated.total_fees_collected / aggregated.jobs_submitted
-    } else {
-        0
-    });
+    println!(
+        "  Total Fees Collected:   {} sat",
+        aggregated.total_fees_collected
+    );
+    println!(
+        "  Avg Fee per Job:        {} sat",
+        if aggregated.jobs_submitted > 0 {
+            aggregated.total_fees_collected / aggregated.jobs_submitted
+        } else {
+            0
+        }
+    );
 
     println!("\n👷 WORKER METRICS:");
     println!("  Active Workers:         {}", aggregated.active_workers);
     println!("  Workers Evicted:        {}", aggregated.workers_evicted);
-    println!("  Avg Reputation:         {:.2}", aggregated.avg_worker_reputation);
+    println!(
+        "  Avg Reputation:         {:.2}",
+        aggregated.avg_worker_reputation
+    );
 
     println!("\n⚡ PERFORMANCE METRICS:");
-    println!("  Avg Submit Latency:     {:.2} ms", aggregated.avg_submit_latency_ms);
-    println!("  Avg Assign Latency:     {:.2} ms", aggregated.avg_assign_latency_ms);
+    println!(
+        "  Avg Submit Latency:     {:.2} ms",
+        aggregated.avg_submit_latency_ms
+    );
+    println!(
+        "  Avg Assign Latency:     {:.2} ms",
+        aggregated.avg_assign_latency_ms
+    );
     println!("  Total Load Time:        {:?}", load_time);
-    println!("  Load Rate:              {:.0} jobs/sec", submitted_jobs.len() as f64 / load_time.as_secs_f64());
+    println!(
+        "  Load Rate:              {:.0} jobs/sec",
+        submitted_jobs.len() as f64 / load_time.as_secs_f64()
+    );
 
     println!("\n🔄 RELIABILITY METRICS:");
     println!("  Node Restarts:          {}", aggregated.node_restarts);
@@ -393,24 +431,39 @@ fn testnet_simulation_10_nodes_continuous_load() {
 
     // Success rate check
     if aggregated.job_success_rate < 95.0 {
-        println!("⚠️  SUCCESS RATE LOW: {:.1}% (target: >95%)", aggregated.job_success_rate);
+        println!(
+            "⚠️  SUCCESS RATE LOW: {:.1}% (target: >95%)",
+            aggregated.job_success_rate
+        );
         stability_score -= 10.0;
     } else {
-        println!("✅ SUCCESS RATE HEALTHY: {:.1}%", aggregated.job_success_rate);
+        println!(
+            "✅ SUCCESS RATE HEALTHY: {:.1}%",
+            aggregated.job_success_rate
+        );
     }
 
     // Latency check
     if aggregated.avg_submit_latency_ms > 50.0 {
-        println!("⚠️  SUBMIT LATENCY HIGH: {:.2}ms (target: <50ms)", aggregated.avg_submit_latency_ms);
+        println!(
+            "⚠️  SUBMIT LATENCY HIGH: {:.2}ms (target: <50ms)",
+            aggregated.avg_submit_latency_ms
+        );
         stability_score -= 5.0;
     } else {
-        println!("✅ SUBMIT LATENCY ACCEPTABLE: {:.2}ms", aggregated.avg_submit_latency_ms);
+        println!(
+            "✅ SUBMIT LATENCY ACCEPTABLE: {:.2}ms",
+            aggregated.avg_submit_latency_ms
+        );
     }
 
     // Failure rate check
     let failure_rate = (aggregated.partial_failures as f64 / 10.0) * 100.0;
     if failure_rate > 30.0 {
-        println!("⚠️  HIGH FAILURE RATE: {:.1}% (acceptable: <30%)", failure_rate);
+        println!(
+            "⚠️  HIGH FAILURE RATE: {:.1}% (acceptable: <30%)",
+            failure_rate
+        );
         stability_score -= 15.0;
     } else {
         println!("✅ FAILURE RATE ACCEPTABLE: {:.1}%", failure_rate);
@@ -420,11 +473,17 @@ fn testnet_simulation_10_nodes_continuous_load() {
     if aggregated.peak_memory_mb == 0.0 {
         aggregated.peak_memory_mb = 256.0; // Simulated baseline
     }
-    println!("✅ MEMORY USAGE STABLE: ~{:.0} MB (limit: 1GB)", aggregated.peak_memory_mb);
+    println!(
+        "✅ MEMORY USAGE STABLE: ~{:.0} MB (limit: 1GB)",
+        aggregated.peak_memory_mb
+    );
 
     // Node health check
     if aggregated.node_restarts < 5 {
-        println!("✅ NODE STABILITY GOOD: {} restarts (acceptable: <5)", aggregated.node_restarts);
+        println!(
+            "✅ NODE STABILITY GOOD: {} restarts (acceptable: <5)",
+            aggregated.node_restarts
+        );
     }
 
     println!("\n═══════════════════════════════════════════════════════════════");
@@ -433,16 +492,26 @@ fn testnet_simulation_10_nodes_continuous_load() {
 
     println!(
         "verdict: {}",
-        if stability_score >= 85.0 { "stable" } else { "needs adjustment" }
+        if stability_score >= 85.0 {
+            "stable"
+        } else {
+            "needs adjustment"
+        }
     );
 
     println!("═══════════════════════════════════════════════════════════════\n");
 
     // Verify metrics are reasonable
     assert!(aggregated.jobs_submitted > 0, "Should have submitted jobs");
-    assert!(aggregated.job_success_rate >= 99.5, "Success rate should be excellent (>99.5%)");
+    assert!(
+        aggregated.job_success_rate >= 99.5,
+        "Success rate should be excellent (>99.5%)"
+    );
     assert!(aggregated.active_workers > 0, "Should have active workers");
-    assert!(stability_score >= 95.0, "System should be stable (score >=95)");
+    assert!(
+        stability_score >= 95.0,
+        "System should be stable (score >=95)"
+    );
 }
 
 #[test]
@@ -468,15 +537,13 @@ fn testnet_economic_simulation_real_conditions() {
 
     // Submit 100 jobs with market-realistic fees
     println!("📍 Submitting 100 jobs with realistic fees...");
-    let mut total_fees = 0u64;
     for i in 0..100 {
         let fee = match i % 4 {
-            0 => 1000,  // Economy jobs
-            1 => 5000,  // Standard jobs
+            0 => 1000,   // Economy jobs
+            1 => 5000,   // Standard jobs
             2 => 10_000, // Premium jobs
             _ => 50_000, // High-priority jobs
         };
-        total_fees += fee;
 
         let requester = format!("requester_{}", i / 25);
         let model_hash = format!("{:064x}", i);
@@ -491,19 +558,34 @@ fn testnet_economic_simulation_real_conditions() {
 
     // Economic analysis
     println!("\n📊 ECONOMIC ANALYSIS:");
-    println!("  Total Fees Collected:     {} sat", metrics.total_fees_collected);
+    println!(
+        "  Total Fees Collected:     {} sat",
+        metrics.total_fees_collected
+    );
     if metrics.jobs_submitted > 0 {
-        println!("  Avg Fee per Job:          {} sat", metrics.total_fees_collected / metrics.jobs_submitted);
+        println!(
+            "  Avg Fee per Job:          {} sat",
+            metrics.total_fees_collected / metrics.jobs_submitted
+        );
     } else {
         println!("  Avg Fee per Job:          N/A (no jobs submitted)");
     }
-    println!("  Est. Worker Rewards (80%): {} sat", (metrics.total_fees_collected * 80) / 100);
-    println!("  Est. Protocol Take (5%):  {} sat", (metrics.total_fees_collected * 5) / 100);
+    println!(
+        "  Est. Worker Rewards (80%): {} sat",
+        (metrics.total_fees_collected * 80) / 100
+    );
+    println!(
+        "  Est. Protocol Take (5%):  {} sat",
+        (metrics.total_fees_collected * 5) / 100
+    );
 
     // Stake analysis
-    let total_stake: u64 = vec![100_000, 50_000, 5_000, 1_000].iter().sum();
+    let total_stake: u64 = [100_000, 50_000, 5_000, 1_000].iter().sum();
     println!("\n  Total Worker Stake:       {} sat", total_stake);
-    println!("  Capital Efficiency:       {:.1}%", (metrics.total_fees_collected as f64 / total_stake as f64) * 100.0);
+    println!(
+        "  Capital Efficiency:       {:.1}%",
+        (metrics.total_fees_collected as f64 / total_stake as f64) * 100.0
+    );
 
     println!("\n✅ ECONOMIC SIMULATION COMPLETE\n");
 }
@@ -548,7 +630,12 @@ fn testnet_anomaly_detection_monitoring() {
     println!("  Min:  {:.0} µs", min_latency);
 
     // Anomaly detection
-    let std_dev = (latencies.iter().map(|l| (l - avg_latency).powi(2)).sum::<f64>() / latencies.len() as f64).sqrt();
+    let std_dev = (latencies
+        .iter()
+        .map(|l| (l - avg_latency).powi(2))
+        .sum::<f64>()
+        / latencies.len() as f64)
+        .sqrt();
     let threshold = avg_latency + (3.0 * std_dev); // 3-sigma rule
 
     println!("\n📍 ANOMALY DETECTION (3-sigma rule):");
@@ -557,7 +644,10 @@ fn testnet_anomaly_detection_monitoring() {
     let mut anomalies = 0;
     for (idx, latency) in latencies.iter().enumerate() {
         if latency > &threshold {
-            println!("  ⚠️  Anomaly detected at job {}: {:.0} µs (>{:.0}µs)", idx, latency, threshold);
+            println!(
+                "  ⚠️  Anomaly detected at job {}: {:.0} µs (>{:.0}µs)",
+                idx, latency, threshold
+            );
             anomalies += 1;
         }
     }
@@ -599,8 +689,8 @@ fn testnet_network_latency_simulation() {
     let mut rng = 123u64; // Simple deterministic RNG seed
     let mut get_random_latency = || {
         rng = rng.wrapping_mul(1103515245).wrapping_add(12345);
-        let latency_ms = 50 + ((rng % 150) as u32); // 50-200ms range
-        latency_ms
+        // 50-200ms range
+        50 + ((rng % 150) as u32)
     };
 
     println!("📍 Phase 2: Continuous Job Submission with Latency Injection");
@@ -644,7 +734,7 @@ fn testnet_network_latency_simulation() {
 
         // Check for timeout: if job has been in queue > 1000ms
         while !job_queue.is_empty() {
-            let (job_id, submit_time) = job_queue.front().unwrap();
+            let (_job_id, submit_time) = job_queue.front().unwrap();
             if elapsed_ms as u64 > submit_time + 1000 {
                 // Simulated timeout check: job in queue for >1s
                 job_queue.pop_front();
@@ -698,7 +788,8 @@ fn testnet_network_latency_simulation() {
     println!("═══════════════════════════════════════════════════════════════\n");
 
     // Latency statistics
-    let avg_latency: f64 = latency_samples.iter().map(|&x| x as f64).sum::<f64>() / latency_samples.len() as f64;
+    let avg_latency: f64 =
+        latency_samples.iter().map(|&x| x as f64).sum::<f64>() / latency_samples.len() as f64;
     let max_latency = latency_samples.iter().max().cloned().unwrap_or(0);
     let min_latency = latency_samples.iter().min().cloned().unwrap_or(0);
 
@@ -709,7 +800,8 @@ fn testnet_network_latency_simulation() {
     println!("  Samples Captured:   {}", latency_samples.len());
 
     // Queue metrics
-    let avg_queue_depth: f64 = queue_depth_samples.iter().sum::<usize>() as f64 / queue_depth_samples.len() as f64;
+    let avg_queue_depth: f64 =
+        queue_depth_samples.iter().sum::<usize>() as f64 / queue_depth_samples.len() as f64;
 
     println!("\n📊 QUEUE METRICS:");
     println!("  Max Queue Depth:    {} jobs", max_queue_depth);
@@ -736,7 +828,14 @@ fn testnet_network_latency_simulation() {
     println!("  Total Jobs Assigned: {}", jobs_assigned);
     println!("  Avg Jobs/Worker:     {:.1}", avg_jobs_per_worker);
     println!("  Worker Utilization:  {:.1}%", worker_utilization);
-    println!("  Starvation Risk:     {}", if avg_jobs_per_worker < 2.0 { "⚠️  HIGH" } else { "✅ LOW" });
+    println!(
+        "  Starvation Risk:     {}",
+        if avg_jobs_per_worker < 2.0 {
+            "⚠️  HIGH"
+        } else {
+            "✅ LOW"
+        }
+    );
 
     // Performance under latency
     let throughput = jobs_submitted as f64 / test_duration.as_secs_f64();
@@ -749,7 +848,10 @@ fn testnet_network_latency_simulation() {
     println!("\n📊 PERFORMANCE UNDER LATENCY:");
     println!("  Submission Throughput:  {:.0} jobs/sec", throughput);
     println!("  Assignment Success:     {:.1}%", assignment_success_rate);
-    println!("  Queue Growth Rate:      +{:.1} jobs/sec", max_queue_depth as f64 / test_duration.as_secs_f64());
+    println!(
+        "  Queue Growth Rate:      +{:.1} jobs/sec",
+        max_queue_depth as f64 / test_duration.as_secs_f64()
+    );
 
     // Verdict
     println!("\n═══════════════════════════════════════════════════════════════");
@@ -769,7 +871,10 @@ fn testnet_network_latency_simulation() {
     }
     if assignment_success_rate < 80.0 {
         health_score = health_score.saturating_sub(25);
-        issues.push(format!("⚠️  Low assignment success: {:.1}%", assignment_success_rate));
+        issues.push(format!(
+            "⚠️  Low assignment success: {:.1}%",
+            assignment_success_rate
+        ));
     }
     if avg_jobs_per_worker < 1.0 {
         health_score = health_score.saturating_sub(20);
@@ -809,8 +914,8 @@ fn testnet_throughput_optimization() {
     println!("║     Baseline vs. Optimized Implementation                ║");
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
-    use std::collections::BinaryHeap;
     use std::cmp::Reverse;
+    use std::collections::BinaryHeap;
 
     let node_baseline = VirtualNode::new(0);
     let node_optimized = VirtualNode::new(1);
@@ -853,7 +958,12 @@ fn testnet_throughput_optimization() {
         let model_hash = format!("{:064x}", job_idx);
         let input_hash = format!("{:064x}", job_idx + 1000000);
 
-        if let Ok(job_id) = node_baseline.submit_job(&requester, 5000 + (job_idx as u64 % 10000), &model_hash, &input_hash) {
+        if let Ok(job_id) = node_baseline.submit_job(
+            &requester,
+            5000 + (job_idx as u64 % 10000),
+            &model_hash,
+            &input_hash,
+        ) {
             baseline_job_ids.push(job_id);
             baseline_submitted += 1;
         }
@@ -879,21 +989,31 @@ fn testnet_throughput_optimization() {
             baseline_assigned += 1;
         }
 
-        if baseline_assigned % 50 == 0 {
+        if baseline_assigned.is_multiple_of(50) {
             println!("  ✅ Assigned {}", baseline_assigned);
         }
     }
     let baseline_total_time = baseline_start.elapsed();
 
     let baseline_throughput = baseline_submitted as f64 / baseline_submit_time.as_secs_f64();
-    let baseline_assign_throughput = baseline_assigned as f64 / assign_start.elapsed().as_secs_f64();
+    let baseline_assign_throughput =
+        baseline_assigned as f64 / assign_start.elapsed().as_secs_f64();
 
     println!("\n📊 BASELINE RESULTS:");
     println!("  Jobs Submitted:         {}", baseline_submitted);
     println!("  Jobs Assigned:          {}", baseline_assigned);
-    println!("  Submit Throughput:      {:.1} jobs/sec", baseline_throughput);
-    println!("  Assignment Throughput:  {:.1} jobs/sec", baseline_assign_throughput);
-    println!("  Total Time:             {:.2}s", baseline_total_time.as_secs_f64());
+    println!(
+        "  Submit Throughput:      {:.1} jobs/sec",
+        baseline_throughput
+    );
+    println!(
+        "  Assignment Throughput:  {:.1} jobs/sec",
+        baseline_assign_throughput
+    );
+    println!(
+        "  Total Time:             {:.2}s",
+        baseline_total_time.as_secs_f64()
+    );
 
     // ═════════════════════════════════════════════════════════════
     // OPTIMIZED: Batching, pipelining, and priority queue
@@ -933,7 +1053,7 @@ fn testnet_throughput_optimization() {
                 }
             }
 
-            if opt_submitted % 50 == 0 {
+            if opt_submitted.is_multiple_of(50) {
                 println!("  ✅ Submitted {}", opt_submitted);
             }
         }
@@ -957,7 +1077,10 @@ fn testnet_throughput_optimization() {
     }
 
     // Assign priority batch (high fee first)
-    println!("  📊 Priority Assignment (top {} jobs by fee)", priority_cutoff);
+    println!(
+        "  📊 Priority Assignment (top {} jobs by fee)",
+        priority_cutoff
+    );
     for (idx, (_, job_id)) in temp_queue.iter().enumerate().take(priority_cutoff) {
         // Batch latency only every 10 assignments instead of per-assignment
         if idx % 10 == 0 {
@@ -969,13 +1092,16 @@ fn testnet_throughput_optimization() {
             opt_assigned += 1;
         }
 
-        if opt_assigned % 25 == 0 {
+        if opt_assigned.is_multiple_of(25) {
             println!("    ✅ Priority assigned {}", opt_assigned);
         }
     }
 
     // Assign remaining jobs (background assignment)
-    println!("  📊 Background Assignment (remaining {} jobs)", temp_queue.len() - priority_cutoff);
+    println!(
+        "  📊 Background Assignment (remaining {} jobs)",
+        temp_queue.len() - priority_cutoff
+    );
     for (_, job_id) in temp_queue.iter().skip(priority_cutoff) {
         if node_optimized.protocol.assign_job(job_id).is_ok() {
             opt_assigned += 1;
@@ -992,8 +1118,14 @@ fn testnet_throughput_optimization() {
     println!("  Jobs Submitted:         {}", opt_submitted);
     println!("  Jobs Assigned:          {}", opt_assigned);
     println!("  Submit Throughput:      {:.1} jobs/sec", opt_throughput);
-    println!("  Assignment Throughput:  {:.1} jobs/sec", opt_assign_throughput);
-    println!("  Total Time:             {:.2}s", opt_total_time.as_secs_f64());
+    println!(
+        "  Assignment Throughput:  {:.1} jobs/sec",
+        opt_assign_throughput
+    );
+    println!(
+        "  Total Time:             {:.2}s",
+        opt_total_time.as_secs_f64()
+    );
 
     // ═════════════════════════════════════════════════════════════
     // COMPARISON ANALYSIS
@@ -1003,40 +1135,73 @@ fn testnet_throughput_optimization() {
     println!("║                 BEFORE vs AFTER ANALYSIS                  ║");
     println!("╚════════════════════════════════════════════════════════════╝\n");
 
-    let throughput_improvement = ((opt_throughput - baseline_throughput) / baseline_throughput) * 100.0;
-    let assignment_improvement = ((opt_assign_throughput - baseline_assign_throughput) / baseline_assign_throughput) * 100.0;
-    let time_reduction = ((baseline_total_time.as_secs_f64() - opt_total_time.as_secs_f64()) / baseline_total_time.as_secs_f64()) * 100.0;
+    let throughput_improvement =
+        ((opt_throughput - baseline_throughput) / baseline_throughput) * 100.0;
+    let assignment_improvement =
+        ((opt_assign_throughput - baseline_assign_throughput) / baseline_assign_throughput) * 100.0;
+    let time_reduction = ((baseline_total_time.as_secs_f64() - opt_total_time.as_secs_f64())
+        / baseline_total_time.as_secs_f64())
+        * 100.0;
 
     println!("📊 THROUGHPUT COMPARISON:");
     println!("┌─────────────────────────────────────────────────────────┐");
     println!("│ Metric                 │ Baseline    │ Optimized    │ Δ   │");
     println!("├─────────────────────────────────────────────────────────┤");
-    println!("│ Submit Throughput       │ {:.1} jobs/s │ {:.1} jobs/s  │ {:+.0}% │",
-        baseline_throughput, opt_throughput, throughput_improvement);
-    println!("│ Assignment Throughput   │ {:.1} jobs/s │ {:.1} jobs/s  │ {:+.0}% │",
-        baseline_assign_throughput, opt_assign_throughput, assignment_improvement);
-    println!("│ Total Execution Time    │ {:.2}s       │ {:.2}s       │ {:+.0}% │",
-        baseline_total_time.as_secs_f64(), opt_total_time.as_secs_f64(), -time_reduction);
+    println!(
+        "│ Submit Throughput       │ {:.1} jobs/s │ {:.1} jobs/s  │ {:+.0}% │",
+        baseline_throughput, opt_throughput, throughput_improvement
+    );
+    println!(
+        "│ Assignment Throughput   │ {:.1} jobs/s │ {:.1} jobs/s  │ {:+.0}% │",
+        baseline_assign_throughput, opt_assign_throughput, assignment_improvement
+    );
+    println!(
+        "│ Total Execution Time    │ {:.2}s       │ {:.2}s       │ {:+.0}% │",
+        baseline_total_time.as_secs_f64(),
+        opt_total_time.as_secs_f64(),
+        -time_reduction
+    );
     println!("└─────────────────────────────────────────────────────────┘\n");
 
     println!("📊 VOLUME COMPARISON:");
     println!("┌─────────────────────────────────────────────────────────┐");
     println!("│ Metric                 │ Baseline    │ Optimized      │");
     println!("├─────────────────────────────────────────────────────────┤");
-    println!("│ Jobs Submitted          │ {}          │ {}              │", baseline_submitted, opt_submitted);
-    println!("│ Jobs Assigned           │ {}          │ {}              │", baseline_assigned, opt_assigned);
-    println!("│ Assignment Success Rate │ {:.1}%       │ {:.1}%          │",
-        if baseline_submitted > 0 { (baseline_assigned as f64 / baseline_submitted as f64) * 100.0 } else { 0.0 },
-        if opt_submitted > 0 { (opt_assigned as f64 / opt_submitted as f64) * 100.0 } else { 0.0 }
+    println!(
+        "│ Jobs Submitted          │ {}          │ {}              │",
+        baseline_submitted, opt_submitted
+    );
+    println!(
+        "│ Jobs Assigned           │ {}          │ {}              │",
+        baseline_assigned, opt_assigned
+    );
+    println!(
+        "│ Assignment Success Rate │ {:.1}%       │ {:.1}%          │",
+        if baseline_submitted > 0 {
+            (baseline_assigned as f64 / baseline_submitted as f64) * 100.0
+        } else {
+            0.0
+        },
+        if opt_submitted > 0 {
+            (opt_assigned as f64 / opt_submitted as f64) * 100.0
+        } else {
+            0.0
+        }
     );
     println!("└─────────────────────────────────────────────────────────┘\n");
 
     println!();
     println!("optimization summary:");
-    println!("  throughput_improvement:    {:.0}%", throughput_improvement);
-    println!("  assignment_improvement:    {:.0}%", assignment_improvement);
-    let network_amortization = (opt_submitted as f64 / baseline_submitted as f64)
-        * (baseline_throughput / opt_throughput);
+    println!(
+        "  throughput_improvement:    {:.0}%",
+        throughput_improvement
+    );
+    println!(
+        "  assignment_improvement:    {:.0}%",
+        assignment_improvement
+    );
+    let network_amortization =
+        (opt_submitted as f64 / baseline_submitted as f64) * (baseline_throughput / opt_throughput);
     println!("  network_amortization:      {:.1}x", network_amortization);
 
     let target_throughput = 50.0;
@@ -1044,7 +1209,11 @@ fn testnet_throughput_optimization() {
     println!(
         "  throughput_target_50/s:    {:.1} jobs/sec ({})",
         opt_throughput,
-        if opt_throughput >= target_throughput { "met" } else { "not met" }
+        if opt_throughput >= target_throughput {
+            "met"
+        } else {
+            "not met"
+        }
     );
     let _ = target_queue_growth;
 }

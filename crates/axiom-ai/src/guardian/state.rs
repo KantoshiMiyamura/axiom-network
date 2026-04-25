@@ -121,9 +121,27 @@ mod tests {
             height: 100,
             tip_hash: [0xAAu8; 32],
             block_window: vec![
-                BlockSummary { hash: [1u8; 32], height: 98, tx_count: 3, size_bytes: 1024, timestamp: 1000 },
-                BlockSummary { hash: [2u8; 32], height: 99, tx_count: 5, size_bytes: 2048, timestamp: 1010 },
-                BlockSummary { hash: [3u8; 32], height: 100, tx_count: 7, size_bytes: 3072, timestamp: 1020 },
+                BlockSummary {
+                    hash: [1u8; 32],
+                    height: 98,
+                    tx_count: 3,
+                    size_bytes: 1024,
+                    timestamp: 1000,
+                },
+                BlockSummary {
+                    hash: [2u8; 32],
+                    height: 99,
+                    tx_count: 5,
+                    size_bytes: 2048,
+                    timestamp: 1010,
+                },
+                BlockSummary {
+                    hash: [3u8; 32],
+                    height: 100,
+                    tx_count: 7,
+                    size_bytes: 3072,
+                    timestamp: 1020,
+                },
             ],
             tx_patterns: TxPatternStats {
                 mempool_size: 42,
@@ -161,19 +179,24 @@ mod tests {
         let base = sample_obs();
         let base_h = DeterministicState::encode(&base);
 
-        let mut t = base.clone(); t.height += 1;
+        let mut t = base.clone();
+        t.height += 1;
         assert_ne!(DeterministicState::encode(&t), base_h);
 
-        let mut t = base.clone(); t.tip_hash[0] ^= 1;
+        let mut t = base.clone();
+        t.tip_hash[0] ^= 1;
         assert_ne!(DeterministicState::encode(&t), base_h);
 
-        let mut t = base.clone(); t.tx_patterns.mempool_size += 1;
+        let mut t = base.clone();
+        t.tx_patterns.mempool_size += 1;
         assert_ne!(DeterministicState::encode(&t), base_h);
 
-        let mut t = base.clone(); t.peer_stats.peer_count += 1;
+        let mut t = base.clone();
+        t.peer_stats.peer_count += 1;
         assert_ne!(DeterministicState::encode(&t), base_h);
 
-        let mut t = base.clone(); t.block_window[0].tx_count += 1;
+        let mut t = base.clone();
+        t.block_window[0].tx_count += 1;
         assert_ne!(DeterministicState::encode(&t), base_h);
     }
 

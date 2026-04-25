@@ -23,5 +23,5 @@ pub use detector::AnomalyDetector;
 pub use fingerprint::CognitiveFingerprint;
 pub use guard::{GuardStatus, NetworkGuard};
 pub use learning::{EwmaBaseline, NetworkBaselines};
-pub use reputation::{Ewma, PeerScore, PeerReputationTable, ReputationRegistry, Violation};
+pub use reputation::{Ewma, PeerReputationTable, PeerScore, ReputationRegistry, Violation};
 pub use threat::ThreatLevel;

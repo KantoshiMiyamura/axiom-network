@@ -1,15 +1,15 @@
 // Copyright (c) 2026 Kantoshi Miyamura
 // AxiomMind v2 - Complete Integration Module
 
-use crate::neural_network::DistributedNeuralNetwork;
 use crate::anomaly_detection::{AnomalyDetectionEngine, DetectionData};
-use crate::self_healing::SelfHealingSystem;
-use crate::reinforcement_learning::ReinforcementLearningEngine;
 use crate::monitoring::MonitoringSystem;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use crate::neural_network::DistributedNeuralNetwork;
+use crate::reinforcement_learning::ReinforcementLearningEngine;
+use crate::self_healing::SelfHealingSystem;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::sync::RwLock;
 
 /// AxiomMind v2 - Complete Neural Guardian System
 pub struct AxiomMindV2 {
@@ -127,7 +127,11 @@ impl AxiomMindV2 {
         let overall_health = if status.running {
             if monitoring.active_alerts.is_empty() {
                 HealthLevel::Healthy
-            } else if monitoring.active_alerts.iter().any(|a| a.severity == crate::monitoring::AlertSeverity::Critical) {
+            } else if monitoring
+                .active_alerts
+                .iter()
+                .any(|a| a.severity == crate::monitoring::AlertSeverity::Critical)
+            {
                 HealthLevel::Critical
             } else {
                 HealthLevel::Degraded

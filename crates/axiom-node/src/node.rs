@@ -45,7 +45,11 @@ pub enum NodeError {
     ReorgTooDeep { depth: u32, max: u32 },
 
     #[error("too many forks at height {height}: {count} forks (max: {max})")]
-    TooManyForksAtHeight { height: u32, count: usize, max: usize },
+    TooManyForksAtHeight {
+        height: u32,
+        count: usize,
+        max: usize,
+    },
 }
 
 /// Reorgs deeper than this are rejected outright.
@@ -79,8 +83,7 @@ struct BlockTemplateCache {
 impl BlockTemplateCache {
     fn is_valid(&self, current_height: u32) -> bool {
         // Invalidate if chain height changed (new block) or template too old.
-        self.target_height == current_height + 1
-            && self.built_at.elapsed() < TEMPLATE_MAX_AGE
+        self.target_height == current_height + 1 && self.built_at.elapsed() < TEMPLATE_MAX_AGE
     }
 }
 
@@ -154,12 +157,12 @@ impl Node {
 
     /// Validate and add a transaction to the mempool.
     pub fn submit_transaction(&mut self, tx: Transaction) -> Result<Hash256, NodeError> {
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
 
         if self.mempool.has_transaction(&txid) {
             return Err(NodeError::Mempool(crate::MempoolError::AlreadyInMempool));
         }
-
 
         let utxo_set = UtxoSet::new(self.state.database());
         let nonce_tracker = NonceTracker::new(self.state.database());
@@ -300,7 +303,6 @@ impl Node {
         let block_hash = block.hash();
         let parent_hash = block.header.prev_block_hash;
 
-
         if self.state.has_block(&block_hash)? {
             return Err(NodeError::State(crate::StateError::BlockNotFound(
                 "block already exists".into(),
@@ -317,9 +319,10 @@ impl Node {
             // CRITICAL FIX: Pass peer_id to enforce per-peer orphan limits.
             // This prevents a single malicious peer from filling the entire orphan pool.
             let orphan_count_before = self.orphan_pool.len();
-            self.orphan_pool.add_orphan_from_peer(block, peer_id.clone())?;
+            self.orphan_pool
+                .add_orphan_from_peer(block, peer_id.clone())?;
             let orphan_count_after = self.orphan_pool.len();
-            
+
             if orphan_count_after > orphan_count_before {
                 tracing::debug!(
                     block_hash = %hex::encode(&block_hash.as_bytes()[..8]),
@@ -328,7 +331,7 @@ impl Node {
                     "ORPHAN_ADDED"
                 );
             }
-            
+
             return Ok(());
         }
 
@@ -428,7 +431,7 @@ impl Node {
     fn cleanup_old_fork_data(&mut self, current_height: u32) {
         if current_height > FORK_MAP_CLEANUP_DEPTH {
             let cleanup_threshold = current_height - FORK_MAP_CLEANUP_DEPTH;
-            
+
             // Collect heights to remove (can't modify HashMap while iterating)
             let old_heights: Vec<u32> = self
                 .forks_per_height
@@ -436,13 +439,13 @@ impl Node {
                 .filter(|&&h| h < cleanup_threshold)
                 .copied()
                 .collect();
-            
+
             if !old_heights.is_empty() {
                 let removed_count = old_heights.len();
                 for height in old_heights {
                     self.forks_per_height.remove(&height);
                 }
-                
+
                 tracing::debug!(
                     removed = removed_count,
                     current_height = current_height,
@@ -468,7 +471,11 @@ impl Node {
         // An attacker can mine 1000 valid blocks at the same height (different nonces)
         // and send them all to the node. Without this limit, the node will store and
         // process all 1000 blocks, exhausting CPU and memory.
-        let forks_at_height = self.forks_per_height.get(&block_height).copied().unwrap_or(0);
+        let forks_at_height = self
+            .forks_per_height
+            .get(&block_height)
+            .copied()
+            .unwrap_or(0);
         if forks_at_height >= MAX_FORKS_PER_HEIGHT {
             tracing::warn!(
                 height = block_height,
@@ -618,7 +625,13 @@ impl Node {
             });
         }
 
-        crate::log_reorg_start(&old_tip, new_tip, &fork_point, disconnect_blocks.len(), connect_blocks.len());
+        crate::log_reorg_start(
+            &old_tip,
+            new_tip,
+            &fork_point,
+            disconnect_blocks.len(),
+            connect_blocks.len(),
+        );
 
         let mut disconnected_txs = Vec::new();
 
@@ -684,7 +697,8 @@ impl Node {
                 .with_chain_id(self.config.network.chain_id());
 
         for tx in transactions {
-            let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+            let txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
 
             if self.mempool.has_transaction(&txid) {
                 continue;
@@ -742,7 +756,12 @@ impl Node {
     /// RPC returns real fee values.
     pub fn mempool_entries_with_fees(
         &self,
-    ) -> Vec<(axiom_primitives::Hash256, axiom_protocol::Transaction, u64, usize)> {
+    ) -> Vec<(
+        axiom_primitives::Hash256,
+        axiom_protocol::Transaction,
+        u64,
+        usize,
+    )> {
         self.mempool.get_all_entries_with_fees()
     }
 
@@ -962,8 +981,10 @@ mod tests {
 
     fn create_test_node() -> (TempDir, Node) {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = Config::default();
-        config.data_dir = temp_dir.path().to_path_buf();
+        let config = Config {
+            data_dir: temp_dir.path().to_path_buf(),
+            ..Config::default()
+        };
         let node = Node::new(config).unwrap();
         (temp_dir, node)
     }

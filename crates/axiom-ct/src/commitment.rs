@@ -111,14 +111,18 @@ impl Commitment {
     pub fn commit(value: u64, r: &BlindingFactor) -> Self {
         let v_scalar = Scalar::from(value);
         let point = v_scalar * generator_h() + r.inner() * generator_g();
-        Commitment { bytes: point.compress().to_bytes() }
+        Commitment {
+            bytes: point.compress().to_bytes(),
+        }
     }
 
     /// Decompress to a curve point for homomorphic operations.
     pub fn to_point(&self) -> Result<RistrettoPoint> {
         use curve25519_dalek::ristretto::CompressedRistretto;
         let compressed = CompressedRistretto::from_slice(&self.bytes);
-        compressed.decompress().ok_or(CtError::DeserializationFailed)
+        compressed
+            .decompress()
+            .ok_or(CtError::DeserializationFailed)
     }
 
     /// Raw 32-byte encoding.
@@ -138,7 +142,9 @@ impl std::ops::Add for &Commitment {
     fn add(self, rhs: &Commitment) -> Result<Commitment> {
         let p1 = self.to_point()?;
         let p2 = rhs.to_point()?;
-        Ok(Commitment { bytes: (p1 + p2).compress().to_bytes() })
+        Ok(Commitment {
+            bytes: (p1 + p2).compress().to_bytes(),
+        })
     }
 }
 
@@ -148,7 +154,9 @@ impl std::ops::Sub for &Commitment {
     fn sub(self, rhs: &Commitment) -> Result<Commitment> {
         let p1 = self.to_point()?;
         let p2 = rhs.to_point()?;
-        Ok(Commitment { bytes: (p1 - p2).compress().to_bytes() })
+        Ok(Commitment {
+            bytes: (p1 - p2).compress().to_bytes(),
+        })
     }
 }
 
@@ -158,13 +166,17 @@ pub fn sum_commitments(commitments: &[Commitment]) -> Result<Commitment> {
         // Commitment to zero with zero blinding = H*0 + G*0 = identity
         use curve25519_dalek::traits::Identity;
         let zero = RistrettoPoint::identity();
-        return Ok(Commitment { bytes: zero.compress().to_bytes() });
+        return Ok(Commitment {
+            bytes: zero.compress().to_bytes(),
+        });
     }
     let mut acc = commitments[0].to_point()?;
     for c in &commitments[1..] {
         acc += c.to_point()?;
     }
-    Ok(Commitment { bytes: acc.compress().to_bytes() })
+    Ok(Commitment {
+        bytes: acc.compress().to_bytes(),
+    })
 }
 
 /// Sum a slice of blinding factors: `r_1 + r_2 + … + r_n`.
@@ -191,7 +203,9 @@ pub fn verify_balance(
     let out_sum = sum_commitments(output_commitments)?;
 
     let rhs_point = out_sum.to_point()? + fee_commitment.to_point()?;
-    let rhs = Commitment { bytes: rhs_point.compress().to_bytes() };
+    let rhs = Commitment {
+        bytes: rhs_point.compress().to_bytes(),
+    };
 
     if in_sum == rhs {
         Ok(())

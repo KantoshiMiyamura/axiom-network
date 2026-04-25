@@ -61,8 +61,7 @@ pub fn create_wallet(
     }
 
     let (phrase, seed) = axiom_wallet::generate_seed_phrase();
-    let kp =
-        axiom_wallet::derive_account(&seed, 0).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let kp = axiom_wallet::derive_account(&seed, 0).map_err(|e| AppError::Wallet(e.to_string()))?;
     let addr = axiom_wallet::Address::from_pubkey_hash(kp.public_key_hash());
 
     let data = WalletData {
@@ -70,13 +69,11 @@ pub fn create_wallet(
         account_count: 1,
         seed_phrase: Some(phrase.clone()),
     };
-    let pt = Zeroizing::new(
-        serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?,
-    );
+    let pt =
+        Zeroizing::new(serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?);
     let ks = axiom_wallet::create_keystore(&pt, &password)
         .map_err(|e| AppError::Wallet(e.to_string()))?;
-    let json =
-        axiom_wallet::export_keystore(&ks).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let json = axiom_wallet::export_keystore(&ks).map_err(|e| AppError::Wallet(e.to_string()))?;
 
     state.write_keystore(&json)?;
 
@@ -122,8 +119,7 @@ pub fn import_wallet_seed(
 
     let seed = axiom_wallet::recover_wallet_from_seed(&phrase)
         .map_err(|e| AppError::Wallet(e.to_string()))?;
-    let kp =
-        axiom_wallet::derive_account(&seed, 0).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let kp = axiom_wallet::derive_account(&seed, 0).map_err(|e| AppError::Wallet(e.to_string()))?;
     let addr = axiom_wallet::Address::from_pubkey_hash(kp.public_key_hash());
 
     let data = WalletData {
@@ -131,13 +127,11 @@ pub fn import_wallet_seed(
         account_count: 1,
         seed_phrase: Some(phrase),
     };
-    let pt = Zeroizing::new(
-        serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?,
-    );
+    let pt =
+        Zeroizing::new(serde_json::to_vec(&data).map_err(|e| AppError::Internal(e.to_string()))?);
     let ks = axiom_wallet::create_keystore(&pt, &password)
         .map_err(|e| AppError::Wallet(e.to_string()))?;
-    let json =
-        axiom_wallet::export_keystore(&ks).map_err(|e| AppError::Wallet(e.to_string()))?;
+    let json = axiom_wallet::export_keystore(&ks).map_err(|e| AppError::Wallet(e.to_string()))?;
 
     state.write_keystore(&json)?;
 
@@ -193,7 +187,9 @@ pub fn unlock_wallet(
                 .lock()
                 .map_err(|_| AppError::Internal("lock".into()))?
                 .record_failure();
-            return Err(lockout.map(AppError::RateLimited).unwrap_or(AppError::WrongPassword));
+            return Err(lockout
+                .map(AppError::RateLimited)
+                .unwrap_or(AppError::WrongPassword));
         }
     };
 
@@ -285,10 +281,7 @@ pub fn check_session(state: tauri::State<'_, AppState>) -> SessionStatus {
 }
 
 #[tauri::command]
-pub fn get_seed_phrase(
-    password: String,
-    state: tauri::State<'_, AppState>,
-) -> AppResult<String> {
+pub fn get_seed_phrase(password: String, state: tauri::State<'_, AppState>) -> AppResult<String> {
     state.touch()?;
 
     // Reveal-seed is a high-value password check — gate it with the same
@@ -312,7 +305,9 @@ pub fn get_seed_phrase(
             .lock()
             .map_err(|_| AppError::Internal("lock".into()))?
             .record_failure();
-        return Err(lockout.map(AppError::RateLimited).unwrap_or(AppError::WrongPassword));
+        return Err(lockout
+            .map(AppError::RateLimited)
+            .unwrap_or(AppError::WrongPassword));
     }
     state
         .rate_limiter

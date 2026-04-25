@@ -36,19 +36,19 @@ pub const DEFAULT_JOB_DEADLINE_SECS: u64 = 3600; // 1 hour
 pub const DEFAULT_CHALLENGE_WINDOW_SECS: u64 = 300; // 5 minutes
 
 /// Fee distribution (basis points, 10000 = 100%)
-pub const WORKER_REWARD_BPS: u64 = 8000;           // 80% to worker
-pub const VERIFIER_SAMPLE_BPS: u64 = 500;          // 5% for normal verification
-pub const VERIFIER_FRAUD_CATCH_BPS: u64 = 1500;    // 15% for catching fraud
-pub const PROTOCOL_FEE_BPS: u64 = 500;             // 5% protocol fee
-pub const CHALLENGE_DEPOSIT_BPS: u64 = 1000;       // 10% challenge deposit
+pub const WORKER_REWARD_BPS: u64 = 8000; // 80% to worker
+pub const VERIFIER_SAMPLE_BPS: u64 = 500; // 5% for normal verification
+pub const VERIFIER_FRAUD_CATCH_BPS: u64 = 1500; // 15% for catching fraud
+pub const PROTOCOL_FEE_BPS: u64 = 500; // 5% protocol fee
+pub const CHALLENGE_DEPOSIT_BPS: u64 = 1000; // 10% challenge deposit
 
 /// Slash amounts (basis points)
-pub const FRAUD_WORKER_SLASH_BPS: u64 = 2000;      // 20% of stake on fraud
-pub const FALSE_ACCUSE_SLASH_BPS: u64 = 5000;      // 50% of deposit on false accuse
+pub const FRAUD_WORKER_SLASH_BPS: u64 = 2000; // 20% of stake on fraud
+pub const FALSE_ACCUSE_SLASH_BPS: u64 = 5000; // 50% of deposit on false accuse
 
 /// Reputation changes
-pub const REPUTATION_SUCCESS_BONUS: f64 = 0.002;   // +0.2% per successful job
-pub const REPUTATION_FRAUD_PENALTY: f64 = 0.85;    // 0.85x on fraud (15% cut)
+pub const REPUTATION_SUCCESS_BONUS: f64 = 0.002; // +0.2% per successful job
+pub const REPUTATION_FRAUD_PENALTY: f64 = 0.85; // 0.85x on fraud (15% cut)
 pub const REPUTATION_EVICTION_THRESHOLD: f64 = 0.15; // Evict below this
 
 /// Verifier sampling rate (30% of jobs spot-checked)

@@ -10,9 +10,11 @@ use tempfile::TempDir;
 
 fn create_test_node(network: &str) -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
-    config.network = axiom_node::Network::parse_str(network).unwrap();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        network: axiom_node::Network::parse_str(network).unwrap(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }

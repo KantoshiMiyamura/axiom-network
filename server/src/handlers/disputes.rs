@@ -1,6 +1,6 @@
 //! Dispute filing and resolution handlers
 
-use axum::extract::{State, Path, Query, ConnectInfo, Extension};
+use axum::extract::{ConnectInfo, Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::Deserialize;
@@ -9,10 +9,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
-use axiom_community_shared::crypto;
-use crate::state::AppState;
 use crate::error::{Result, ServerError};
 use crate::middleware::auth::UserContext;
+use crate::state::AppState;
+use axiom_community_shared::crypto;
 
 /// List disputes
 pub async fn list_disputes(
@@ -72,13 +72,14 @@ pub async fn file_dispute(
         ))?;
 
     // Validate work submission exists
-    let _submission = state
-        .db
-        .get_work_submission(&req.work_id)
-        .await?
-        .ok_or(ServerError::Shared(
-            axiom_community_shared::Error::WorkSubmissionNotFound,
-        ))?;
+    let _submission =
+        state
+            .db
+            .get_work_submission(&req.work_id)
+            .await?
+            .ok_or(ServerError::Shared(
+                axiom_community_shared::Error::WorkSubmissionNotFound,
+            ))?;
 
     // Validate reason and evidence
     if req.reason.is_empty() || req.reason.len() > 5000 {
@@ -101,7 +102,11 @@ pub async fn file_dispute(
     }
 
     // Replay protection: reject if this signature was already used
-    if !state.signature_nonce_tracker.check_and_record(&req.signature, &user_ctx.address, "dispute_filed").await {
+    if !state
+        .signature_nonce_tracker
+        .check_and_record(&req.signature, &user_ctx.address, "dispute_filed")
+        .await
+    {
         return Err(ServerError::Shared(
             axiom_community_shared::Error::InvalidSignature,
         ));
@@ -158,13 +163,9 @@ pub async fn get_dispute(
     Extension(_user_ctx): Extension<UserContext>,
     Path(id): Path<String>,
 ) -> Result<(StatusCode, Json<serde_json::Value>)> {
-    let dispute = state
-        .db
-        .get_dispute(&id)
-        .await?
-        .ok_or(ServerError::Shared(
-            axiom_community_shared::Error::DisputeNotFound,
-        ))?;
+    let dispute = state.db.get_dispute(&id).await?.ok_or(ServerError::Shared(
+        axiom_community_shared::Error::DisputeNotFound,
+    ))?;
 
     let response = json!({
         "status": "ok",

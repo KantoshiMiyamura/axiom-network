@@ -38,7 +38,10 @@ impl IntoResponse for RpcError {
             RpcError::TransactionRejected(msg) => (StatusCode::BAD_REQUEST, msg),
             RpcError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             RpcError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
-            RpcError::Forbidden => (StatusCode::FORBIDDEN, "Forbidden: localhost only".to_string()),
+            RpcError::Forbidden => (
+                StatusCode::FORBIDDEN,
+                "Forbidden: localhost only".to_string(),
+            ),
         };
 
         let body = Json(json!({

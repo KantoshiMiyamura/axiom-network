@@ -187,19 +187,19 @@ async fn test_rpc_orphan_count() {
 
 #[tokio::test]
 async fn test_rpc_balance_calculation() {
-    let (_temp, mut node) = create_test_node();
+    let (_temp, node) = create_test_node();
 
     // Create a keypair
     let keypair = KeyPair::generate().unwrap();
     let pubkey_hash = keypair.public_key_hash();
-    let address = Address::from_pubkey_hash(pubkey_hash);
+    let _address = Address::from_pubkey_hash(pubkey_hash);
 
     // Initial balance should be 0
     let state: SharedNodeState = Arc::new(RwLock::new(node));
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
         let balance = utxo_set.get_balance(&pubkey_hash).unwrap();
         assert_eq!(balance, 0);
     }
@@ -208,7 +208,7 @@ async fn test_rpc_balance_calculation() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
 
         let txid = Hash256::from_bytes([1u8; 32]);
         let entry = axiom_storage::UtxoEntry {
@@ -226,7 +226,7 @@ async fn test_rpc_balance_calculation() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
         let balance = utxo_set.get_balance(&pubkey_hash).unwrap();
         assert_eq!(balance, 5000);
     }
@@ -235,7 +235,7 @@ async fn test_rpc_balance_calculation() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
 
         let txid = Hash256::from_bytes([2u8; 32]);
         let entry = axiom_storage::UtxoEntry {
@@ -253,7 +253,7 @@ async fn test_rpc_balance_calculation() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
         let balance = utxo_set.get_balance(&pubkey_hash).unwrap();
         assert_eq!(balance, 8000);
     }
@@ -275,7 +275,7 @@ async fn test_rpc_balance_multiple_addresses() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
 
         // Address 1: 10000 sat
         let entry1 = axiom_storage::UtxoEntry {
@@ -306,7 +306,7 @@ async fn test_rpc_balance_multiple_addresses() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
 
         let balance1 = utxo_set.get_balance(&pubkey_hash1).unwrap();
         let balance2 = utxo_set.get_balance(&pubkey_hash2).unwrap();
@@ -355,7 +355,7 @@ async fn test_rpc_address_transactions() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
 
         let txid = Hash256::from_bytes([1u8; 32]);
         let entry = axiom_storage::UtxoEntry {
@@ -373,7 +373,7 @@ async fn test_rpc_address_transactions() {
     {
         let node = state.read().await;
         let db = node.state.database();
-        let utxo_set = axiom_storage::UtxoSet::new(&db);
+        let utxo_set = axiom_storage::UtxoSet::new(db);
 
         let txs = utxo_set.iter_by_address(&pubkey_hash).unwrap();
         assert_eq!(txs.len(), 1);

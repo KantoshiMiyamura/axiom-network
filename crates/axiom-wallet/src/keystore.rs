@@ -29,13 +29,13 @@ const NONCE_LEN: usize = 24;
 // Legitimate production values: m=65_536 KiB, t=3, p=4. Legitimate test values:
 // m=8, t=1, p=1. The bounds below accept both while rejecting adversarial
 // u32::MAX-style inputs.
-const KDF_MIN_M_COST: u32 = 8;            // 8 KiB  — Argon2 minimum
-const KDF_MAX_M_COST: u32 = 1_048_576;    // 1 GiB  — upper bound for a wallet unlock
+const KDF_MIN_M_COST: u32 = 8; // 8 KiB  — Argon2 minimum
+const KDF_MAX_M_COST: u32 = 1_048_576; // 1 GiB  — upper bound for a wallet unlock
 const KDF_MIN_T_COST: u32 = 1;
-const KDF_MAX_T_COST: u32 = 100;          // anything higher is almost certainly an attack
+const KDF_MAX_T_COST: u32 = 100; // anything higher is almost certainly an attack
 const KDF_MIN_P_COST: u32 = 1;
 const KDF_MAX_P_COST: u32 = 16;
-const KDF_MIN_SALT_LEN: usize = 8;        // Argon2 spec minimum
+const KDF_MIN_SALT_LEN: usize = 8; // Argon2 spec minimum
 const KDF_MAX_SALT_LEN: usize = 64;
 // ML-DSA-87 private-key seed is 32 bytes; full secret key encoding is ~4.6 KiB.
 // A 64 KiB ceiling leaves plenty of headroom for any legitimate wallet payload

@@ -117,7 +117,7 @@ impl RpcRateLimiter {
         Ok(())
     }
 
-        pub fn cleanup_expired_bans(&mut self) {
+    pub fn cleanup_expired_bans(&mut self) {
         for tracker in self.trackers.values_mut() {
             if let Some(ban_until) = tracker.banned_until {
                 if current_timestamp() >= ban_until {

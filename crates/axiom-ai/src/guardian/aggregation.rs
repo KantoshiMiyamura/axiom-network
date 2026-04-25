@@ -55,12 +55,16 @@ pub fn aggregate(reports: &[GuardianReport]) -> AggregatedDecision {
     let mut latest: BTreeMap<Vec<u8>, &GuardianReport> = BTreeMap::new();
     for r in reports {
         match latest.get(&r.node_pubkey) {
-            None => { latest.insert(r.node_pubkey.clone(), r); }
+            None => {
+                latest.insert(r.node_pubkey.clone(), r);
+            }
             Some(prev) => {
                 let take_new = r.height > prev.height
                     || (r.height == prev.height
                         && sig_hash(&r.signature) < sig_hash(&prev.signature));
-                if take_new { latest.insert(r.node_pubkey.clone(), r); }
+                if take_new {
+                    latest.insert(r.node_pubkey.clone(), r);
+                }
             }
         }
     }
@@ -86,11 +90,16 @@ pub fn aggregate(reports: &[GuardianReport]) -> AggregatedDecision {
     peer_consensus_flags.sort_by(|a, b| a.0.cmp(&b.0));
 
     // Median fee floor.
-    let mut floors: Vec<u64> = latest.values()
+    let mut floors: Vec<u64> = latest
+        .values()
         .map(|r| r.decision.tx_priority_hint.median_fee_floor_millisat)
         .collect();
     floors.sort();
-    let priority_median_fee_millisat = if floors.is_empty() { 0 } else { median_u64(&floors) };
+    let priority_median_fee_millisat = if floors.is_empty() {
+        0
+    } else {
+        median_u64(&floors)
+    };
 
     // Reporter-set hash.
     let mut reporters: Vec<&Vec<u8>> = latest.keys().collect();
@@ -122,15 +131,27 @@ fn sig_hash(sig: &[u8]) -> [u8; 32] {
 }
 
 fn median(v: &[i64]) -> i64 {
-    if v.is_empty() { return 0; }
+    if v.is_empty() {
+        return 0;
+    }
     let mid = v.len() / 2;
-    if v.len() % 2 == 1 { v[mid] } else { (v[mid - 1] + v[mid]) / 2 }
+    if v.len() % 2 == 1 {
+        v[mid]
+    } else {
+        (v[mid - 1] + v[mid]) / 2
+    }
 }
 
 fn median_u64(v: &[u64]) -> u64 {
-    if v.is_empty() { return 0; }
+    if v.is_empty() {
+        return 0;
+    }
     let mid = v.len() / 2;
-    if v.len() % 2 == 1 { v[mid] } else { (v[mid - 1] + v[mid]) / 2 }
+    if v.len() % 2 == 1 {
+        v[mid]
+    } else {
+        (v[mid - 1] + v[mid]) / 2
+    }
 }
 
 fn flag_discriminant(f: PeerFlagKind) -> u8 {
@@ -167,15 +188,20 @@ fn majority_flag(tally: &BTreeMap<u8, u32>) -> PeerFlagKind {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::decision::{GuardianDecision, GuardianProof, PeerFlag, TxPriorityHint};
     use super::super::model::GuardianModel;
     use super::super::state::DeterministicState;
+    use super::*;
     use axiom_crypto::generate_keypair;
 
     fn make_report(
-        sk: &[u8], vk: Vec<u8>, height: u64, score: i64, floor: u64,
-        peer_flags: Vec<PeerFlag>, model: &GuardianModel,
+        sk: &[u8],
+        vk: Vec<u8>,
+        height: u64,
+        score: i64,
+        floor: u64,
+        peer_flags: Vec<PeerFlag>,
+        model: &GuardianModel,
     ) -> GuardianReport {
         let state = DeterministicState([height as u8; 32]);
         let decision = GuardianDecision {
@@ -183,7 +209,8 @@ mod tests {
             peer_flags,
             tx_priority_hint: TxPriorityHint {
                 median_fee_floor_millisat: floor,
-                promote_senders: vec![], demote_senders: vec![],
+                promote_senders: vec![],
+                demote_senders: vec![],
             },
         };
         let proof = GuardianProof::compute(&state, &decision, model);
@@ -236,12 +263,42 @@ mod tests {
         let (sk2, vk2) = generate_keypair();
         let (sk3, vk3) = generate_keypair();
         let peer = [7u8; 32];
-        let r1 = make_report(&sk1, vk1, 1, 0, 0,
-            vec![PeerFlag { peer_id_hash: peer, kind: PeerFlagKind::Trusted }], &model);
-        let r2 = make_report(&sk2, vk2, 1, 0, 0,
-            vec![PeerFlag { peer_id_hash: peer, kind: PeerFlagKind::Suspect }], &model);
-        let r3 = make_report(&sk3, vk3, 1, 0, 0,
-            vec![PeerFlag { peer_id_hash: peer, kind: PeerFlagKind::Suspect }], &model);
+        let r1 = make_report(
+            &sk1,
+            vk1,
+            1,
+            0,
+            0,
+            vec![PeerFlag {
+                peer_id_hash: peer,
+                kind: PeerFlagKind::Trusted,
+            }],
+            &model,
+        );
+        let r2 = make_report(
+            &sk2,
+            vk2,
+            1,
+            0,
+            0,
+            vec![PeerFlag {
+                peer_id_hash: peer,
+                kind: PeerFlagKind::Suspect,
+            }],
+            &model,
+        );
+        let r3 = make_report(
+            &sk3,
+            vk3,
+            1,
+            0,
+            0,
+            vec![PeerFlag {
+                peer_id_hash: peer,
+                kind: PeerFlagKind::Suspect,
+            }],
+            &model,
+        );
         let agg = aggregate(&[r1, r2, r3]);
         assert_eq!(agg.peer_consensus_flags.len(), 1);
         assert_eq!(agg.peer_consensus_flags[0].1, PeerFlagKind::Suspect);

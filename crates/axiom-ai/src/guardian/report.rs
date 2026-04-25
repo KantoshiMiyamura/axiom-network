@@ -82,6 +82,7 @@ impl GuardianReport {
     /// Sign a fresh report. `timestamp` is passed in rather than read from
     /// the system clock so this function stays deterministic and testable.
     /// In the node integration, the caller uses wall-clock time.
+    #[allow(clippy::too_many_arguments)]
     pub fn sign(
         signing_key: &[u8],
         node_pubkey: Vec<u8>,
@@ -93,12 +94,25 @@ impl GuardianReport {
         model_commitment: [u8; 32],
     ) -> Result<Self, ReportError> {
         let msg = Self::canonical_message(
-            &node_pubkey, height, timestamp, &state, &decision, &proof, &model_commitment,
+            &node_pubkey,
+            height,
+            timestamp,
+            &state,
+            &decision,
+            &proof,
+            &model_commitment,
         );
         let signature = sign_with_domain(signing_key, REPORT_DOMAIN, &msg)
             .map_err(|e| ReportError::Sign(format!("{e:?}")))?;
         Ok(GuardianReport {
-            node_pubkey, height, timestamp, state, decision, proof, model_commitment, signature,
+            node_pubkey,
+            height,
+            timestamp,
+            state,
+            decision,
+            proof,
+            model_commitment,
+            signature,
         })
     }
 
@@ -113,19 +127,24 @@ impl GuardianReport {
         // structurally; then we separately require the verifier's reference
         // model to match the commitment.
         let expected = GuardianProof::compute(&self.state, &self.decision, model);
-        if expected.0 != self.proof.0 { return Err(ReportError::BadProof); }
+        if expected.0 != self.proof.0 {
+            return Err(ReportError::BadProof);
+        }
         if model.commitment != self.model_commitment {
             return Err(ReportError::BadProof);
         }
 
         let msg = Self::canonical_message(
-            &self.node_pubkey, self.height, self.timestamp,
-            &self.state, &self.decision, &self.proof, &self.model_commitment,
+            &self.node_pubkey,
+            self.height,
+            self.timestamp,
+            &self.state,
+            &self.decision,
+            &self.proof,
+            &self.model_commitment,
         );
-        let pk = PublicKey::from_slice(&self.node_pubkey)
-            .map_err(|_| ReportError::BadSignature)?;
-        let sig = Signature::from_slice(&self.signature)
-            .map_err(|_| ReportError::BadSignature)?;
+        let pk = PublicKey::from_slice(&self.node_pubkey).map_err(|_| ReportError::BadSignature)?;
+        let sig = Signature::from_slice(&self.signature).map_err(|_| ReportError::BadSignature)?;
         verify_signature_with_domain(REPORT_DOMAIN, &msg, &sig, &pk)
             .map_err(|_| ReportError::BadSignature)?;
         Ok(())
@@ -134,18 +153,34 @@ impl GuardianReport {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::agent::GuardianAgent;
     use super::super::model::GuardianModel;
     use super::super::state::{BlockSummary, GuardianObservation, PeerStats, TxPatternStats};
+    use super::*;
     use axiom_crypto::generate_keypair;
 
     fn obs() -> GuardianObservation {
         GuardianObservation {
-            height: 42, tip_hash: [0xAA; 32],
-            block_window: vec![BlockSummary { hash: [1u8; 32], height: 42, tx_count: 1, size_bytes: 500, timestamp: 100 }],
-            tx_patterns: TxPatternStats { mempool_size: 1, avg_fee_rate_millisat: 1000, unique_senders: 1, dust_count: 0 },
-            peer_stats: PeerStats { peer_count: 4, handshake_failures: 0, median_latency_ms: 20 },
+            height: 42,
+            tip_hash: [0xAA; 32],
+            block_window: vec![BlockSummary {
+                hash: [1u8; 32],
+                height: 42,
+                tx_count: 1,
+                size_bytes: 500,
+                timestamp: 100,
+            }],
+            tx_patterns: TxPatternStats {
+                mempool_size: 1,
+                avg_fee_rate_millisat: 1000,
+                unique_senders: 1,
+                dust_count: 0,
+            },
+            peer_stats: PeerStats {
+                peer_count: 4,
+                handshake_failures: 0,
+                median_latency_ms: 20,
+            },
         }
     }
 
@@ -156,9 +191,16 @@ mod tests {
         let agent = GuardianAgent::new(model.clone());
         let r = agent.observe(&obs());
         let report = GuardianReport::sign(
-            &sk, vk.clone(), 42, 123456,
-            r.state, r.decision, r.proof, model.commitment,
-        ).unwrap();
+            &sk,
+            vk.clone(),
+            42,
+            123456,
+            r.state,
+            r.decision,
+            r.proof,
+            model.commitment,
+        )
+        .unwrap();
         assert!(report.verify(&model).is_ok());
     }
 
@@ -169,9 +211,16 @@ mod tests {
         let agent = GuardianAgent::new(model.clone());
         let r = agent.observe(&obs());
         let mut report = GuardianReport::sign(
-            &sk, vk, 42, 123456,
-            r.state, r.decision, r.proof, model.commitment,
-        ).unwrap();
+            &sk,
+            vk,
+            42,
+            123456,
+            r.state,
+            r.decision,
+            r.proof,
+            model.commitment,
+        )
+        .unwrap();
         report.decision.anomaly_score += 1;
         assert!(report.verify(&model).is_err());
     }
@@ -183,9 +232,16 @@ mod tests {
         let agent = GuardianAgent::new(model.clone());
         let r = agent.observe(&obs());
         let report = GuardianReport::sign(
-            &sk, vk, 42, 123456,
-            r.state, r.decision, r.proof, model.commitment,
-        ).unwrap();
+            &sk,
+            vk,
+            42,
+            123456,
+            r.state,
+            r.decision,
+            r.proof,
+            model.commitment,
+        )
+        .unwrap();
         // Build a different model; receiver uses it as reference.
         let mut w = model.weights.clone();
         w.bias += 1;

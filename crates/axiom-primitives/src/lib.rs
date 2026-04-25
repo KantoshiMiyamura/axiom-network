@@ -10,5 +10,5 @@ mod keys;
 pub use amount::Amount;
 pub use error::{Error, Result};
 pub use hash::Hash256;
-pub use keys::{PublicKey, SecretSigningKey, Signature};
 pub use keys::ML_DSA_87_SEED_BYTES;
+pub use keys::{PublicKey, SecretSigningKey, Signature};

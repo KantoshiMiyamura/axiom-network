@@ -157,11 +157,13 @@ impl ChainState {
                     if let Some(utxo_entry) =
                         utxo_set.get_utxo(&input.prev_tx_hash, input.prev_output_index)?
                     {
-                        tx_input_sat = tx_input_sat.checked_add(utxo_entry.value.as_sat()).ok_or_else(|| {
-                            StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                                "input value overflow".into(),
-                            ))
-                        })?;
+                        tx_input_sat = tx_input_sat
+                            .checked_add(utxo_entry.value.as_sat())
+                            .ok_or_else(|| {
+                                StateError::Consensus(axiom_consensus::Error::InvalidBlock(
+                                    "input value overflow".into(),
+                                ))
+                            })?;
 
                         let utxo_undo = axiom_storage::UtxoUndo {
                             txid: input.prev_tx_hash,
@@ -177,16 +179,21 @@ impl ChainState {
                     batch.delete_utxo(&input.prev_tx_hash, input.prev_output_index);
                 }
 
-                let tx_output_value = tx.output_value()
-                    .map_err(|e| StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                        format!("transaction output value error: {}", e),
-                    )))?;
+                let tx_output_value = tx.output_value().map_err(|e| {
+                    StateError::Consensus(axiom_consensus::Error::InvalidBlock(format!(
+                        "transaction output value error: {}",
+                        e
+                    )))
+                })?;
                 let tx_output_sat = tx_output_value.as_sat();
 
                 // Fee = inputs - outputs (must be non-negative)
                 if tx_input_sat < tx_output_sat {
                     return Err(StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                        format!("transaction outputs ({}) exceed inputs ({})", tx_output_sat, tx_input_sat),
+                        format!(
+                            "transaction outputs ({}) exceed inputs ({})",
+                            tx_output_sat, tx_input_sat
+                        ),
                     )));
                 }
                 let tx_fee = tx_input_sat - tx_output_sat;
@@ -205,11 +212,14 @@ impl ChainState {
                 };
                 undo.add_nonce_update(nonce_undo);
 
-                batch.put_nonce(&pubkey_hash, tx.nonce.checked_add(1).ok_or_else(|| {
-                    StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                        "nonce overflow".into(),
-                    ))
-                })?);
+                batch.put_nonce(
+                    &pubkey_hash,
+                    tx.nonce.checked_add(1).ok_or_else(|| {
+                        StateError::Consensus(axiom_consensus::Error::InvalidBlock(
+                            "nonce overflow".into(),
+                        ))
+                    })?,
+                );
             }
 
             for (index, output) in tx.outputs.iter().enumerate() {
@@ -221,19 +231,25 @@ impl ChainState {
         // CRITICAL: Validate coinbase value against block_reward + actual UTXO-derived fees.
         // This prevents miners from inflating the money supply.
         let coinbase = &block.transactions[0];
-        let coinbase_value = coinbase.output_value()
-            .map_err(|e| StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                format!("coinbase output value error: {}", e),
-            )))?;
+        let coinbase_value = coinbase.output_value().map_err(|e| {
+            StateError::Consensus(axiom_consensus::Error::InvalidBlock(format!(
+                "coinbase output value error: {}",
+                e
+            )))
+        })?;
         let block_reward = axiom_consensus::calculate_block_reward(height);
-        let total_fees = axiom_primitives::Amount::from_sat(total_fees_sat)
-            .map_err(|e| StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                format!("fee amount error: {}", e),
-            )))?;
-        let max_coinbase = block_reward.checked_add(total_fees)
-            .map_err(|e| StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                format!("max coinbase overflow: {}", e),
-            )))?;
+        let total_fees = axiom_primitives::Amount::from_sat(total_fees_sat).map_err(|e| {
+            StateError::Consensus(axiom_consensus::Error::InvalidBlock(format!(
+                "fee amount error: {}",
+                e
+            )))
+        })?;
+        let max_coinbase = block_reward.checked_add(total_fees).map_err(|e| {
+            StateError::Consensus(axiom_consensus::Error::InvalidBlock(format!(
+                "max coinbase overflow: {}",
+                e
+            )))
+        })?;
         if coinbase_value > max_coinbase {
             return Err(StateError::Consensus(axiom_consensus::Error::InvalidBlock(
                 format!(
@@ -337,7 +353,10 @@ impl ChainState {
         Ok(self.db.store_height_index(height, hash)?)
     }
 
-    pub fn db_load_block_header(&self, hash: &Hash256) -> Result<axiom_consensus::BlockHeader, StateError> {
+    pub fn db_load_block_header(
+        &self,
+        hash: &Hash256,
+    ) -> Result<axiom_consensus::BlockHeader, StateError> {
         Ok(self.db.load_block_header(hash)?)
     }
 
@@ -431,7 +450,9 @@ mod tests {
             pubkey_hash: Hash256::zero(),
         };
         let coinbase = Transaction::new_coinbase(vec![output], 0);
-        let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+        let merkle_root = axiom_crypto::double_hash256(
+            &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+        );
 
         let header = BlockHeader {
             version: 1,

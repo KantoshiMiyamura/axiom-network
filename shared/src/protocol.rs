@@ -122,12 +122,16 @@ pub mod roles {
 
     /// Roles required to post jobs
     pub fn can_post_jobs(roles: &[Role]) -> bool {
-        roles.contains(&Role::Worker) || roles.contains(&Role::Verifier) || roles.contains(&Role::CoreDev)
+        roles.contains(&Role::Worker)
+            || roles.contains(&Role::Verifier)
+            || roles.contains(&Role::CoreDev)
     }
 
     /// Roles required to take jobs
     pub fn can_take_jobs(roles: &[Role]) -> bool {
-        roles.contains(&Role::Worker) || roles.contains(&Role::Verifier) || roles.contains(&Role::CoreDev)
+        roles.contains(&Role::Worker)
+            || roles.contains(&Role::Verifier)
+            || roles.contains(&Role::CoreDev)
     }
 
     /// Roles required to verify work

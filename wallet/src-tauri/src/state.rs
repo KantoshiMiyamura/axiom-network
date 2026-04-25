@@ -69,7 +69,9 @@ impl Session {
     }
 
     pub fn address(&self, idx: u32) -> AppResult<Address> {
-        Ok(Address::from_pubkey_hash(self.keypair(idx)?.public_key_hash()))
+        Ok(Address::from_pubkey_hash(
+            self.keypair(idx)?.public_key_hash(),
+        ))
     }
 
     pub fn new_address(&mut self) -> AppResult<(Address, u32)> {
@@ -79,8 +81,12 @@ impl Session {
         Ok((a, i))
     }
 
-    pub fn password(&self) -> &str { &self.password }
-    pub fn seed_phrase(&self) -> Option<&str> { self.seed_phrase.as_ref().map(|s| s.as_str()) }
+    pub fn password(&self) -> &str {
+        &self.password
+    }
+    pub fn seed_phrase(&self) -> Option<&str> {
+        self.seed_phrase.as_ref().map(|s| s.as_str())
+    }
 
     pub fn to_data(&self) -> WalletData {
         WalletData {
@@ -177,10 +183,14 @@ impl AppState {
     pub fn read_keystore(&self) -> AppResult<String> {
         if self.sealed_path.exists() {
             let blob = std::fs::read(&self.sealed_path)?;
-            let ds = self.device_secret.lock()
+            let ds = self
+                .device_secret
+                .lock()
                 .map_err(|_| AppError::Internal("lock".into()))?;
             if let Some(secret) = ds.as_ref() {
-                if let Some(data) = crate::keyring::unseal(&blob, secret.as_slice(), PURPOSE_KEYSTORE) {
+                if let Some(data) =
+                    crate::keyring::unseal(&blob, secret.as_slice(), PURPOSE_KEYSTORE)
+                {
                     return String::from_utf8(data)
                         .map_err(|_| AppError::Internal("corrupt sealed keystore".into()));
                 }
@@ -197,7 +207,9 @@ impl AppState {
 
     /// Write the keystore JSON, sealing with device key if available.
     pub fn write_keystore(&self, json: &str) -> AppResult<()> {
-        let ds = self.device_secret.lock()
+        let ds = self
+            .device_secret
+            .lock()
             .map_err(|_| AppError::Internal("lock".into()))?;
         if let Some(secret) = ds.as_ref() {
             let sealed = crate::keyring::seal(json.as_bytes(), secret.as_slice(), PURPOSE_KEYSTORE)
@@ -217,28 +229,47 @@ impl AppState {
 
     /// Verify session is alive and update activity timestamp.
     pub fn touch(&self) -> AppResult<()> {
-        let session = self.session.lock().map_err(|_| AppError::Internal("lock".into()))?;
-        if session.is_none() { return Err(AppError::Locked); }
+        let session = self
+            .session
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))?;
+        if session.is_none() {
+            return Err(AppError::Locked);
+        }
 
-        let elapsed = self.last_activity.lock()
-            .map_err(|_| AppError::Internal("lock".into()))?.elapsed();
-        let timeout = *self.lock_timeout.lock()
+        let elapsed = self
+            .last_activity
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))?
+            .elapsed();
+        let timeout = *self
+            .lock_timeout
+            .lock()
             .map_err(|_| AppError::Internal("lock".into()))?;
 
         if elapsed > timeout {
             drop(session);
-            *self.session.lock().map_err(|_| AppError::Internal("lock".into()))? = None;
+            *self
+                .session
+                .lock()
+                .map_err(|_| AppError::Internal("lock".into()))? = None;
             return Err(AppError::SessionExpired);
         }
         drop(session);
-        *self.last_activity.lock().map_err(|_| AppError::Internal("lock".into()))? = Instant::now();
+        *self
+            .last_activity
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))? = Instant::now();
         Ok(())
     }
 
     /// Re-encrypt and persist the session state to the keystore file.
     pub fn persist(&self) -> AppResult<()> {
         let json = {
-            let session = self.session.lock().map_err(|_| AppError::Internal("lock".into()))?;
+            let session = self
+                .session
+                .lock()
+                .map_err(|_| AppError::Internal("lock".into()))?;
             let session = session.as_ref().ok_or(AppError::Locked)?;
             let data = session.to_data();
             let pt = Zeroizing::new(
@@ -246,16 +277,26 @@ impl AppState {
             );
             let ks = axiom_wallet::create_keystore(&pt, session.password())
                 .map_err(|e| AppError::Wallet(e.to_string()))?;
-            axiom_wallet::export_keystore(&ks)
-                .map_err(|e| AppError::Wallet(e.to_string()))?
+            axiom_wallet::export_keystore(&ks).map_err(|e| AppError::Wallet(e.to_string()))?
         };
         self.write_keystore(&json)
     }
 
     pub fn save_settings(&self) -> AppResult<()> {
-        let url = self.node_url.lock().map_err(|_| AppError::Internal("lock".into()))?.clone();
-        let secs = self.lock_timeout.lock().map_err(|_| AppError::Internal("lock".into()))?.as_secs();
-        let s = Settings { node_url: url, lock_timeout_secs: secs };
+        let url = self
+            .node_url
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))?
+            .clone();
+        let secs = self
+            .lock_timeout
+            .lock()
+            .map_err(|_| AppError::Internal("lock".into()))?
+            .as_secs();
+        let s = Settings {
+            node_url: url,
+            lock_timeout_secs: secs,
+        };
         let j = serde_json::to_string_pretty(&s).map_err(|e| AppError::Internal(e.to_string()))?;
         std::fs::write(self.data_dir.join("settings.json"), j)?;
         Ok(())

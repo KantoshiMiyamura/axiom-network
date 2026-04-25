@@ -3,7 +3,7 @@
 use axiom_consensus::{Block, BlockHeader};
 use axiom_primitives::{Amount, Hash256};
 use axiom_protocol::{Transaction, TxOutput};
-use axiom_storage::{Database, NonceTracker, StorageBatch, UtxoEntry, UtxoSet};
+use axiom_storage::{Database, StorageBatch, UtxoEntry};
 use tempfile::TempDir;
 
 fn create_test_db() -> (TempDir, Database) {

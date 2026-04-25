@@ -18,6 +18,15 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  # Experimental crates excluded from the testnet node release path.
+  # See ci.yml for the full rationale: desktop wallet (Tauri) is not in
+  # this release, and the community crates pull rand 0.9.2 (RUSTSEC-2026-0097).
+  # Re-include them here once both gates are resolved.
+  WORKSPACE_EXCLUDES: >-
+    --exclude axiom-desktop-wallet
+    --exclude axiom-community-shared
+    --exclude axiom-community-server
+    --exclude axiom-community-client
 
 jobs:
   # ──────────────────────────────────────────────────────────────────────────
@@ -113,7 +122,7 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: cargo test --release --workspace --lib --target ${{ matrix.target }}
+        run: cargo test --release --workspace ${{ env.WORKSPACE_EXCLUDES }} --lib --target ${{ matrix.target }}
 
       - name: Stage artifacts
         shell: bash

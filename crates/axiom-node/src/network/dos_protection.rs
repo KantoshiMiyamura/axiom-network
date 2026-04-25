@@ -69,11 +69,11 @@ impl RateLimiter {
 
     /// CRITICAL FIX: Only trust X-Forwarded-For from loopback connections.
     /// Without this, an attacker can set X-Forwarded-For: 127.0.0.1 to bypass rate limiting.
-    /// 
+    ///
     /// Parameters:
     /// - `socket_ip`: The actual socket IP address (from TCP connection)
     /// - `forwarded_for`: Optional X-Forwarded-For header value
-    /// 
+    ///
     /// Returns the effective IP to use for rate limiting.
     pub fn check_rate_limit_with_forwarding(
         &mut self,
@@ -108,7 +108,7 @@ impl RateLimiter {
             method = "check_rate_limit",
             "DEPRECATED: Using old check_rate_limit() method. Migrate to check_rate_limit_with_forwarding()"
         );
-        
+
         if ip.is_loopback() {
             return Ok(());
         }

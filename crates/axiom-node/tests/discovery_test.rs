@@ -27,8 +27,10 @@ fn make_addr(port: u16) -> SocketAddr {
 
 fn create_test_service() -> (TempDir, NetworkService) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     let peer_manager = PeerManager::new("dev".to_string());
     let service = NetworkService::new(node, peer_manager);
@@ -85,7 +87,7 @@ fn test_message_type_from_u8_peers() {
     assert!(matches!(MessageType::from_u8(9), Ok(MessageType::GetPeers)));
     assert!(matches!(MessageType::from_u8(10), Ok(MessageType::Peers)));
     assert!(matches!(MessageType::from_u8(11), Ok(MessageType::Inv)));
-    assert!(matches!(MessageType::from_u8(99), Err(_)));
+    assert!(MessageType::from_u8(99).is_err());
 }
 
 // ---------------------------------------------------------------------------

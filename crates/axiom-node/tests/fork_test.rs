@@ -12,8 +12,10 @@ use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }
@@ -26,7 +28,7 @@ fn create_block_at_height(height: u32, prev_hash: Hash256, difficulty: u32) -> B
     };
     let coinbase = Transaction::new_coinbase(vec![output], height);
 
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
     let header = BlockHeader {
         version: 1,
@@ -49,7 +51,7 @@ fn test_chain_work_tracking() {
 
     // Build and apply blocks
     let block1 = node.build_block().unwrap();
-    let hash1 = block1.hash();
+    let _hash1 = block1.hash();
     node.process_block(block1).unwrap();
 
     let block2 = node.build_block().unwrap();
@@ -81,13 +83,13 @@ fn test_fork_detection_same_parent() {
 
     // Build block 1
     let block1 = node.build_block().unwrap();
-    let hash1 = block1.hash();
+    let _hash1 = block1.hash();
     node.process_block(block1).unwrap();
 
     // Create competing block at height 1 (fork) — must use the current initial
     // difficulty (0x1e00ffff) so the block passes difficulty validation.
     let fork_block = create_block_at_height(1, Hash256::zero(), 0x1e00ffff);
-    let fork_hash = fork_block.hash();
+    let _fork_hash = fork_block.hash();
     let result = node.process_block(fork_block);
 
     // Fork should be processed successfully
@@ -156,8 +158,10 @@ fn test_chain_work_persistence() {
 
     // First session: build blocks
     {
-        let mut config = Config::default();
-        config.data_dir = data_dir.clone();
+        let config = Config {
+            data_dir: data_dir.clone(),
+            ..Default::default()
+        };
         let mut node = Node::new(config).unwrap();
 
         for _ in 0..3 {
@@ -170,8 +174,10 @@ fn test_chain_work_persistence() {
 
     // Second session: verify chain work persisted
     {
-        let mut config = Config::default();
-        config.data_dir = data_dir;
+        let config = Config {
+            data_dir,
+            ..Default::default()
+        };
         let node = Node::new(config).unwrap();
 
         assert_eq!(node.best_height(), final_height);

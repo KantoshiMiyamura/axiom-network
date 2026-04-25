@@ -14,15 +14,39 @@ fn canonical_obs() -> GuardianObservation {
         height: 1234,
         tip_hash: [0x42u8; 32],
         block_window: vec![
-            BlockSummary { hash: [1u8; 32], height: 1232, tx_count: 10, size_bytes: 900, timestamp: 10_000 },
-            BlockSummary { hash: [2u8; 32], height: 1233, tx_count: 12, size_bytes: 950, timestamp: 10_060 },
-            BlockSummary { hash: [3u8; 32], height: 1234, tx_count: 14, size_bytes: 1020, timestamp: 10_120 },
+            BlockSummary {
+                hash: [1u8; 32],
+                height: 1232,
+                tx_count: 10,
+                size_bytes: 900,
+                timestamp: 10_000,
+            },
+            BlockSummary {
+                hash: [2u8; 32],
+                height: 1233,
+                tx_count: 12,
+                size_bytes: 950,
+                timestamp: 10_060,
+            },
+            BlockSummary {
+                hash: [3u8; 32],
+                height: 1234,
+                tx_count: 14,
+                size_bytes: 1020,
+                timestamp: 10_120,
+            },
         ],
         tx_patterns: TxPatternStats {
-            mempool_size: 500, avg_fee_rate_millisat: 1800,
-            unique_senders: 80, dust_count: 10,
+            mempool_size: 500,
+            avg_fee_rate_millisat: 1800,
+            unique_senders: 80,
+            dust_count: 10,
         },
-        peer_stats: PeerStats { peer_count: 16, handshake_failures: 1, median_latency_ms: 35 },
+        peer_stats: PeerStats {
+            peer_count: 16,
+            handshake_failures: 1,
+            median_latency_ms: 35,
+        },
     }
 }
 
@@ -71,14 +95,15 @@ fn agent_does_not_mutate_observation() {
 fn model_saturates_cleanly() {
     let model = GuardianModel::default_model();
     let saturated = FeatureVector {
-        mempool_pressure: i64::MAX / 2,    // exceeds FEATURE_MAX → clamped
+        mempool_pressure: i64::MAX / 2, // exceeds FEATURE_MAX → clamped
         block_size_anomaly: -1,
         fee_anomaly: i64::MAX / 2,
         peer_instability: FEATURE_MAX,
         timestamp_skew: i64::MAX / 2,
-    }.clamp();
+    }
+    .clamp();
     let s = model.score(&saturated);
-    assert!(s >= 0 && s <= SCORE_MAX);
+    assert!((0..=SCORE_MAX).contains(&s));
 }
 
 // ── I-3: proof verification is a strict binding ──────────────────────────────
@@ -114,13 +139,22 @@ fn aggregation_permutation_independent() {
             peer_flags: vec![],
             tx_priority_hint: TxPriorityHint {
                 median_fee_floor_millisat: (i as u64) * 1000,
-                promote_senders: vec![], demote_senders: vec![],
+                promote_senders: vec![],
+                demote_senders: vec![],
             },
         };
         let proof = GuardianProof::compute(&state, &decision, &model);
         let r = GuardianReport::sign(
-            &sk, vk, i as u64, 0, state, decision, proof, model.commitment,
-        ).unwrap();
+            &sk,
+            vk,
+            i as u64,
+            0,
+            state,
+            decision,
+            proof,
+            model.commitment,
+        )
+        .unwrap();
         reports.push(r);
     }
     let a = aggregate(&reports);
@@ -160,8 +194,14 @@ fn axiom_consensus_source_contains_no_guardian_imports() {
     let validation = include_str!("../../../axiom-consensus/src/validation.rs");
     let pow = include_str!("../../../axiom-consensus/src/pow.rs");
     for src in [validation, pow] {
-        assert!(!src.contains("axiom_ai"),  "consensus source imports axiom_ai");
-        assert!(!src.contains("guardian"),  "consensus source mentions guardian");
+        assert!(
+            !src.contains("axiom_ai"),
+            "consensus source imports axiom_ai"
+        );
+        assert!(
+            !src.contains("guardian"),
+            "consensus source mentions guardian"
+        );
     }
 }
 
@@ -189,10 +229,10 @@ fn guardian_output_has_no_implicit_consumer() {
     let o = canonical_obs();
 
     let mut r = a1.observe(&o);
-    r.decision.anomaly_score = 0;            // mutate caller's copy
+    r.decision.anomaly_score = 0; // mutate caller's copy
     r.decision.tx_priority_hint.median_fee_floor_millisat = 0;
 
-    let fresh = a2.observe(&o);              // same obs, pristine agent
+    let fresh = a2.observe(&o); // same obs, pristine agent
     assert_ne!(r.decision.anomaly_score, fresh.decision.anomaly_score);
     // Mutation of our copy did NOT propagate into the fresh agent's view.
     // This is the "no side channel" property.

@@ -22,13 +22,14 @@ impl CognitiveFingerprint {
     ///
     /// The identity is a 32-byte ML-DSA-87 seed stored as hex in
     /// `{data_dir}/guard_identity.key`. Each node gets its own keypair.
-    pub fn load_or_create(data_dir: &Path) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn load_or_create(
+        data_dir: &Path,
+    ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let path = data_dir.join(IDENTITY_FILE);
 
         let seed = if path.exists() {
             Self::load_seed(&path)?
         } else {
-            
             Self::generate_and_save(&path)?
         };
 
@@ -58,25 +59,27 @@ impl CognitiveFingerprint {
         data_dir.join(IDENTITY_FILE)
     }
 
-    fn load_seed(path: &Path) -> Result<Zeroizing<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
+    fn load_seed(
+        path: &Path,
+    ) -> Result<Zeroizing<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
         let hex_str = std::fs::read_to_string(path)
             .map_err(|e| format!("failed to read guard identity {}: {}", path.display(), e))?;
         let bytes = hex::decode(hex_str.trim())
             .map_err(|e| format!("invalid guard identity hex: {}", e))?;
         if bytes.len() != 32 {
-            return Err(format!(
-                "guard identity seed must be 32 bytes, got {}",
-                bytes.len()
-            )
-            .into());
+            return Err(
+                format!("guard identity seed must be 32 bytes, got {}", bytes.len()).into(),
+            );
         }
         Ok(Zeroizing::new(bytes))
     }
 
-    fn generate_and_save(path: &Path) -> Result<Zeroizing<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
+    fn generate_and_save(
+        path: &Path,
+    ) -> Result<Zeroizing<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
         // Generate a fresh random keypair — extract the 32-byte seed.
-        let keypair = KeyPair::generate()
-            .map_err(|e| format!("guard identity generation failed: {}", e))?;
+        let keypair =
+            KeyPair::generate().map_err(|e| format!("guard identity generation failed: {}", e))?;
         let seed = Zeroizing::new(keypair.export_private_key().to_vec());
 
         // Write seed as hex. File permissions are inherited from the data dir.
@@ -141,7 +144,10 @@ mod tests {
 
         // Reload and verify
         let fp2 = CognitiveFingerprint::load_or_create(tmp.path()).unwrap();
-        assert!(fp2.keypair.verify(msg, &sig).is_ok(), "signature must verify");
+        assert!(
+            fp2.keypair.verify(msg, &sig).is_ok(),
+            "signature must verify"
+        );
     }
 
     #[test]

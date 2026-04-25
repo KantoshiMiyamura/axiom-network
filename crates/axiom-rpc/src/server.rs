@@ -4,7 +4,10 @@
 
 use crate::auth::{auth_middleware, AuthConfig};
 use crate::handlers::*;
-use crate::handlers::{SharedComputeProtocol, SharedGuardState, SharedInferenceRegistry, SharedModelRegistry, SharedMonitorStore, SharedReputationRegistry};
+use crate::handlers::{
+    SharedComputeProtocol, SharedGuardState, SharedInferenceRegistry, SharedModelRegistry,
+    SharedMonitorStore, SharedReputationRegistry,
+};
 use crate::rate_limiter::{rate_limit_middleware, RpcRateLimiter};
 use crate::ws::{create_event_bus, ws_handler, EventBus};
 use axiom_node::network::{NetworkService, MAX_RPC_REQUEST_SIZE};
@@ -152,11 +155,20 @@ impl RpcServer {
             .route("/ai/compute/job/submit", post(compute_submit_job))
             .route("/ai/compute/worker/register", post(compute_register_worker))
             .route("/ai/compute/worker/result", post(compute_submit_result))
-            .route("/ai/compute/verifier/register", post(compute_register_verifier))
+            .route(
+                "/ai/compute/verifier/register",
+                post(compute_register_verifier),
+            )
             .route("/ai/compute/dispute/file", post(compute_file_challenge))
             .route("/ai/compute/dispute/resolve", post(compute_resolve_dispute))
-            .route("/ai/compute/job/:job_id/finalize", post(compute_finalize_job))
-            .route("/axiom/enable", post(crate::axiommind_handlers::set_axiom_mind_enabled));
+            .route(
+                "/ai/compute/job/:job_id/finalize",
+                post(compute_finalize_job),
+            )
+            .route(
+                "/axiom/enable",
+                post(crate::axiommind_handlers::set_axiom_mind_enabled),
+            );
 
         // Protected endpoints always require either bearer-token auth or localhost restriction.
         // In open mode (no token configured), restrict to localhost only — never expose
@@ -196,10 +208,19 @@ impl RpcServer {
             .route("/ai/models/ranked", get(ai_ranked_models))
             .route("/ai/stake/:address", get(ai_get_stake))
             .route("/ai/compute/job/:job_id", get(compute_get_job))
-            .route("/ai/compute/jobs/address/:address", get(compute_list_jobs_for_address))
+            .route(
+                "/ai/compute/jobs/address/:address",
+                get(compute_list_jobs_for_address),
+            )
             .route("/ai/compute/worker/:worker_id", get(compute_get_worker))
-            .route("/ai/compute/settlements/recent", get(compute_list_settlements))
-            .route("/ai/compute/workers/active", get(compute_list_active_workers))
+            .route(
+                "/ai/compute/settlements/recent",
+                get(compute_list_settlements),
+            )
+            .route(
+                "/ai/compute/workers/active",
+                get(compute_list_active_workers),
+            )
             .route("/guard/status", get(get_guard_status))
             .route("/guard/alerts", get(get_guard_alerts))
             .route("/analytics", get(get_network_analytics))
@@ -213,10 +234,22 @@ impl RpcServer {
             .route("/monitor/recommendations", get(get_monitor_recommendations))
             .route("/community/messages", get(community_get_messages))
             .route("/community/username/:address", get(community_get_username))
-            .route("/axiom/status", get(crate::axiommind_handlers::get_axiom_mind_status))
-            .route("/axiom/anomalies", get(crate::axiommind_handlers::get_axiom_mind_anomalies))
-            .route("/axiom/audit", get(crate::axiommind_handlers::get_axiom_mind_audit_log))
-            .route("/axiom/config", get(crate::axiommind_handlers::get_axiom_mind_config))
+            .route(
+                "/axiom/status",
+                get(crate::axiommind_handlers::get_axiom_mind_status),
+            )
+            .route(
+                "/axiom/anomalies",
+                get(crate::axiommind_handlers::get_axiom_mind_anomalies),
+            )
+            .route(
+                "/axiom/audit",
+                get(crate::axiommind_handlers::get_axiom_mind_audit_log),
+            )
+            .route(
+                "/axiom/config",
+                get(crate::axiommind_handlers::get_axiom_mind_config),
+            )
             .route("/ws", get(ws_handler));
 
         public
@@ -240,17 +273,19 @@ impl RpcServer {
                 self.rate_limiter.clone(),
                 rate_limit_middleware,
             ))
-            .layer(CorsLayer::new()
-                .allow_origin(tower_http::cors::AllowOrigin::predicate(
-                    |origin: &axum::http::HeaderValue, _| {
-                        origin.as_bytes().starts_with(b"http://localhost")
-                            || origin.as_bytes().starts_with(b"http://127.0.0.1")
-                            || origin.as_bytes().starts_with(b"http://[::1]")
-                            || origin.as_bytes() == b"null" // file:// origins
-                    },
-                ))
-                .allow_methods(tower_http::cors::Any)
-                .allow_headers(tower_http::cors::Any))
+            .layer(
+                CorsLayer::new()
+                    .allow_origin(tower_http::cors::AllowOrigin::predicate(
+                        |origin: &axum::http::HeaderValue, _| {
+                            origin.as_bytes().starts_with(b"http://localhost")
+                                || origin.as_bytes().starts_with(b"http://127.0.0.1")
+                                || origin.as_bytes().starts_with(b"http://[::1]")
+                                || origin.as_bytes() == b"null" // file:// origins
+                        },
+                    ))
+                    .allow_methods(tower_http::cors::Any)
+                    .allow_headers(tower_http::cors::Any),
+            )
             .layer(DefaultBodyLimit::max(MAX_RPC_REQUEST_SIZE))
     }
 }

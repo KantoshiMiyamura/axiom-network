@@ -20,7 +20,6 @@ pub const MAX_BLOCK_TRANSACTIONS: usize = 10_000;
 /// Max transaction size in bytes.
 pub const MAX_TRANSACTION_SIZE: usize = 100_000; // 100 KB
 
-
 /// Initial block reward: 50 AXM in satoshis.
 pub const INITIAL_REWARD_SAT: u64 = 5_000_000_000;
 
@@ -119,19 +118,17 @@ pub fn compute_merkle_root(transactions: &[Transaction]) -> Hash256 {
     if transactions.is_empty() {
         return Hash256::zero();
     }
-    
+
     // SECURITY: Validate transaction count is reasonable before hashing.
     // Prevents DoS where attacker submits block with millions of empty transactions.
     if transactions.len() > MAX_BLOCK_TRANSACTIONS {
         // Return zero hash for invalid input (will be caught by block validator)
         return Hash256::zero();
     }
-    
+
     let mut hashes: Vec<Hash256> = transactions
         .iter()
-        .map(|tx| {
-            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx))
-        })
+        .map(|tx| axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx)))
         .collect();
 
     while hashes.len() > 1 {
@@ -281,7 +278,8 @@ impl ConsensusValidator {
 
         let mut seen_txids = HashSet::new();
         for tx in &block.transactions {
-            let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+            let txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
 
             if !seen_txids.insert(txid) {
                 return Err(Error::InvalidBlock("duplicate transaction in block".into()));
@@ -381,6 +379,7 @@ impl ConsensusValidator {
 }
 
 #[cfg(test)]
+#[allow(clippy::assertions_on_constants)]
 mod tests {
     use super::*;
     use axiom_protocol::TxOutput;
@@ -392,7 +391,7 @@ mod tests {
         };
         let coinbase = Transaction::new_coinbase(vec![output], height);
 
-        let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+        let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
         let header = BlockHeader {
             version: 1,
@@ -558,7 +557,8 @@ mod tests {
         for &(height, expected_sat) in cases {
             let actual = calculate_smooth_reward(height).as_sat();
             assert_eq!(
-                actual, expected_sat,
+                actual,
+                expected_sat,
                 "CONSENSUS BREAK: reward at height {} = {}, expected {} (diff: {})",
                 height,
                 actual,

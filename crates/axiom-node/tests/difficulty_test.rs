@@ -15,10 +15,9 @@ use axiom_consensus::{
     calculate_block_reward, compute_merkle_root, Block, BlockHeader, CompactTarget,
     ConsensusValidator, DIFFICULTY_ADJUSTMENT_INTERVAL, TARGET_BLOCK_TIME,
 };
-use axiom_node::{ChainState, Config, Node};
+use axiom_node::{Config, Node};
 use axiom_primitives::Hash256;
 use axiom_protocol::{Transaction, TxOutput};
-use axiom_storage::Database;
 use tempfile::TempDir;
 
 // ---------------------------------------------------------------------------
@@ -27,15 +26,12 @@ use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
-}
-
-fn create_test_state(temp_dir: &TempDir) -> ChainState {
-    let db = Database::open(temp_dir.path()).unwrap();
-    ChainState::new(db).unwrap()
 }
 
 /// Create a minimal valid block manually (without going through Node::build_block).
@@ -48,7 +44,7 @@ fn make_block(height: u32, prev_hash: Hash256, difficulty_target: u32, timestamp
         pubkey_hash: Hash256::zero(),
     };
     let coinbase = Transaction::new_coinbase(vec![output], height);
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
     let header = BlockHeader {
         version: 1,
         prev_block_hash: prev_hash,
@@ -125,8 +121,10 @@ fn test_difficulty_persists_after_restart() {
     let data_dir = temp_dir.path().to_path_buf();
 
     let difficulty_before = {
-        let mut config = Config::default();
-        config.data_dir = data_dir.clone();
+        let config = Config {
+            data_dir: data_dir.clone(),
+            ..Default::default()
+        };
         let mut node = Node::new(config).unwrap();
 
         // Build a few blocks to advance the chain
@@ -139,8 +137,10 @@ fn test_difficulty_persists_after_restart() {
     };
 
     // Restart node and re-check
-    let mut config = Config::default();
-    config.data_dir = data_dir;
+    let config = Config {
+        data_dir,
+        ..Default::default()
+    };
     let node_after = Node::new(config).unwrap();
     assert_eq!(node_after.best_height(), Some(2));
 
@@ -235,8 +235,10 @@ fn test_retarget_faster_mining_decreases_target() {
     use axiom_consensus::LWMA_WINDOW;
 
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let mut node = Node::new(config).unwrap();
 
     let half_block_time = (TARGET_BLOCK_TIME / 2) as u32;

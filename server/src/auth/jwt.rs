@@ -79,7 +79,10 @@ impl TokenManager {
             ));
         }
 
-        debug!("Validated JWT token for session: {}", data.claims.claims.session_id);
+        debug!(
+            "Validated JWT token for session: {}",
+            data.claims.claims.session_id
+        );
         Ok(data.claims)
     }
 

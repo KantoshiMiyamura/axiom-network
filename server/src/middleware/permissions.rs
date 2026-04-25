@@ -80,10 +80,7 @@ fn normalize_path(path: &str) -> String {
 }
 
 /// Permission enforcement middleware
-pub async fn permission_middleware(
-    request: Request,
-    next: Next,
-) -> Response {
+pub async fn permission_middleware(request: Request, next: Next) -> Response {
     let path = request.uri().path();
     let method = request.method().as_str();
 
@@ -102,7 +99,10 @@ pub async fn permission_middleware(
     let user_context = match request.extensions().get::<UserContext>() {
         Some(ctx) => ctx.clone(),
         None => {
-            warn!("Missing user context for protected endpoint: {} {}", method, path);
+            warn!(
+                "Missing user context for protected endpoint: {} {}",
+                method, path
+            );
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({
@@ -118,7 +118,11 @@ pub async fn permission_middleware(
     if !permissions::has_role(&user_context.roles, required_role.clone()) {
         warn!(
             "Permission denied for {} on {} {}: required {}, has roles: {:?}",
-            user_context.address, method, path, required_role.as_str(), user_context.roles
+            user_context.address,
+            method,
+            path,
+            required_role.as_str(),
+            user_context.roles
         );
 
         return (

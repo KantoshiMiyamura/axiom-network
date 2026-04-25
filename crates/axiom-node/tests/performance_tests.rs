@@ -12,8 +12,10 @@ use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }
@@ -31,12 +33,10 @@ fn block_production_throughput() {
 
     for i in 0..1_000 {
         match node.build_block() {
-            Ok(block) => {
-                match node.process_block(block) {
-                    Ok(_) => successful += 1,
-                    Err(_) => failed += 1,
-                }
-            }
+            Ok(block) => match node.process_block(block) {
+                Ok(_) => successful += 1,
+                Err(_) => failed += 1,
+            },
             Err(_) => failed += 1,
         }
 
@@ -74,12 +74,10 @@ fn block_validation_throughput() {
     // Process 100 blocks as quickly as possible
     for i in 0..100 {
         match node.build_block() {
-            Ok(block) => {
-                match node.process_block(block) {
-                    Ok(_) => blocks_processed += 1,
-                    Err(_) => validation_errors += 1,
-                }
-            }
+            Ok(block) => match node.process_block(block) {
+                Ok(_) => blocks_processed += 1,
+                Err(_) => validation_errors += 1,
+            },
             Err(_) => validation_errors += 1,
         }
 
@@ -92,10 +90,7 @@ fn block_validation_throughput() {
     let elapsed = start.elapsed();
     let rate = blocks_processed as f64 / elapsed.as_secs_f64();
 
-    println!(
-        "✓ Block validation throughput: {:.1} blocks/sec",
-        rate
-    );
+    println!("✓ Block validation throughput: {:.1} blocks/sec", rate);
     println!(
         "  Processed: {}, Errors: {}",
         blocks_processed, validation_errors
@@ -117,14 +112,9 @@ fn chain_growth_performance() {
     let target_blocks = 500;
     let mut blocks_added = 0;
 
-    loop {
-        match node.build_block() {
-            Ok(block) => {
-                match node.process_block(block) {
-                    Ok(_) => blocks_added += 1,
-                    Err(_) => break,
-                }
-            }
+    while let Ok(block) = node.build_block() {
+        match node.process_block(block) {
+            Ok(_) => blocks_added += 1,
             Err(_) => break,
         }
 
@@ -153,10 +143,7 @@ fn chain_growth_performance() {
         final_height - initial_height
     );
 
-    assert!(
-        final_height > initial_height,
-        "Chain should grow"
-    );
+    assert!(final_height > initial_height, "Chain should grow");
 }
 
 #[test]
@@ -181,10 +168,7 @@ fn memory_stability_long_run() {
     let elapsed = start.elapsed();
     let height = node.best_height().unwrap();
 
-    println!(
-        "✓ Memory stability test completed in {:?}",
-        elapsed
-    );
+    println!("✓ Memory stability test completed in {:?}", elapsed);
     println!(
         "  Blocks built: {}, Final chain height: {}",
         blocks_built, height
@@ -248,7 +232,7 @@ fn frequent_block_production() {
     for _ in 0..iterations {
         // Try to build a block each iteration
         if let Ok(block) = node.build_block() {
-            if let Ok(_) = node.process_block(block) {
+            if node.process_block(block).is_ok() {
                 blocks_built += 1;
             }
         }
@@ -292,10 +276,7 @@ fn chainwork_calculation_under_load() {
     let final_work = node.get_chain_work().unwrap();
     let elapsed = start.elapsed();
 
-    println!(
-        "✓ Chainwork calculation test completed in {:?}",
-        elapsed
-    );
+    println!("✓ Chainwork calculation test completed in {:?}", elapsed);
     println!("  Work growth: {:?} -> {:?}", initial_work, final_work);
     println!("  (No calculation errors detected)");
 }
@@ -328,8 +309,5 @@ fn mempool_consistency_under_load() {
     println!("  Rate: {:.0} blocks/sec", rate);
     println!("  Final mempool size: {} txs", mempool_size);
 
-    assert!(
-        blocks_processed > 500,
-        "Should process many blocks"
-    );
+    assert!(blocks_processed > 500, "Should process many blocks");
 }

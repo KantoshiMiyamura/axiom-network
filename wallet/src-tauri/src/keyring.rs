@@ -49,7 +49,8 @@ pub fn delete_device_secret() -> bool {
 fn derive_subkey(secret: &[u8], purpose: &[u8]) -> Zeroizing<Vec<u8>> {
     let hk = Hkdf::<Sha256>::new(None, secret);
     let mut out = Zeroizing::new(vec![0u8; 32]);
-    hk.expand(purpose, out.as_mut_slice()).expect("HKDF-SHA256 expand to 32 bytes");
+    hk.expand(purpose, out.as_mut_slice())
+        .expect("HKDF-SHA256 expand to 32 bytes");
     out
 }
 

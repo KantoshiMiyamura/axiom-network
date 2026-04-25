@@ -8,11 +8,11 @@
 // that interprets `Action` as an instruction MUST go through an explicit
 // security review (see AI-CONSENSUS-AUDIT.md, R1).
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::sync::RwLock;
 
 /// State representation for Q-learning
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -175,14 +175,16 @@ impl QLearningModule {
         // Exploration vs exploitation
         if rand::random::<f64>() < self.exploration_rate {
             // Explore: random action
-            let actions = [Action::NoAction,
+            let actions = [
+                Action::NoAction,
                 Action::Alert,
                 Action::IncreaseMonitoring,
                 Action::ApplyPatch,
                 Action::IsolateNodes,
                 Action::TriggerConsensus,
                 Action::Rollback,
-                Action::ReduceLoad];
+                Action::ReduceLoad,
+            ];
             actions[(rand::random::<usize>()) % actions.len()].clone()
         } else {
             // Exploit: best action
@@ -218,12 +220,7 @@ impl QLearningModule {
         // Get max Q-value for next state
         let max_next_q = q_table
             .get(&next_state)
-            .map(|actions| {
-                actions
-                    .values()
-                    .copied()
-                    .fold(f64::NEG_INFINITY, f64::max)
-            })
+            .map(|actions| actions.values().copied().fold(f64::NEG_INFINITY, f64::max))
             .unwrap_or(0.0);
 
         // Q-learning update rule
@@ -238,8 +235,8 @@ impl QLearningModule {
         // exploration_rate decay computed but not persisted: the field is `&self`,
         // not `&mut self`. Treat the decay as advisory until the engine carries
         // interior mutability for it.
-        let _new_exploration_rate = (self.exploration_rate * self.exploration_decay)
-            .max(self.min_exploration_rate);
+        let _new_exploration_rate =
+            (self.exploration_rate * self.exploration_decay).max(self.min_exploration_rate);
 
         // Record episode
         let now = SystemTime::now()
@@ -277,14 +274,12 @@ impl QLearningModule {
     /// Get best action for state
     pub async fn get_best_action(&self, state: &State) -> Option<Action> {
         let q_table = self.q_table.read().await;
-        q_table
-            .get(state)
-            .and_then(|actions| {
-                actions
-                    .iter()
-                    .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
-                    .map(|(action, _)| action.clone())
-            })
+        q_table.get(state).and_then(|actions| {
+            actions
+                .iter()
+                .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(action, _)| action.clone())
+        })
     }
 
     /// Get Q-table statistics
@@ -324,12 +319,7 @@ impl QLearningModule {
     /// Get episode history
     pub async fn get_episode_history(&self, limit: usize) -> Vec<Episode> {
         let history = self.episode_history.read().await;
-        history
-            .iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        history.iter().rev().take(limit).cloned().collect()
     }
 }
 
@@ -365,8 +355,12 @@ impl Policy {
         let reason = match state {
             State::Normal => "Network operating normally".to_string(),
             State::AnomalyDetected => "Anomaly detected, monitoring increased".to_string(),
-            State::MultipleAnomalies => "Multiple anomalies detected, investigation needed".to_string(),
-            State::CriticalThreat => "Critical threat detected, immediate action required".to_string(),
+            State::MultipleAnomalies => {
+                "Multiple anomalies detected, investigation needed".to_string()
+            }
+            State::CriticalThreat => {
+                "Critical threat detected, immediate action required".to_string()
+            }
             State::RecoveryInProgress => "Recovery in progress, monitoring status".to_string(),
             State::NetworkDegraded => "Network degraded, load reduction recommended".to_string(),
         };
@@ -425,10 +419,7 @@ impl ReinforcementLearningEngine {
         let state = self.current_state.read().await.clone();
         let q_table = self.q_learning.q_table.read().await;
 
-        let q_values = q_table
-            .get(&state)
-            .cloned()
-            .unwrap_or_else(HashMap::new);
+        let q_values = q_table.get(&state).cloned().unwrap_or_else(HashMap::new);
 
         Policy::generate(state, &q_values)
     }
@@ -475,14 +466,9 @@ mod tests {
         let ql = QLearningModule::new();
         ql.initialize().await;
 
-        ql.learn(
-            State::Normal,
-            Action::Alert,
-            1.0,
-            State::AnomalyDetected,
-        )
-        .await
-        .unwrap();
+        ql.learn(State::Normal, Action::Alert, 1.0, State::AnomalyDetected)
+            .await
+            .unwrap();
 
         let q_value = ql.get_q_value(&State::Normal, &Action::Alert).await;
         assert!(q_value > 0.0);

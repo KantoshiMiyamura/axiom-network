@@ -213,7 +213,7 @@ async fn test_rate_limit_enforced_after_burst() {
     use axiom_rpc::rate_limiter::RPC_RATE_LIMIT_PER_SECOND;
 
     let (_temp, state) = make_state();
-    let app = open_router(state);
+    let _app = open_router(state);
 
     // Drive requests sequentially — reuse the router via clone trick.
     // We need individual .oneshot() calls which consume the router each time.

@@ -1,15 +1,15 @@
 //! User profile and reputation handlers
 
-use axum::extract::{State, Path, Extension};
+use axum::extract::{Extension, Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde_json::json;
 use std::sync::Arc;
 use tracing::info;
 
-use crate::state::AppState;
 use crate::error::{Result, ServerError};
 use crate::middleware::auth::UserContext;
+use crate::state::AppState;
 
 /// Get user profile
 pub async fn get_user(

@@ -128,7 +128,6 @@ impl SignatureBackend for MlDsa87Backend {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

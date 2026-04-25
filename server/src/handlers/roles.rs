@@ -1,6 +1,6 @@
 //! Role management handlers (CoreDev role required)
 
-use axum::extract::{State, Path, ConnectInfo, Extension};
+use axum::extract::{ConnectInfo, Extension, Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::Deserialize;
@@ -9,10 +9,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
-use crate::permissions;
-use crate::state::AppState;
 use crate::error::{Result, ServerError};
 use crate::middleware::auth::UserContext;
+use crate::permissions;
+use crate::state::AppState;
 
 /// Grant role to user
 pub async fn grant_role(

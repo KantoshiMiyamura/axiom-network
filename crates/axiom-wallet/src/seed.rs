@@ -24,7 +24,8 @@ pub fn generate_seed_phrase() -> (String, Zeroizing<Vec<u8>>) {
     // SECURITY: Entropy wrapped in Zeroizing so it is scrubbed from the stack on drop.
     let mut entropy = Zeroizing::new([0u8; 32]); // 256-bit -> 24 words
     rand::rngs::OsRng.fill_bytes(entropy.as_mut());
-    let mnemonic = Mnemonic::from_entropy(entropy.as_ref()).expect("32 bytes is valid BIP39 entropy");
+    let mnemonic =
+        Mnemonic::from_entropy(entropy.as_ref()).expect("32 bytes is valid BIP39 entropy");
     let seed = Zeroizing::new(mnemonic.to_seed("").to_vec());
     (mnemonic.to_string(), seed)
 }
@@ -43,7 +44,8 @@ pub fn derive_account(master_seed: &[u8], index: u32) -> Result<KeyPair> {
     let mut okm = Zeroizing::new([0u8; 64]);
     hk.expand(info.as_bytes(), okm.as_mut())
         .map_err(|_| WalletError::InvalidSeedPhrase)?;
-    let (priv_key, pub_key): (zeroize::Zeroizing<Vec<u8>>, Vec<u8>) = MlDsa87Backend.keypair_from_seed(&okm[..32])?;
+    let (priv_key, pub_key): (zeroize::Zeroizing<Vec<u8>>, Vec<u8>) =
+        MlDsa87Backend.keypair_from_seed(&okm[..32])?;
     KeyPair::from_key_bytes_zeroized(priv_key, pub_key)
 }
 

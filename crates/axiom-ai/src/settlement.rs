@@ -19,7 +19,9 @@ impl SettlementEngine {
     /// Open (or create) the settlement engine at `<data_dir>/ai_settlements/`.
     pub fn open<P: AsRef<Path>>(data_dir: P) -> Result<Self> {
         let path = data_dir.as_ref().join("ai_settlements");
-        let keyspace = Config::new(path).open().map_err(|e| ComputeError::Storage(e.to_string()))?;
+        let keyspace = Config::new(path)
+            .open()
+            .map_err(|e| ComputeError::Storage(e.to_string()))?;
         let partition = keyspace
             .open_partition("settlements", PartitionCreateOptions::default())
             .map_err(|e| ComputeError::Storage(e.to_string()))?;
@@ -202,7 +204,11 @@ impl SettlementEngine {
 
     /// Retrieve a settlement record by job ID.
     pub fn get(&self, job_id: &str) -> Result<Option<SettlementRecord>> {
-        match self.partition.get(job_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
+        match self
+            .partition
+            .get(job_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
             Some(v) => {
                 let (settlement, _) = bincode::serde::decode_from_slice::<SettlementRecord, _>(
                     &v,
@@ -316,8 +322,9 @@ mod tests {
     #[test]
     fn test_record_fraud() {
         let (_tmp, engine) = open_engine();
-        let settlement =
-            engine.record_fraud_conviction("job_1".into(), 1000, 10_000, 100).unwrap();
+        let settlement = engine
+            .record_fraud_conviction("job_1".into(), 1000, 10_000, 100)
+            .unwrap();
 
         assert_eq!(settlement.job_id, "job_1");
         assert_eq!(settlement.worker_reward_sat, 0); // Fraudster gets 0

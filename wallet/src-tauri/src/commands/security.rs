@@ -22,8 +22,7 @@ pub struct IntegrityInfo {
 /// Copy text to clipboard with automatic clearing after timeout.
 #[tauri::command]
 pub fn secure_copy(text: String, clear_after_ms: Option<u64>) -> AppResult<()> {
-    crate::security::clipboard_copy_and_clear(&text, clear_after_ms)
-        .map_err(AppError::Internal)
+    crate::security::clipboard_copy_and_clear(&text, clear_after_ms).map_err(AppError::Internal)
 }
 
 /// Validate an address and return detailed information.

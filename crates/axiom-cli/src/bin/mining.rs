@@ -118,16 +118,14 @@ fn cmd_init() {
     };
 
     // Create keystore
-    let keystore = match axiom_wallet::keystore::create_keystore(
-        keypair.export_private_key(),
-        &password,
-    ) {
-        Ok(ks) => ks,
-        Err(e) => {
-            eprintln!("Failed to create keystore: {}", e);
-            std::process::exit(1);
-        }
-    };
+    let keystore =
+        match axiom_wallet::keystore::create_keystore(keypair.export_private_key(), &password) {
+            Ok(ks) => ks,
+            Err(e) => {
+                eprintln!("Failed to create keystore: {}", e);
+                std::process::exit(1);
+            }
+        };
 
     // Save keystore to file
     let dir = keystore_dir();
@@ -177,8 +175,15 @@ fn cmd_start(rpc_url: &str) {
     match reqwest::blocking::get(&status_url) {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(body) = resp.json::<serde_json::Value>() {
-                println!("  Chain height: {}", body.get("height").unwrap_or(&serde_json::Value::Null));
-                println!("  Best block:   {}", body.get("best_block_hash").unwrap_or(&serde_json::Value::Null));
+                println!(
+                    "  Chain height: {}",
+                    body.get("height").unwrap_or(&serde_json::Value::Null)
+                );
+                println!(
+                    "  Best block:   {}",
+                    body.get("best_block_hash")
+                        .unwrap_or(&serde_json::Value::Null)
+                );
             }
         }
         _ => {
@@ -200,9 +205,19 @@ fn cmd_status(rpc_url: &str) {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(body) = resp.json::<serde_json::Value>() {
                 println!("[NODE]");
-                println!("  Height:     {}", body.get("height").unwrap_or(&serde_json::Value::Null));
-                println!("  Best block: {}", body.get("best_block_hash").unwrap_or(&serde_json::Value::Null));
-                println!("  Chain work: {}", body.get("chain_work").unwrap_or(&serde_json::Value::Null));
+                println!(
+                    "  Height:     {}",
+                    body.get("height").unwrap_or(&serde_json::Value::Null)
+                );
+                println!(
+                    "  Best block: {}",
+                    body.get("best_block_hash")
+                        .unwrap_or(&serde_json::Value::Null)
+                );
+                println!(
+                    "  Chain work: {}",
+                    body.get("chain_work").unwrap_or(&serde_json::Value::Null)
+                );
                 println!();
             }
         }
@@ -261,7 +276,10 @@ fn cmd_balance(rpc_url: &str, address: &str) {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(body) = resp.json::<serde_json::Value>() {
                 println!("Address: {}", address);
-                println!("Balance: {} satoshis", body.get("balance").unwrap_or(&serde_json::Value::Null));
+                println!(
+                    "Balance: {} satoshis",
+                    body.get("balance").unwrap_or(&serde_json::Value::Null)
+                );
             }
         }
         Ok(resp) => {

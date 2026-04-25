@@ -37,7 +37,8 @@ impl<'a> TxIndex<'a> {
         let mut batch = self.db.keyspace().batch();
 
         for (pos, tx) in block.transactions.iter().enumerate() {
-            let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+            let txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
 
             let location = TxLocation {
                 block_hash,
@@ -82,7 +83,8 @@ impl<'a> TxIndex<'a> {
         let mut batch = self.db.keyspace().batch();
 
         for tx in &block.transactions {
-            let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+            let txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
 
             batch.remove(self.db.partition(), keys::tx_location_key(&txid));
 
@@ -270,7 +272,9 @@ mod tests {
                 pubkey_hash: pkh,
             };
             let coinbase = Transaction::new_coinbase(vec![output], height_nonce);
-            let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+            let merkle_root = axiom_crypto::double_hash256(
+                &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+            );
             Block {
                 header: BlockHeader {
                     version: 1,

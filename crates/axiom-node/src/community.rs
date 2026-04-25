@@ -42,13 +42,22 @@ const LIVE_CHANNEL_CAPACITY: usize = 256;
 
 const BANNED_WORDS: &[&str] = &[
     // Hate speech — slurs omitted here; actual list lives in axiom-guard
-    "nigger", "faggot", "kike", "spic", "chink",
+    "nigger",
+    "faggot",
+    "kike",
+    "spic",
+    "chink",
     // Harassment
-    "kill yourself", "kys", "die bitch",
+    "kill yourself",
+    "kys",
+    "die bitch",
     // CSAM indicators — zero tolerance
-    "cp link", "childporn",
+    "cp link",
+    "childporn",
     // Spam
-    "buy crypto now", "100x guaranteed", "send me your private key",
+    "buy crypto now",
+    "100x guaranteed",
+    "send me your private key",
 ];
 
 /// Result of AxiomMind content classification.
@@ -160,7 +169,10 @@ impl CommunityService {
             .unwrap_or_default()
             .as_secs();
         if payload.timestamp > now_unix + 300 {
-            tracing::debug!("CHAT_DROP: future timestamp from {}", payload.sender_address);
+            tracing::debug!(
+                "CHAT_DROP: future timestamp from {}",
+                payload.sender_address
+            );
             return false;
         }
         if now_unix.saturating_sub(payload.timestamp) > MSG_TTL.as_secs() {
@@ -190,7 +202,10 @@ impl CommunityService {
 
         // 4. Text length guard.
         if payload.text.len() > crate::network::MAX_CHAT_TEXT_BYTES {
-            tracing::debug!("CHAT_DROP: message too long from {}", payload.sender_address);
+            tracing::debug!(
+                "CHAT_DROP: message too long from {}",
+                payload.sender_address
+            );
             return false;
         }
 
@@ -221,7 +236,10 @@ impl CommunityService {
             let mut msgs = self.messages.write().await;
             let now = Instant::now();
             // Evict expired.
-            while msgs.front().is_some_and(|m| now.duration_since(m.received_at) > MSG_TTL) {
+            while msgs
+                .front()
+                .is_some_and(|m| now.duration_since(m.received_at) > MSG_TTL)
+            {
                 msgs.pop_front();
             }
             // Cap at MAX_MESSAGES.
@@ -261,7 +279,10 @@ impl CommunityService {
         entry.retain(|v| now.duration_since(v.cast_at) < BAN_VOTE_WINDOW);
 
         // Deduplicate per voter.
-        if entry.iter().any(|v| v.voter_address == payload.voter_address) {
+        if entry
+            .iter()
+            .any(|v| v.voter_address == payload.voter_address)
+        {
             return false; // already voted
         }
 
@@ -327,11 +348,7 @@ impl CommunityService {
     /// Return up to `limit` most recent messages (newest first).
     pub async fn recent_messages(&self, limit: usize) -> Vec<StoredMessage> {
         let msgs = self.messages.read().await;
-        msgs.iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        msgs.iter().rev().take(limit).cloned().collect()
     }
 
     /// Look up the registered username for an AXM address.
@@ -404,7 +421,9 @@ mod tests {
     #[tokio::test]
     async fn test_allow_clean_message() {
         let svc = CommunityService::new();
-        let relayed = svc.handle_chat_message(make_msg("hello world", "axm_alice", 1)).await;
+        let relayed = svc
+            .handle_chat_message(make_msg("hello world", "axm_alice", 1))
+            .await;
         assert!(relayed);
         let msgs = svc.recent_messages(10).await;
         assert_eq!(msgs.len(), 1);
@@ -414,7 +433,9 @@ mod tests {
     #[tokio::test]
     async fn test_block_banned_word() {
         let svc = CommunityService::new();
-        let relayed = svc.handle_chat_message(make_msg("kys loser", "axm_bad", 2)).await;
+        let relayed = svc
+            .handle_chat_message(make_msg("kys loser", "axm_bad", 2))
+            .await;
         assert!(!relayed);
         let msgs = svc.recent_messages(10).await;
         assert_eq!(msgs.len(), 0);
@@ -423,8 +444,11 @@ mod tests {
     #[tokio::test]
     async fn test_nonce_dedup() {
         let svc = CommunityService::new();
-        svc.handle_chat_message(make_msg("hi", "axm_alice", 99)).await;
-        let relayed = svc.handle_chat_message(make_msg("hi again", "axm_alice", 99)).await;
+        svc.handle_chat_message(make_msg("hi", "axm_alice", 99))
+            .await;
+        let relayed = svc
+            .handle_chat_message(make_msg("hi again", "axm_alice", 99))
+            .await;
         assert!(!relayed, "duplicate nonce should be dropped");
         let msgs = svc.recent_messages(10).await;
         assert_eq!(msgs.len(), 1);
@@ -462,15 +486,15 @@ mod tests {
             timestamp: 0,
         })
         .await;
-        assert_eq!(
-            svc.username_of("axm_abc123").await,
-            Some("satoshi".into())
-        );
+        assert_eq!(svc.username_of("axm_abc123").await, Some("satoshi".into()));
     }
 
     #[tokio::test]
     async fn test_moderation_classifier() {
-        assert_eq!(axiom_mind_classify("hello everyone"), ModerationVerdict::Allow);
+        assert_eq!(
+            axiom_mind_classify("hello everyone"),
+            ModerationVerdict::Allow
+        );
         assert!(matches!(
             axiom_mind_classify("nigger"),
             ModerationVerdict::Block { .. }

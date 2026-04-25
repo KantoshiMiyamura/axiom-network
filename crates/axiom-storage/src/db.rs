@@ -90,7 +90,8 @@ impl Database {
     // ── Transaction storage ──────────────────────────────────────────────────
 
     pub fn store_transaction(&self, tx: &Transaction) -> Result<Hash256> {
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
         let value = bincode::serde::encode_to_vec(tx, bincode::config::standard())
             .map_err(|e| Error::Serialization(e.to_string()))?;
         self.partition.insert(keys::tx_key(&txid), value)?;
@@ -142,10 +143,8 @@ impl Database {
         }
     }
     pub fn set_best_height(&self, height: u32) -> Result<()> {
-        self.partition.insert(
-            keys::meta_key(keys::META_BEST_HEIGHT),
-            height.to_le_bytes(),
-        )?;
+        self.partition
+            .insert(keys::meta_key(keys::META_BEST_HEIGHT), height.to_le_bytes())?;
         Ok(())
     }
     pub fn get_genesis_hash(&self) -> Result<Option<Hash256>> {
@@ -250,7 +249,9 @@ impl Database {
         let txids: Vec<Hash256> = block
             .transactions
             .iter()
-            .map(|tx| axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx)))
+            .map(|tx| {
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx))
+            })
             .collect();
 
         let header_value =
@@ -354,7 +355,9 @@ mod tests {
             pubkey_hash: Hash256::zero(),
         };
         let coinbase = Transaction::new_coinbase(vec![output], height_nonce);
-        let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+        let merkle_root = axiom_crypto::double_hash256(
+            &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+        );
         Block {
             header: BlockHeader {
                 version: 1,

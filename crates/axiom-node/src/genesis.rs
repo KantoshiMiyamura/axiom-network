@@ -53,7 +53,8 @@ pub fn create_genesis_block(network: Network) -> Block {
         coinbase = coinbase.with_memo(msg);
     }
 
-    let merkle_root = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+    let merkle_root =
+        axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
 
     let header = BlockHeader {
         version: 1,

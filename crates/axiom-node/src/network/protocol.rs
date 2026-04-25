@@ -440,7 +440,10 @@ mod tests {
             .unwrap()
             .public_key()
             .to_vec();
-        let pk_b = KeyPair::from_private_key(seed).unwrap().public_key().to_vec();
+        let pk_b = KeyPair::from_private_key(seed)
+            .unwrap()
+            .public_key()
+            .to_vec();
         assert_eq!(pk_a, pk_b, "pubkey bytes must be stable across reloads");
 
         // Same identity bytes into two separate handlers: different

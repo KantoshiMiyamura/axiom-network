@@ -23,19 +23,19 @@ pub mod types;
 
 // Proof of Useful Compute (PoUC).
 pub mod compute_types;
-pub mod worker;
-pub mod verifier;
-pub mod settlement;
 pub mod protocol;
+pub mod settlement;
+pub mod verifier;
+pub mod worker;
 
 // AxiomMind v2 — observers only; see crate-level INVARIANT.
+pub mod anomaly_detection;
+pub mod axiommind_v2;
+pub mod monitoring;
 #[allow(clippy::needless_range_loop)]
 pub mod neural_network;
-pub mod anomaly_detection;
-pub mod self_healing;
 pub mod reinforcement_learning;
-pub mod monitoring;
-pub mod axiommind_v2;
+pub mod self_healing;
 
 // Guardian — deterministic, signed, gossip-able advisory layer.
 pub mod guardian;
@@ -50,32 +50,34 @@ pub use types::{
 
 // PoUC Protocol exports
 pub use compute_types::{
-    ComputeError, ComputeJob, ComputeJobStatus, ComputeJobType, DisputeRecord,
-    DisputeResolution, FileChallengeRequest, RegisterVerifierRequest, RegisterWorkerRequest,
-    ResolvDisputeRequest, SettlementOutcome, SettlementRecord, SubmitComputeJobRequest,
-    SubmitResultRequest, VerifierRegistration, WorkerRegistration, Result as ComputeResult,
+    ComputeError, ComputeJob, ComputeJobStatus, ComputeJobType, DisputeRecord, DisputeResolution,
+    FileChallengeRequest, RegisterVerifierRequest, RegisterWorkerRequest, ResolvDisputeRequest,
+    Result as ComputeResult, SettlementOutcome, SettlementRecord, SubmitComputeJobRequest,
+    SubmitResultRequest, VerifierRegistration, WorkerRegistration,
 };
-pub use worker::WorkerRegistry;
-pub use verifier::VerifierRegistry;
-pub use settlement::SettlementEngine;
 pub use protocol::ComputeProtocol;
+pub use settlement::SettlementEngine;
+pub use verifier::VerifierRegistry;
+pub use worker::WorkerRegistry;
 
 // AxiomMind v2 exports
-pub use neural_network::{DistributedNeuralNetwork, NeuralModel};
 pub use anomaly_detection::{
-    AnomalyAlert, AnomalyDetectionEngine, AnomalyType, Detector, DetectionData, Severity,
+    AnomalyAlert, AnomalyDetectionEngine, AnomalyType, DetectionData, Detector, Severity,
 };
-pub use self_healing::{
-    ConsensusEngine, Patch, PatchGenerator, PatchResult, SelfHealingSystem, Vulnerability,
-    VulnerabilityDatabase, VulnerabilitySeverity, VulnerabilityType,
-};
-pub use reinforcement_learning::{
-    Action, Episode, LearningStats, Policy, QLearningModule, ReinforcementLearningEngine, Reward,
-    State,
+pub use axiommind_v2::{
+    AxiomMindV2, HealthLevel, HealthStatus, ScanResult, SystemReport, SystemStatus,
 };
 pub use monitoring::{
     AIDashboard, Alert, AlertManager, AlertSeverity, AlertType, AuditEvent, AuditEventType,
     AuditLogger, AuditSeverity, MonitoringSystem, NetworkDashboard, PerformanceDashboard,
     ReportGenerator, SecurityDashboard, StatusReport,
 };
-pub use axiommind_v2::{AxiomMindV2, HealthLevel, HealthStatus, ScanResult, SystemReport, SystemStatus};
+pub use neural_network::{DistributedNeuralNetwork, NeuralModel};
+pub use reinforcement_learning::{
+    Action, Episode, LearningStats, Policy, QLearningModule, ReinforcementLearningEngine, Reward,
+    State,
+};
+pub use self_healing::{
+    ConsensusEngine, Patch, PatchGenerator, PatchResult, SelfHealingSystem, Vulnerability,
+    VulnerabilityDatabase, VulnerabilitySeverity, VulnerabilityType,
+};

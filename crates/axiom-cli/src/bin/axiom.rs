@@ -14,9 +14,9 @@
 //   axiom version            Print version and build info
 
 use clap::{Parser, Subcommand};
+use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
-use std::fs;
 
 // ── Version ──────────────────────────────────────────────────────────────────
 
@@ -290,7 +290,11 @@ fn main() {
         Commands::Status { rpc } => cmd_status(&rpc),
         Commands::Version => cmd_version(),
         Commands::Init { data_dir } => cmd_init(data_dir),
-        Commands::Mine { peer, data_dir, log_level } => cmd_mine(peer, data_dir, log_level),
+        Commands::Mine {
+            peer,
+            data_dir,
+            log_level,
+        } => cmd_mine(peer, data_dir, log_level),
     }
 }
 
@@ -322,7 +326,10 @@ fn cmd_start(
     };
 
     if !node_exe.exists() {
-        eprintln!("error: axiom-node binary not found at {}", node_exe.display());
+        eprintln!(
+            "error: axiom-node binary not found at {}",
+            node_exe.display()
+        );
         eprintln!("       Make sure axiom-node is in the same directory as axiom.");
         std::process::exit(1);
     }
@@ -330,12 +337,18 @@ fn cmd_start(
     let data = data_dir.unwrap_or_else(|| default_data_dir().to_string_lossy().to_string());
 
     let mut cmd = std::process::Command::new(&node_exe);
-    cmd.arg("--network").arg(&network)
-        .arg("--data-dir").arg(&data)
-        .arg("--rpc-bind").arg(&rpc_bind)
-        .arg("--p2p-bind").arg(&p2p_bind)
-        .arg("--log-level").arg(&log_level)
-        .arg("--mining-interval").arg(mining_interval.to_string());
+    cmd.arg("--network")
+        .arg(&network)
+        .arg("--data-dir")
+        .arg(&data)
+        .arg("--rpc-bind")
+        .arg(&rpc_bind)
+        .arg("--p2p-bind")
+        .arg(&p2p_bind)
+        .arg("--log-level")
+        .arg(&log_level)
+        .arg("--mining-interval")
+        .arg(mining_interval.to_string());
 
     if mine {
         cmd.arg("--mine");
@@ -551,10 +564,7 @@ fn cmd_wallet_balance(address: Option<String>, rpc: &str) {
     match reqwest::blocking::get(&url) {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(body) = resp.json::<serde_json::Value>() {
-                let balance_sat = body
-                    .get("balance")
-                    .and_then(|v| v.as_u64())
-                    .unwrap_or(0);
+                let balance_sat = body.get("balance").and_then(|v| v.as_u64()).unwrap_or(0);
                 let balance_axm = balance_sat as f64 / 100_000_000.0;
                 println!();
                 println!("  Address: {}", addr);
@@ -619,8 +629,7 @@ fn parse_amount_sat(amount_str: &str, sat_mode: bool) -> Result<u64, String> {
 }
 
 fn decode_hash32(name: &str, hex_str: &str) -> Result<[u8; 32], String> {
-    let bytes =
-        hex::decode(hex_str).map_err(|e| format!("bad {} '{}': {}", name, hex_str, e))?;
+    let bytes = hex::decode(hex_str).map_err(|e| format!("bad {} '{}': {}", name, hex_str, e))?;
     if bytes.len() != 32 {
         return Err(format!("{} must be 32 bytes, got {}", name, bytes.len()));
     }
@@ -771,7 +780,11 @@ fn cmd_wallet_send(
             if blocks_since < maturity {
                 return None;
             }
-            Some(Utxo { txid, output_index, value })
+            Some(Utxo {
+                txid,
+                output_index,
+                value,
+            })
         })
         .collect();
 
@@ -860,7 +873,11 @@ fn cmd_wallet_send(
     } else {
         println!("  Change:    none");
     }
-    println!("  Inputs:    {} UTXO(s), total {} sat", selected.len(), selected_sum);
+    println!(
+        "  Inputs:    {} UTXO(s), total {} sat",
+        selected.len(),
+        selected_sum
+    );
     println!("  Nonce:     {}", nonce);
     println!("  Chain ID:  {}", chain_id);
     if let Some(m) = memo.as_deref() {
@@ -1045,8 +1062,14 @@ fn cmd_rewards(at_height: Option<u32>, table_size: u32) {
     }
 
     // Show reward table
-    println!("  {:>10}  {:>18}  {:>14}", "Height", "Reward (AXM)", "Reward (sat)");
-    println!("  {:>10}  {:>18}  {:>14}", "------", "-----------", "-----------");
+    println!(
+        "  {:>10}  {:>18}  {:>14}",
+        "Height", "Reward (AXM)", "Reward (sat)"
+    );
+    println!(
+        "  {:>10}  {:>18}  {:>14}",
+        "------", "-----------", "-----------"
+    );
 
     let milestones: Vec<u32> = (0..table_size)
         .map(|i| {
@@ -1163,9 +1186,7 @@ fn cmd_version() {
 // ── axiom init ───────────────────────────────────────────────────────────────
 
 fn cmd_init(data_dir: Option<String>) {
-    let data_path = data_dir
-        .map(PathBuf::from)
-        .unwrap_or_else(default_data_dir);
+    let data_path = data_dir.map(PathBuf::from).unwrap_or_else(default_data_dir);
 
     println!();
     println!("========================================================");
@@ -1349,7 +1370,8 @@ fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
             std::process::exit(1);
         });
 
-        let addr = wallet_data.get("address")
+        let addr = wallet_data
+            .get("address")
             .and_then(|v| v.as_str())
             .unwrap_or_else(|| {
                 eprintln!("  error: wallet.dat missing address field");
@@ -1357,7 +1379,7 @@ fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
             })
             .to_string();
 
-        println!("  Wallet:  {}...{}", &addr[..14], &addr[addr.len()-8..]);
+        println!("  Wallet:  {}...{}", &addr[..14], &addr[addr.len() - 8..]);
         addr
     } else {
         // First run — create wallet automatically (like Bitcoin Core)
@@ -1376,9 +1398,16 @@ fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
             use std::hash::{Hash, Hasher};
             let mut hasher = DefaultHasher::new();
             phrase.hash(&mut hasher);
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default().as_nanos().hash(&mut hasher);
-            format!("AXM_{:016x}_{:016x}", hasher.finish(), hasher.finish().wrapping_mul(0x517cc1b727220a95))
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+                .hash(&mut hasher);
+            format!(
+                "AXM_{:016x}_{:016x}",
+                hasher.finish(),
+                hasher.finish().wrapping_mul(0x517cc1b727220a95)
+            )
         };
 
         let keystore = axiom_wallet::create_keystore(keypair.export_private_key(), &random_pw)
@@ -1426,8 +1455,17 @@ fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
         let words: Vec<&str> = phrase.split_whitespace().collect();
         for row in 0..6 {
             let i = row * 4;
-            println!("    {:2}. {:<15} {:2}. {:<15} {:2}. {:<15} {:2}. {:<15}",
-                i+1, words[i], i+2, words[i+1], i+3, words[i+2], i+4, words[i+3]);
+            println!(
+                "    {:2}. {:<15} {:2}. {:<15} {:2}. {:<15} {:2}. {:<15}",
+                i + 1,
+                words[i],
+                i + 2,
+                words[i + 1],
+                i + 3,
+                words[i + 2],
+                i + 4,
+                words[i + 3]
+            );
         }
 
         println!();
@@ -1450,7 +1488,11 @@ fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
     // Step 3: Start mining
     println!("  Network: axiom-mainnet-v1");
     println!("  Peer:    {}", peer);
-    println!("  Wallet:  {}...{}", &miner_address[..14], &miner_address[miner_address.len()-8..]);
+    println!(
+        "  Wallet:  {}...{}",
+        &miner_address[..14],
+        &miner_address[miner_address.len() - 8..]
+    );
     println!("  Data:    {}", data_path.display());
     println!();
     println!("  ========================================================");

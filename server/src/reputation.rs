@@ -47,10 +47,7 @@ pub async fn award_reputation(
 }
 
 /// Apply monthly reputation decay
-pub async fn apply_monthly_decay(
-    db: &Database,
-    decay_percentage: i64,
-) -> anyhow::Result<u64> {
+pub async fn apply_monthly_decay(db: &Database, decay_percentage: i64) -> anyhow::Result<u64> {
     info!(
         "Applying {}% monthly reputation decay to all users",
         decay_percentage

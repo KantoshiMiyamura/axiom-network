@@ -20,7 +20,9 @@ impl WorkerRegistry {
     /// Open (or create) the worker registry.
     pub fn open<P: AsRef<Path>>(data_dir: P) -> Result<Self> {
         let path = data_dir.as_ref().join("ai_workers");
-        let keyspace = Config::new(path).open().map_err(|e| ComputeError::Storage(e.to_string()))?;
+        let keyspace = Config::new(path)
+            .open()
+            .map_err(|e| ComputeError::Storage(e.to_string()))?;
         let partition = keyspace
             .open_partition("workers", PartitionCreateOptions::default())
             .map_err(|e| ComputeError::Storage(e.to_string()))?;
@@ -31,7 +33,11 @@ impl WorkerRegistry {
     }
 
     /// Register a new worker with initial stake.
-    pub fn register(&self, worker_id: String, initial_stake_sat: u64) -> Result<WorkerRegistration> {
+    pub fn register(
+        &self,
+        worker_id: String,
+        initial_stake_sat: u64,
+    ) -> Result<WorkerRegistration> {
         if initial_stake_sat < MIN_WORKER_STAKE_SAT {
             return Err(ComputeError::InsufficientStake {
                 required: MIN_WORKER_STAKE_SAT,
@@ -39,8 +45,15 @@ impl WorkerRegistry {
             });
         }
 
-        if self.partition.contains_key(&worker_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
-            return Err(ComputeError::WorkerNotFound(format!("Worker {} already registered", worker_id)));
+        if self
+            .partition
+            .contains_key(&worker_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
+            return Err(ComputeError::WorkerNotFound(format!(
+                "Worker {} already registered",
+                worker_id
+            )));
         }
 
         let worker = WorkerRegistration {
@@ -60,7 +73,11 @@ impl WorkerRegistry {
 
     /// Get a worker by ID.
     pub fn get(&self, worker_id: &str) -> Result<Option<WorkerRegistration>> {
-        match self.partition.get(worker_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
+        match self
+            .partition
+            .get(worker_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
             Some(v) => {
                 let (worker, _) = bincode::serde::decode_from_slice::<WorkerRegistration, _>(
                     &v,
@@ -98,9 +115,10 @@ impl WorkerRegistry {
             .get(worker_id)?
             .ok_or_else(|| ComputeError::WorkerNotFound(worker_id.to_string()))?;
 
-        worker.stake_sat = worker.stake_sat.checked_add(amount_sat).ok_or_else(|| {
-            ComputeError::Storage("Stake overflow".to_string())
-        })?;
+        worker.stake_sat = worker
+            .stake_sat
+            .checked_add(amount_sat)
+            .ok_or_else(|| ComputeError::Storage("Stake overflow".to_string()))?;
 
         self.save(&worker)?;
         Ok(worker)
@@ -191,9 +209,11 @@ impl WorkerRegistry {
         }
 
         // Fallback to first worker
-        workers.first().map(|w| w.worker_id.clone()).map(Some).ok_or_else(|| {
-            ComputeError::Storage("Worker list corrupted".to_string())
-        })
+        workers
+            .first()
+            .map(|w| w.worker_id.clone())
+            .map(Some)
+            .ok_or_else(|| ComputeError::Storage("Worker list corrupted".to_string()))
     }
 
     // ── Internal Helpers ──────────────────────────────────────────────

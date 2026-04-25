@@ -5,8 +5,8 @@
 pub mod anomaly;
 pub mod block_index;
 pub mod checkpoints;
-mod config;
 pub mod community;
+mod config;
 mod fork;
 mod fork_choice_log;
 mod genesis;
@@ -22,10 +22,10 @@ pub mod watchdog;
 
 pub use anomaly::{AiAnalysisReport, AnomalyAlert, AnomalyDetector, EngineStats, Severity};
 pub use block_index::{BlockIndex, BlockIndexEntry, BlockSource, BlockValidationStatus};
-pub use community::CommunityService;
 pub use checkpoints::{
     assumevalid_height, is_before_last_checkpoint, verify_checkpoint, Checkpoint, CheckpointError,
 };
+pub use community::CommunityService;
 pub use config::{Config, ConfigError, Network};
 pub use fork::{ChainTip, ForkError, OrphanPool};
 pub use fork_choice_log::*;

@@ -8,11 +8,11 @@
 //! the dashboard state machine consistent. Wiring either to real I/O
 //! requires explicit operator review (see AI-CONSENSUS-AUDIT.md, R2).
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::sync::RwLock;
 
 /// Vulnerability severity levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -166,12 +166,7 @@ impl VulnerabilityDatabase {
     /// Get patch history
     pub async fn get_patch_history(&self, limit: usize) -> Vec<PatchResult> {
         let history = self.patch_history.read().await;
-        history
-            .iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        history.iter().rev().take(limit).cloned().collect()
     }
 }
 
@@ -246,7 +241,8 @@ impl PatchGenerator {
                     line_end: 250,
                     old_code: "max_reorg_depth = 100".to_string(),
                     new_code: "max_reorg_depth = 10".to_string(),
-                    reason: "Reduce maximum reorg depth to prevent deep reorganizations".to_string(),
+                    reason: "Reduce maximum reorg depth to prevent deep reorganizations"
+                        .to_string(),
                 }]
             }
             VulnerabilityType::FeeRatePrecision => {
@@ -256,7 +252,8 @@ impl PatchGenerator {
                     line_end: 620,
                     old_code: "fee_rate as f32".to_string(),
                     new_code: "fee_rate as f64".to_string(),
-                    reason: "Use f64 for fee rate calculations to prevent precision loss".to_string(),
+                    reason: "Use f64 for fee rate calculations to prevent precision loss"
+                        .to_string(),
                 }]
             }
             VulnerabilityType::RateLimiterBypass => {
@@ -276,7 +273,8 @@ impl PatchGenerator {
                     line_end: 350,
                     old_code: "max_ancestors = 1000".to_string(),
                     new_code: "max_ancestors = 100".to_string(),
-                    reason: "Reduce mempool ancestor limit to prevent memory exhaustion".to_string(),
+                    reason: "Reduce mempool ancestor limit to prevent memory exhaustion"
+                        .to_string(),
                 }]
             }
             VulnerabilityType::RangeProofMemory => {
@@ -285,8 +283,10 @@ impl PatchGenerator {
                     line_start: 700,
                     line_end: 750,
                     old_code: "deserialize_range_proof(data)".to_string(),
-                    new_code: "check_range_proof_size(data)?; deserialize_range_proof(data)".to_string(),
-                    reason: "Check range proof size before deserialization to prevent DoS".to_string(),
+                    new_code: "check_range_proof_size(data)?; deserialize_range_proof(data)"
+                        .to_string(),
+                    reason: "Check range proof size before deserialization to prevent DoS"
+                        .to_string(),
                 }]
             }
         };
@@ -314,7 +314,10 @@ pub struct ConsensusEngine {
 
 impl ConsensusEngine {
     pub fn new(node_id: String, peer_count: usize) -> Self {
-        ConsensusEngine { node_id, peer_count }
+        ConsensusEngine {
+            node_id,
+            peer_count,
+        }
     }
 
     /// Stub. Patch voting never escapes this process — see module doc.
@@ -417,7 +420,9 @@ impl SelfHealingSystem {
             rollback_available: true,
         };
 
-        self.vulnerability_db.record_patch_result(result.clone()).await;
+        self.vulnerability_db
+            .record_patch_result(result.clone())
+            .await;
 
         Ok(result)
     }
@@ -465,7 +470,9 @@ impl SelfHealingSystem {
                 rollback_available: !stack.is_empty(),
             };
 
-            self.vulnerability_db.record_patch_result(result.clone()).await;
+            self.vulnerability_db
+                .record_patch_result(result.clone())
+                .await;
 
             Ok(result)
         } else {

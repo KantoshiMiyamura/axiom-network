@@ -122,7 +122,8 @@ impl WalletCache {
                 address: addr.into(),
             });
         }
-        self.transactions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        self.transactions
+            .sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         self.touch();
     }
 
@@ -131,7 +132,10 @@ impl WalletCache {
     }
 
     pub fn get_txs(&self, addr: &str) -> Vec<&CachedTx> {
-        self.transactions.iter().filter(|t| t.address == addr).collect()
+        self.transactions
+            .iter()
+            .filter(|t| t.address == addr)
+            .collect()
     }
 
     /// Remove all cached data for a specific account address.

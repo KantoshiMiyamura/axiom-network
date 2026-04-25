@@ -14,7 +14,10 @@ pub struct UnlockRateLimiter {
 
 impl UnlockRateLimiter {
     pub fn new() -> Self {
-        Self { failures: 0, locked_until: None }
+        Self {
+            failures: 0,
+            locked_until: None,
+        }
     }
 
     pub fn check(&self) -> Result<(), u64> {
@@ -76,8 +79,7 @@ pub fn binary_checksum() -> Option<String> {
 
 /// Copy text to clipboard and spawn a thread to clear it after timeout.
 pub fn clipboard_copy_and_clear(text: &str, clear_after_ms: Option<u64>) -> Result<(), String> {
-    let mut clipboard =
-        arboard::Clipboard::new().map_err(|e| format!("clipboard init: {e}"))?;
+    let mut clipboard = arboard::Clipboard::new().map_err(|e| format!("clipboard init: {e}"))?;
     clipboard
         .set_text(text)
         .map_err(|e| format!("clipboard set: {e}"))?;

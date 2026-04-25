@@ -128,7 +128,10 @@ impl Config {
         let cors_allowed_origins: Vec<String> = if cors_origins_str.is_empty() {
             vec![] // empty = localhost-only default
         } else {
-            cors_origins_str.split(',').map(|s| s.trim().to_string()).collect()
+            cors_origins_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .collect()
         };
 
         // HTTPS enforcement: always on in production
@@ -141,7 +144,7 @@ impl Config {
             database_url,
             environment,
             jwt_secret,
-            session_token_expiry_secs: 900,   // 15 minutes
+            session_token_expiry_secs: 900,    // 15 minutes
             refresh_token_expiry_secs: 604800, // 7 days
             challenge_expiry_secs: 300,        // 5 minutes
             rate_limit_challenge_per_minute: 10,

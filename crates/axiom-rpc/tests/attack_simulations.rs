@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Kantoshi Miyamura
+#![allow(clippy::assertions_on_constants)]
 //
 //! Adversarial Attack Simulations for AI Compute Protocol (Phase AI-3.75)
 //!
@@ -16,9 +17,8 @@ use tempfile::TempDir;
 
 fn setup_protocol() -> (TempDir, Arc<ComputeProtocol>) {
     let data_dir = TempDir::new().unwrap();
-    let protocol = Arc::new(
-        ComputeProtocol::open(data_dir.path()).expect("failed to open protocol")
-    );
+    let protocol =
+        Arc::new(ComputeProtocol::open(data_dir.path()).expect("failed to open protocol"));
     (data_dir, protocol)
 }
 
@@ -54,17 +54,23 @@ fn attack_worker_verifier_collusion_submit_fake_result() {
         worker_id: "colluder_worker".to_string(),
         initial_stake_sat: 10000,
     };
-    protocol.register_worker(worker_req).expect("worker register");
+    protocol
+        .register_worker(worker_req)
+        .expect("worker register");
 
     let verifier_req = axiom_ai::RegisterVerifierRequest {
         verifier_id: "colluder_verifier".to_string(),
         initial_stake_sat: 10000,
     };
-    protocol.register_verifier(verifier_req).expect("verifier register");
+    protocol
+        .register_verifier(verifier_req)
+        .expect("verifier register");
 
     // Step 3: Assign and acknowledge
     protocol.assign_job(&job.job_id).expect("assign");
-    protocol.acknowledge_job(&job.job_id, "colluder_worker").expect("ack");
+    protocol
+        .acknowledge_job(&job.job_id, "colluder_worker")
+        .expect("ack");
 
     // Step 4: ATTACK - Submit INCORRECT result (colluder knows it's wrong)
     let incorrect_result_hash = "fake".repeat(16); // Known to be incorrect
@@ -81,7 +87,10 @@ fn attack_worker_verifier_collusion_submit_fake_result() {
     let result = protocol.submit_result(result_req);
 
     // DEFENSE HOLDS: Commitment validation prevents fake result submission
-    assert!(result.is_err(), "DEFENSE ACTIVE: Commitment mismatch prevents fake result");
+    assert!(
+        result.is_err(),
+        "DEFENSE ACTIVE: Commitment mismatch prevents fake result"
+    );
 
     // IMPACT: Attack fails at first step because:
     // - Worker cannot submit result without correct commitment hash
@@ -112,21 +121,26 @@ fn attack_colluder_blocks_honest_verifier_challenge() {
         deadline_secs: 3600,
         result_size_limit_bytes: 1_000_000,
     };
-    let job = protocol.submit_job(job_req).expect("job submit");
+    let _job = protocol.submit_job(job_req).expect("job submit");
 
     // Register honest verifier (not colluding)
     let honest_verifier_req = axiom_ai::RegisterVerifierRequest {
         verifier_id: "honest_verifier".to_string(),
         initial_stake_sat: 10000,
     };
-    protocol.register_verifier(honest_verifier_req).expect("verifier register");
+    protocol
+        .register_verifier(honest_verifier_req)
+        .expect("verifier register");
 
     // Verifier sampling is deterministic and based on job_id hash
     // The assignment cannot be influenced by job requester or worker
     // VERIFIED: in protocol.rs, verifier selection uses SHA-256(job_id)
     // Attacker cannot change this because job_id is fixed at submission time
 
-    assert!(true, "DEFENSE HOLDS: Verifier sampling is deterministic, not colluder-controlled");
+    assert!(
+        true,
+        "DEFENSE HOLDS: Verifier sampling is deterministic, not colluder-controlled"
+    );
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -186,11 +200,19 @@ fn attack_sybil_100_workers_minimal_stake() {
 
     println!("Sybil Economics:");
     println!("  Capital: {} sat", total_capital);
-    println!("  Expected reward (100 jobs): {} sat", expected_reward_100_jobs);
-    println!("  ROI: {:.1}%", (expected_reward_100_jobs as f64 / total_capital as f64) * 100.0);
+    println!(
+        "  Expected reward (100 jobs): {} sat",
+        expected_reward_100_jobs
+    );
+    println!(
+        "  ROI: {:.1}%",
+        (expected_reward_100_jobs as f64 / total_capital as f64) * 100.0
+    );
 
-    assert!(expected_reward_100_jobs < total_capital,
-            "Sybil attack unprofitable due to economics");
+    assert!(
+        expected_reward_100_jobs < total_capital,
+        "Sybil attack unprofitable due to economics"
+    );
 }
 
 #[test]
@@ -280,11 +302,15 @@ fn attack_economic_maximize_profit_minimal_compute() {
         worker_id: "attacker_worker".to_string(),
         initial_stake_sat: 1000,
     };
-    protocol.register_worker(worker_req).expect("worker register");
+    protocol
+        .register_worker(worker_req)
+        .expect("worker register");
 
     // Step 3: Get assigned, submit result
     protocol.assign_job(&job.job_id).expect("assign");
-    protocol.acknowledge_job(&job.job_id, "attacker_worker").expect("ack");
+    protocol
+        .acknowledge_job(&job.job_id, "attacker_worker")
+        .expect("ack");
 
     // DEFENSE 2: Oversized result rejected
     let result_req = axiom_ai::SubmitResultRequest {
@@ -292,7 +318,7 @@ fn attack_economic_maximize_profit_minimal_compute() {
         worker_address: "attacker_worker".to_string(),
         result_hash: "c".repeat(64),
         result_size_bytes: 2_000_000, // Exceeds 1MB limit
-        compute_time_ms: 0, // Claim instant computation
+        compute_time_ms: 0,           // Claim instant computation
         commitment_hash: "d".repeat(64),
         worker_signature: "e".repeat(128),
     };
@@ -305,8 +331,15 @@ fn attack_economic_maximize_profit_minimal_compute() {
     // Stake required: 1000 sat
     // Net: -563 sat per job
     let worker_reward_min = (546 * 8000) / 10000; // 80% of min fee
-    assert!(worker_reward_min < 1000, "Economics unfavorable for attacker");
-    println!("Min fee profit: {} - 1000 stake = {}", worker_reward_min, worker_reward_min as i64 - 1000);
+    assert!(
+        worker_reward_min < 1000,
+        "Economics unfavorable for attacker"
+    );
+    println!(
+        "Min fee profit: {} - 1000 stake = {}",
+        worker_reward_min,
+        worker_reward_min as i64 - 1000
+    );
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -352,9 +385,12 @@ fn stress_test_concurrent_jobs_per_address_limit() {
     println!("  Successful: {} jobs", successful_jobs);
     println!("  Max allowed: {} per address", MAX_CONCURRENT);
 
-    assert!(successful_jobs <= MAX_CONCURRENT,
-            "Concurrent jobs per address limit enforced (max={}, got={})",
-            MAX_CONCURRENT, successful_jobs);
+    assert!(
+        successful_jobs <= MAX_CONCURRENT,
+        "Concurrent jobs per address limit enforced (max={}, got={})",
+        MAX_CONCURRENT,
+        successful_jobs
+    );
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -384,7 +420,7 @@ fn attack_replay_duplicate_job_id() {
 
     // First submission
     let job1 = protocol.submit_job(req1).expect("First submit");
-    let job1_id = job1.job_id.clone();
+    let _job1_id = job1.job_id.clone();
 
     // Second submission (identical parameters)
     let result2 = protocol.submit_job(req2);
@@ -438,7 +474,10 @@ fn attack_race_condition_concurrent_assignment() {
 
     // Worker 2 tries to acknowledge (should fail - already assigned to worker 1)
     let ack2 = protocol.acknowledge_job(&job.job_id, "worker_2");
-    assert!(ack2.is_err(), "Worker 2 acknowledge fails - already assigned");
+    assert!(
+        ack2.is_err(),
+        "Worker 2 acknowledge fails - already assigned"
+    );
 
     println!("Race condition protection: Invalid state transitions blocked");
 }
@@ -503,7 +542,9 @@ fn failure_recovery_job_state_persistence() {
         worker_id: "worker_1".to_string(),
         initial_stake_sat: 10000,
     };
-    protocol.register_worker(worker_req).expect("worker register");
+    protocol
+        .register_worker(worker_req)
+        .expect("worker register");
 
     // Progress job
     protocol.assign_job(&job_id).expect("assign");
@@ -512,16 +553,23 @@ fn failure_recovery_job_state_persistence() {
     drop(protocol);
 
     // Restart protocol (reconnect to same data dir)
-    let protocol_restarted = Arc::new(
-        ComputeProtocol::open(data_dir.path()).expect("failed to reopen protocol")
-    );
+    let protocol_restarted =
+        Arc::new(ComputeProtocol::open(data_dir.path()).expect("failed to reopen protocol"));
 
     // Verify state was persisted
     let recovered_job = protocol_restarted.get_job(&job_id).expect("query job");
-    assert!(recovered_job.is_some(), "Job state persisted across restart");
+    assert!(
+        recovered_job.is_some(),
+        "Job state persisted across restart"
+    );
 
-    let recovered_worker = protocol_restarted.get_worker("worker_1").expect("query worker");
-    assert!(recovered_worker.is_some(), "Worker state persisted across restart");
+    let recovered_worker = protocol_restarted
+        .get_worker("worker_1")
+        .expect("query worker");
+    assert!(
+        recovered_worker.is_some(),
+        "Worker state persisted across restart"
+    );
 
     println!("Failure recovery: State persists across node restart");
 }

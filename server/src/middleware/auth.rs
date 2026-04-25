@@ -9,7 +9,7 @@ use axum::{
 };
 use serde_json::json;
 use std::sync::Arc;
-use tracing::{warn, debug};
+use tracing::{debug, warn};
 
 use crate::state::AppState;
 
@@ -68,8 +68,14 @@ pub async fn auth_middleware(
     };
 
     // Check JWT revocation (blacklist)
-    if state.is_token_revoked(&token_payload.claims.session_id).await {
-        warn!("Revoked token used: session {}", token_payload.claims.session_id);
+    if state
+        .is_token_revoked(&token_payload.claims.session_id)
+        .await
+    {
+        warn!(
+            "Revoked token used: session {}",
+            token_payload.claims.session_id
+        );
         return (
             StatusCode::UNAUTHORIZED,
             Json(json!({

@@ -7,11 +7,11 @@
 // engine) and exposes them via dashboards. It MUST NOT mutate consensus,
 // mempool, or peer-set state.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::sync::RwLock;
 
 /// Security dashboard metrics
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,7 +190,12 @@ impl AuditLogger {
     }
 
     /// Log an event
-    pub async fn log(&self, event_type: AuditEventType, description: String, severity: AuditSeverity) {
+    pub async fn log(
+        &self,
+        event_type: AuditEventType,
+        description: String,
+        severity: AuditSeverity,
+    ) {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -247,16 +252,15 @@ impl AuditLogger {
     /// Get audit log
     pub async fn get_log(&self, limit: usize) -> Vec<AuditEvent> {
         let events = self.events.read().await;
-        events
-            .iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        events.iter().rev().take(limit).cloned().collect()
     }
 
     /// Get events by type
-    pub async fn get_events_by_type(&self, event_type: AuditEventType, limit: usize) -> Vec<AuditEvent> {
+    pub async fn get_events_by_type(
+        &self,
+        event_type: AuditEventType,
+        limit: usize,
+    ) -> Vec<AuditEvent> {
         let events = self.events.read().await;
         events
             .iter()
@@ -268,7 +272,11 @@ impl AuditLogger {
     }
 
     /// Get events by severity
-    pub async fn get_events_by_severity(&self, severity: AuditSeverity, limit: usize) -> Vec<AuditEvent> {
+    pub async fn get_events_by_severity(
+        &self,
+        severity: AuditSeverity,
+        limit: usize,
+    ) -> Vec<AuditEvent> {
         let events = self.events.read().await;
         events
             .iter()
@@ -334,7 +342,11 @@ impl AlertManager {
     }
 
     /// Acknowledge alert
-    pub async fn acknowledge_alert(&self, alert_id: &str, acknowledged_by: String) -> Result<(), String> {
+    pub async fn acknowledge_alert(
+        &self,
+        alert_id: &str,
+        acknowledged_by: String,
+    ) -> Result<(), String> {
         let mut alerts = self.alerts.write().await;
 
         for alert in alerts.iter_mut() {
@@ -357,22 +369,13 @@ impl AlertManager {
     /// Get active alerts
     pub async fn get_active_alerts(&self) -> Vec<Alert> {
         let alerts = self.alerts.read().await;
-        alerts
-            .iter()
-            .filter(|a| !a.acknowledged)
-            .cloned()
-            .collect()
+        alerts.iter().filter(|a| !a.acknowledged).cloned().collect()
     }
 
     /// Get all alerts
     pub async fn get_all_alerts(&self, limit: usize) -> Vec<Alert> {
         let alerts = self.alerts.read().await;
-        alerts
-            .iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        alerts.iter().rev().take(limit).cloned().collect()
     }
 }
 

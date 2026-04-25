@@ -150,7 +150,8 @@ impl<'a> ReorgEngine<'a> {
         })?;
 
         for tx in &block.transactions {
-            let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+            let txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
 
             for (index, _) in tx.outputs.iter().enumerate() {
                 batch.delete_utxo(&txid, index as u32);
@@ -173,8 +174,10 @@ mod tests {
 
     fn create_test_node() -> (TempDir, Node) {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = Config::default();
-        config.data_dir = temp_dir.path().to_path_buf();
+        let config = Config {
+            data_dir: temp_dir.path().to_path_buf(),
+            ..Config::default()
+        };
         let node = Node::new(config).unwrap();
         (temp_dir, node)
     }

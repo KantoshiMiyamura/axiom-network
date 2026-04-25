@@ -192,10 +192,7 @@ impl P2PNetwork {
                         disc.is_self(&seed_addr)
                     };
                     if is_self {
-                        info!(
-                            "PEER_SEED_SELF_CONFIRMED: {} — not reconnecting",
-                            seed_addr
-                        );
+                        info!("PEER_SEED_SELF_CONFIRMED: {} — not reconnecting", seed_addr);
                         return;
                     }
 
@@ -447,7 +444,8 @@ impl P2PNetwork {
                                         "HANDSHAKE_SELF: peer={} is this node — marking addr as self",
                                         addr
                                     );
-                                    let mut disc = discovery.lock().unwrap_or_else(|e| e.into_inner());
+                                    let mut disc =
+                                        discovery.lock().unwrap_or_else(|e| e.into_inner());
                                     disc.mark_self(addr);
                                 } else {
                                     tracing::warn!("HANDSHAKE_ERROR: peer={}, error={}", addr, e);

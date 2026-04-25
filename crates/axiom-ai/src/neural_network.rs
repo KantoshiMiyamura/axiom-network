@@ -1,10 +1,10 @@
 // Copyright (c) 2026 Kantoshi Miyamura
 // AxiomMind v2 - Distributed Neural Network
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 
 /// Lightweight neural model for anomaly detection
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,7 +120,7 @@ mod tests {
         let model = NeuralModel::new(5, 16, 1);
         let input = vec![0.1, 0.2, 0.3, 0.4, 0.5];
         let output = model.infer(&input);
-        assert!(output >= 0.0 && output <= 1.0);
+        assert!((0.0..=1.0).contains(&output));
     }
 
     #[tokio::test]
@@ -128,6 +128,6 @@ mod tests {
         let dnn = DistributedNeuralNetwork::new("node1".to_string(), 5);
         let input = vec![0.1, 0.2, 0.3, 0.4, 0.5];
         let score = dnn.detect_anomaly_local(&input).await;
-        assert!(score >= 0.0 && score <= 1.0);
+        assert!((0.0..=1.0).contains(&score));
     }
 }

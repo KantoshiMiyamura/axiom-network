@@ -19,9 +19,11 @@ use tempfile::TempDir;
 
 fn make_node() -> (TempDir, Node) {
     let dir = TempDir::new().unwrap();
-    let mut cfg = Config::default();
-    cfg.data_dir = dir.path().to_path_buf();
-    cfg.network = Network::Dev;
+    let cfg = Config {
+        data_dir: dir.path().to_path_buf(),
+        network: Network::Dev,
+        ..Default::default()
+    };
     (dir, Node::new(cfg).unwrap())
 }
 

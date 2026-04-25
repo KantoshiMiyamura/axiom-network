@@ -28,33 +28,33 @@ pub enum AlertKind {
 impl AlertKind {
     pub fn severity(&self) -> AlertSeverity {
         match self {
-            Self::RapidBlockProduction  => AlertSeverity::Critical,
+            Self::RapidBlockProduction => AlertSeverity::Critical,
             Self::TimestampManipulation => AlertSeverity::Critical,
-            Self::DeepReorgDetected     => AlertSeverity::Critical,
-            Self::MempoolFlooding       => AlertSeverity::Warning,
-            Self::FeeMarketAnomaly      => AlertSeverity::Warning,
+            Self::DeepReorgDetected => AlertSeverity::Critical,
+            Self::MempoolFlooding => AlertSeverity::Warning,
+            Self::FeeMarketAnomaly => AlertSeverity::Warning,
             Self::DifficultyDropAnomaly => AlertSeverity::Warning,
-            Self::HashrateDominance     => AlertSeverity::Critical,
-            Self::PeerDiversityLow      => AlertSeverity::Warning,
+            Self::HashrateDominance => AlertSeverity::Critical,
+            Self::PeerDiversityLow => AlertSeverity::Warning,
             Self::TransactionAnomalySpike => AlertSeverity::Info,
-            Self::NetworkStall          => AlertSeverity::Critical,
-            Self::SelfishMining         => AlertSeverity::Critical,
+            Self::NetworkStall => AlertSeverity::Critical,
+            Self::SelfishMining => AlertSeverity::Critical,
         }
     }
 
     pub fn threat_level(&self) -> ThreatLevel {
         match self {
-            Self::RapidBlockProduction  => ThreatLevel::Critical,
+            Self::RapidBlockProduction => ThreatLevel::Critical,
             Self::TimestampManipulation => ThreatLevel::High,
-            Self::DeepReorgDetected     => ThreatLevel::Critical,
-            Self::MempoolFlooding       => ThreatLevel::Medium,
-            Self::FeeMarketAnomaly      => ThreatLevel::Medium,
+            Self::DeepReorgDetected => ThreatLevel::Critical,
+            Self::MempoolFlooding => ThreatLevel::Medium,
+            Self::FeeMarketAnomaly => ThreatLevel::Medium,
             Self::DifficultyDropAnomaly => ThreatLevel::High,
-            Self::HashrateDominance     => ThreatLevel::High,
-            Self::PeerDiversityLow      => ThreatLevel::Medium,
+            Self::HashrateDominance => ThreatLevel::High,
+            Self::PeerDiversityLow => ThreatLevel::Medium,
             Self::TransactionAnomalySpike => ThreatLevel::Low,
-            Self::NetworkStall          => ThreatLevel::High,
-            Self::SelfishMining         => ThreatLevel::High,
+            Self::NetworkStall => ThreatLevel::High,
+            Self::SelfishMining => ThreatLevel::High,
         }
     }
 
@@ -87,17 +87,17 @@ impl AlertKind {
 
     pub fn code(&self) -> &'static str {
         match self {
-            Self::RapidBlockProduction  => "RAPID_BLOCKS",
+            Self::RapidBlockProduction => "RAPID_BLOCKS",
             Self::TimestampManipulation => "TS_MANIP",
-            Self::DeepReorgDetected     => "DEEP_REORG",
-            Self::MempoolFlooding       => "MEMPOOL_FLOOD",
-            Self::FeeMarketAnomaly      => "FEE_ANOMALY",
+            Self::DeepReorgDetected => "DEEP_REORG",
+            Self::MempoolFlooding => "MEMPOOL_FLOOD",
+            Self::FeeMarketAnomaly => "FEE_ANOMALY",
             Self::DifficultyDropAnomaly => "DIFF_DROP",
-            Self::HashrateDominance     => "HASH_DOMINANCE",
-            Self::PeerDiversityLow      => "PEER_LOW",
+            Self::HashrateDominance => "HASH_DOMINANCE",
+            Self::PeerDiversityLow => "PEER_LOW",
             Self::TransactionAnomalySpike => "TX_SPIKE",
-            Self::NetworkStall          => "NET_STALL",
-            Self::SelfishMining         => "SELFISH_MINING",
+            Self::NetworkStall => "NET_STALL",
+            Self::SelfishMining => "SELFISH_MINING",
         }
     }
 }

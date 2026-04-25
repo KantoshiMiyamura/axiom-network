@@ -91,11 +91,7 @@ impl ApiClient {
     }
 
     /// List messages in a channel.
-    pub async fn list_messages(
-        &self,
-        channel: &str,
-        limit: u32,
-    ) -> Result<Vec<serde_json::Value>> {
+    pub async fn list_messages(&self, channel: &str, limit: u32) -> Result<Vec<serde_json::Value>> {
         let resp = self
             .client
             .get(format!(

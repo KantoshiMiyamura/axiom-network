@@ -37,9 +37,10 @@ impl VersionedUtxoEntry {
     /// Try to deserialize, handling both versioned and legacy (unversioned) formats.
     pub fn deserialize(data: &[u8]) -> std::result::Result<UtxoEntry, String> {
         // Try versioned format first
-        if let Ok((versioned, _)) =
-            bincode::serde::decode_from_slice::<VersionedUtxoEntry, _>(data, bincode::config::standard())
-        {
+        if let Ok((versioned, _)) = bincode::serde::decode_from_slice::<VersionedUtxoEntry, _>(
+            data,
+            bincode::config::standard(),
+        ) {
             if versioned.version == Self::CURRENT_VERSION {
                 return Ok(versioned.entry);
             } else {
@@ -98,8 +99,8 @@ impl<'a> UtxoSet<'a> {
         let key = keys::utxo_key(txid, output_index);
         match self.db.partition().get(key)? {
             Some(value) => {
-                let entry = VersionedUtxoEntry::deserialize(&value)
-                    .map_err(Error::Deserialization)?;
+                let entry =
+                    VersionedUtxoEntry::deserialize(&value).map_err(Error::Deserialization)?;
                 Ok(Some(entry))
             }
             None => Ok(None),
@@ -138,8 +139,7 @@ impl<'a> UtxoSet<'a> {
             index_bytes.copy_from_slice(&key[33..37]);
             let output_index = u32::from_le_bytes(index_bytes);
 
-            let entry = VersionedUtxoEntry::deserialize(&value)
-                .map_err(Error::Deserialization)?;
+            let entry = VersionedUtxoEntry::deserialize(&value).map_err(Error::Deserialization)?;
 
             if entry.pubkey_hash == *pubkey_hash {
                 results.push((txid, output_index, entry));

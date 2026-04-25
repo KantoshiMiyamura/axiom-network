@@ -85,7 +85,13 @@ impl Role {
 
     /// All roles in order
     pub fn all() -> &'static [Role] {
-        &[Role::Member, Role::Worker, Role::Verifier, Role::Moderator, Role::CoreDev]
+        &[
+            Role::Member,
+            Role::Worker,
+            Role::Verifier,
+            Role::Moderator,
+            Role::CoreDev,
+        ]
     }
 
     /// Get role from string

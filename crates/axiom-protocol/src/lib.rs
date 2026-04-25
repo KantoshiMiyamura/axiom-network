@@ -7,7 +7,7 @@ mod serialize;
 mod transaction;
 
 pub use error::{Error, Result};
-pub use serialize::{deserialize_transaction, serialize_transaction, serialize_transaction_unsigned};
-pub use transaction::{
-    ConfidentialTxOutput, Transaction, TransactionType, TxInput, TxOutput,
+pub use serialize::{
+    deserialize_transaction, serialize_transaction, serialize_transaction_unsigned,
 };
+pub use transaction::{ConfidentialTxOutput, Transaction, TransactionType, TxInput, TxOutput};

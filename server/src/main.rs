@@ -15,9 +15,9 @@
 
 use axum::{
     extract::DefaultBodyLimit,
+    middleware as axum_middleware,
     routing::{get, post},
     Router,
-    middleware as axum_middleware,
 };
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -83,10 +83,19 @@ fn build_router(state: Arc<AppState>) -> Router {
     let protected_routes = Router::new()
         // User endpoints
         .route("/users/:address", get(handlers::users::get_user))
-        .route("/users/:address/reputation", get(handlers::users::get_reputation))
+        .route(
+            "/users/:address/reputation",
+            get(handlers::users::get_reputation),
+        )
         // Message endpoints
-        .route("/channels/:channel/messages", get(handlers::messages::list_messages))
-        .route("/channels/:channel/messages", post(handlers::messages::post_message))
+        .route(
+            "/channels/:channel/messages",
+            get(handlers::messages::list_messages),
+        )
+        .route(
+            "/channels/:channel/messages",
+            post(handlers::messages::post_message),
+        )
         .route("/messages/:id", get(handlers::messages::get_message))
         // Job endpoints
         .route("/jobs", get(handlers::jobs::list_jobs))
@@ -98,29 +107,37 @@ fn build_router(state: Arc<AppState>) -> Router {
         .route("/disputes", post(handlers::disputes::file_dispute))
         .route("/disputes/:id", get(handlers::disputes::get_dispute))
         // Moderation endpoints (requires Moderator+ role)
-        .route("/moderation/actions", post(handlers::moderation::create_action))
-        .route("/moderation/actions", get(handlers::moderation::list_actions))
+        .route(
+            "/moderation/actions",
+            post(handlers::moderation::create_action),
+        )
+        .route(
+            "/moderation/actions",
+            get(handlers::moderation::list_actions),
+        )
         // Audit endpoints (requires CoreDev role)
         .route("/audit/logs", get(handlers::audit::list_audit_logs))
         // Role management endpoints (requires CoreDev role)
-        .route("/roles/:address/grant/:role", post(handlers::roles::grant_role))
-        .route("/roles/:address/revoke/:role", post(handlers::roles::revoke_role))
+        .route(
+            "/roles/:address/grant/:role",
+            post(handlers::roles::grant_role),
+        )
+        .route(
+            "/roles/:address/revoke/:role",
+            post(handlers::roles::revoke_role),
+        )
         .route("/roles/:address/ban", post(handlers::roles::ban_user))
         .route("/roles/:address/unban", post(handlers::roles::unban_user))
         // Axum executes layers in reverse order: last .layer() = outermost (runs first).
         // permission_middleware must run AFTER auth_middleware (needs UserContext),
         // so permission_middleware is added first (inner) and auth_middleware second (outer).
-        .layer(
-            axum_middleware::from_fn(
-                crate::middleware::permissions::permission_middleware,
-            )
-        )
-        .layer(
-            axum_middleware::from_fn_with_state(
-                state.clone(),
-                crate::middleware::auth::auth_middleware,
-            )
-        )
+        .layer(axum_middleware::from_fn(
+            crate::middleware::permissions::permission_middleware,
+        ))
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            crate::middleware::auth::auth_middleware,
+        ))
         .with_state(state.clone());
 
     Router::new()
@@ -174,14 +191,12 @@ fn build_cors_layer(config: &config::Config) -> CorsLayer {
     if config.cors_allowed_origins.is_empty() {
         // Default: localhost-only (dev and staging)
         CorsLayer::new()
-            .allow_origin(AllowOrigin::predicate(
-                |origin: &HeaderValue, _| {
-                    origin.as_bytes().starts_with(b"http://localhost")
-                        || origin.as_bytes().starts_with(b"http://127.0.0.1")
-                        || origin.as_bytes().starts_with(b"https://localhost")
-                        || origin.as_bytes().starts_with(b"https://127.0.0.1")
-                },
-            ))
+            .allow_origin(AllowOrigin::predicate(|origin: &HeaderValue, _| {
+                origin.as_bytes().starts_with(b"http://localhost")
+                    || origin.as_bytes().starts_with(b"http://127.0.0.1")
+                    || origin.as_bytes().starts_with(b"https://localhost")
+                    || origin.as_bytes().starts_with(b"https://127.0.0.1")
+            }))
             .allow_methods(allowed_methods)
             .allow_headers(allowed_headers)
     } else {

@@ -7,7 +7,7 @@
 
 #![cfg(feature = "axiom-ct")]
 
-use axiom_ct::{AxiomRangeProof, BlindingFactor, Commitment, sum_blinding_factors};
+use axiom_ct::{sum_blinding_factors, AxiomRangeProof, BlindingFactor, Commitment};
 use axiom_node::validation::{TransactionValidator, ValidationError};
 use axiom_primitives::{Amount, Hash256, PublicKey, Signature};
 use axiom_protocol::{ConfidentialTxOutput, Transaction, TxInput, TxOutput};
@@ -84,7 +84,13 @@ fn build_signed_conf_tx(
         pubkey,
     }];
 
-    Transaction::new_confidential(signed_inputs, conf_outputs, nonce, 0, Some(balance_commitment))
+    Transaction::new_confidential(
+        signed_inputs,
+        conf_outputs,
+        nonce,
+        0,
+        Some(balance_commitment),
+    )
 }
 
 /// Seed the UTXO set with a plaintext UTXO and return the txid.
@@ -156,7 +162,10 @@ fn test_tampered_commitment_fails_balance_check() {
 
     let validator = TransactionValidator::new(utxo_set, nonce_tracker, 0);
     let result = validator.validate_transaction(&tx);
-    assert!(result.is_err(), "tampered commitment should fail validation");
+    assert!(
+        result.is_err(),
+        "tampered commitment should fail validation"
+    );
 }
 
 /// A confidential transaction with a corrupted range proof must fail.
@@ -185,7 +194,10 @@ fn test_corrupted_range_proof_fails() {
 
     let validator = TransactionValidator::new(utxo_set, nonce_tracker, 0);
     let result = validator.validate_transaction(&tx);
-    assert!(result.is_err(), "corrupted range proof should fail validation");
+    assert!(
+        result.is_err(),
+        "corrupted range proof should fail validation"
+    );
     assert!(
         matches!(result.unwrap_err(), ValidationError::ConfidentialTx(_)),
         "error must be ConfidentialTx variant"
@@ -212,11 +224,20 @@ fn test_wrong_balance_commitment_fails() {
     let wrong_r = BlindingFactor::random();
     let wrong_balance_commitment = Commitment::commit(12345, &wrong_r).to_bytes();
 
-    let tx = build_signed_conf_tx(&keypair, vec![conf_output], wrong_balance_commitment, txid, 1);
+    let tx = build_signed_conf_tx(
+        &keypair,
+        vec![conf_output],
+        wrong_balance_commitment,
+        txid,
+        1,
+    );
 
     let validator = TransactionValidator::new(utxo_set, nonce_tracker, 0);
     let result = validator.validate_transaction(&tx);
-    assert!(result.is_err(), "wrong balance_commitment should fail validation");
+    assert!(
+        result.is_err(),
+        "wrong balance_commitment should fail validation"
+    );
     assert!(
         matches!(result.unwrap_err(), ValidationError::ConfidentialTx(_)),
         "error must be ConfidentialTx variant"
@@ -286,19 +307,18 @@ fn test_no_confidential_outputs_fails() {
 
     // Sign a tx with no confidential outputs.
     let pubkey_s = keypair.public_key_struct().unwrap();
-    let unsigned_tx =
-        Transaction::new_confidential(
-            vec![TxInput {
-                prev_tx_hash: txid,
-                prev_output_index: 0,
-                signature: Signature::placeholder(),
-                pubkey: pubkey_s.clone(),
-            }],
-            vec![], // no confidential outputs
-            1,
-            0,
-            Some([0u8; 32]),
-        );
+    let unsigned_tx = Transaction::new_confidential(
+        vec![TxInput {
+            prev_tx_hash: txid,
+            prev_output_index: 0,
+            signature: Signature::placeholder(),
+            pubkey: pubkey_s.clone(),
+        }],
+        vec![], // no confidential outputs
+        1,
+        0,
+        Some([0u8; 32]),
+    );
     let tx_data = axiom_protocol::serialize_transaction(&unsigned_tx);
     let sign_hash = axiom_crypto::transaction_signing_hash("", &tx_data);
     let signature = keypair.sign_struct(sign_hash.as_bytes()).unwrap();
@@ -406,7 +426,7 @@ fn test_confidential_tx_serialize_deserialize_roundtrip() {
 
 /// Tests for new axiom-ct helper functions.
 mod ct_helpers {
-    use axiom_ct::{BlindingFactor, Commitment, sum_blinding_factors};
+    use axiom_ct::{sum_blinding_factors, BlindingFactor, Commitment};
 
     #[test]
     fn test_sum_blinding_factors_empty_is_zero() {

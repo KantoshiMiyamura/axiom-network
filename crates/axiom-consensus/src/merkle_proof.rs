@@ -45,7 +45,11 @@ pub fn generate_proof(tx_hashes: &[Hash256], tx_index: usize) -> Option<MerklePr
             level.push(last);
         }
 
-        let sibling_index = if index.is_multiple_of(2) { index + 1 } else { index - 1 };
+        let sibling_index = if index.is_multiple_of(2) {
+            index + 1
+        } else {
+            index - 1
+        };
         let is_right = index.is_multiple_of(2);
 
         proof_path.push(ProofStep {

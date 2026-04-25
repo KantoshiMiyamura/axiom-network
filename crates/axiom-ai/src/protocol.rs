@@ -6,9 +6,9 @@
 //! All protocol state transitions and validations happen here.
 
 use crate::compute_types::*;
-use crate::worker::WorkerRegistry;
-use crate::verifier::VerifierRegistry;
 use crate::settlement::SettlementEngine;
+use crate::verifier::VerifierRegistry;
+use crate::worker::WorkerRegistry;
 use fjall::{Config, PartitionCreateOptions};
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -27,7 +27,9 @@ impl ComputeProtocol {
     /// Open (or create) the protocol at `<data_dir>/ai_protocol/`.
     pub fn open<P: AsRef<Path>>(data_dir: P) -> Result<Self> {
         let path = data_dir.as_ref().join("ai_protocol");
-        let keyspace = Config::new(path).open().map_err(|e| ComputeError::Storage(e.to_string()))?;
+        let keyspace = Config::new(path)
+            .open()
+            .map_err(|e| ComputeError::Storage(e.to_string()))?;
 
         let jobs_partition = keyspace
             .open_partition("jobs", PartitionCreateOptions::default())
@@ -83,12 +85,14 @@ impl ComputeProtocol {
         let requester_jobs = self.list_jobs_for_requester(&req.requester, 1000)?;
         let active_count = requester_jobs
             .iter()
-            .filter(|j| matches!(
-                j.status,
-                ComputeJobStatus::Submitted
-                    | ComputeJobStatus::Assigned { .. }
-                    | ComputeJobStatus::Computing { .. }
-            ))
+            .filter(|j| {
+                matches!(
+                    j.status,
+                    ComputeJobStatus::Submitted
+                        | ComputeJobStatus::Assigned { .. }
+                        | ComputeJobStatus::Computing { .. }
+                )
+            })
             .count();
 
         if active_count >= MAX_CONCURRENT_JOBS_PER_ADDRESS {
@@ -99,8 +103,15 @@ impl ComputeProtocol {
         let job_id = derive_job_id(&req.model_hash, &req.requester);
 
         // Check for duplicate
-        if self.jobs_partition.contains_key(&job_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
-            return Err(ComputeError::JobNotFound(format!("Job {} already exists", job_id)));
+        if self
+            .jobs_partition
+            .contains_key(&job_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
+            return Err(ComputeError::JobNotFound(format!(
+                "Job {} already exists",
+                job_id
+            )));
         }
 
         let job_type = match req.job_type.as_str() {
@@ -133,7 +144,9 @@ impl ComputeProtocol {
     /// Transitions: SUBMITTED → ASSIGNED
     /// The worker will be selected from active workers.
     pub fn assign_job(&self, job_id: &str) -> Result<ComputeJob> {
-        let mut job = self.get_job(job_id)?.ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
+        let mut job = self
+            .get_job(job_id)?
+            .ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
 
         // Must be in SUBMITTED state
         if !matches!(job.status, ComputeJobStatus::Submitted) {
@@ -144,11 +157,15 @@ impl ComputeProtocol {
         }
 
         // Select a worker
-        let worker_id = self.workers.select_worker(job_id.as_bytes())?
+        let worker_id = self
+            .workers
+            .select_worker(job_id.as_bytes())?
             .ok_or_else(|| ComputeError::WorkerNotFound("No active workers available".into()))?;
 
         // Verify worker is active
-        let worker = self.workers.get(&worker_id)?
+        let worker = self
+            .workers
+            .get(&worker_id)?
             .ok_or_else(|| ComputeError::WorkerNotActive(worker_id.clone()))?;
 
         if !worker.active {
@@ -162,7 +179,9 @@ impl ComputeProtocol {
 
     /// Worker acknowledges job, transitions to COMPUTING state.
     pub fn acknowledge_job(&self, job_id: &str, worker_id: &str) -> Result<ComputeJob> {
-        let mut job = self.get_job(job_id)?.ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
+        let mut job = self
+            .get_job(job_id)?
+            .ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
 
         // Must be in ASSIGNED state with this worker
         let assigned_worker = match &job.status {
@@ -182,7 +201,9 @@ impl ComputeProtocol {
             )));
         }
 
-        job.status = ComputeJobStatus::Computing { worker: worker_id.to_string() };
+        job.status = ComputeJobStatus::Computing {
+            worker: worker_id.to_string(),
+        };
         self.save_job(&job)?;
         Ok(job)
     }
@@ -223,7 +244,8 @@ impl ComputeProtocol {
         }
 
         // Validate commitment
-        let expected_commitment = compute_commitment(&req.job_id, &req.worker_address, &req.result_hash);
+        let expected_commitment =
+            compute_commitment(&req.job_id, &req.worker_address, &req.result_hash);
         if expected_commitment != req.commitment_hash {
             return Err(ComputeError::CommitmentMismatch);
         }
@@ -284,19 +306,26 @@ impl ComputeProtocol {
         }
 
         // Verify verifier is active
-        let verifier = self.verifiers.get(&req.verifier_address)?
+        let verifier = self
+            .verifiers
+            .get(&req.verifier_address)?
             .ok_or_else(|| ComputeError::VerifierNotActive(req.verifier_address.clone()))?;
 
         if !verifier.active {
-            return Err(ComputeError::VerifierNotActive(req.verifier_address.clone()));
+            return Err(ComputeError::VerifierNotActive(
+                req.verifier_address.clone(),
+            ));
         }
 
         // Validate hashes
         validate_hex64(&req.challenger_result_hash)?;
 
         // Validate commitment
-        let expected_commitment =
-            compute_commitment(&req.job_id, &req.verifier_address, &req.challenger_result_hash);
+        let expected_commitment = compute_commitment(
+            &req.job_id,
+            &req.verifier_address,
+            &req.challenger_result_hash,
+        );
         if expected_commitment != req.commitment_hash {
             return Err(ComputeError::CommitmentMismatch);
         }
@@ -305,8 +334,14 @@ impl ComputeProtocol {
         let dispute_id = derive_dispute_id(&req.job_id, &req.verifier_address);
 
         // Check for duplicate dispute
-        if self.disputes_partition.contains_key(&dispute_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
-            return Err(ComputeError::DisputeNotFound("Dispute already filed".into()));
+        if self
+            .disputes_partition
+            .contains_key(&dispute_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
+            return Err(ComputeError::DisputeNotFound(
+                "Dispute already filed".into(),
+            ));
         }
 
         let challenge_deposit = self.settlement.calculate_challenge_deposit(job.fee_sat);
@@ -342,7 +377,11 @@ impl ComputeProtocol {
     /// Resolve a dispute (fraud confirmed, false accusation, or inconclusive).
     ///
     /// Updates worker/verifier reputation, slashes stakes, records settlement.
-    pub fn resolve_dispute(&self, dispute_id: &str, resolution: DisputeResolution) -> Result<SettlementRecord> {
+    pub fn resolve_dispute(
+        &self,
+        dispute_id: &str,
+        resolution: DisputeResolution,
+    ) -> Result<SettlementRecord> {
         let mut dispute = self
             .get_dispute(dispute_id)?
             .ok_or_else(|| ComputeError::DisputeNotFound(dispute_id.to_string()))?;
@@ -372,13 +411,19 @@ impl ComputeProtocol {
         let settlement = match resolution {
             DisputeResolution::FraudConfirmed { .. } => {
                 // Worker was caught cheating
-                let worker = self.workers.get(&worker_addr)?
+                let worker = self
+                    .workers
+                    .get(&worker_addr)?
                     .ok_or_else(|| ComputeError::WorkerNotFound(worker_addr.clone()))?;
 
-                self.workers.slash_stake(&worker_addr, self.settlement.calculate_worker_slash(worker.stake_sat))?;
+                self.workers.slash_stake(
+                    &worker_addr,
+                    self.settlement.calculate_worker_slash(worker.stake_sat),
+                )?;
                 self.workers.record_job_outcome(&worker_addr, false)?;
 
-                self.verifiers.record_challenge_outcome(&dispute.challenger, true)?;
+                self.verifiers
+                    .record_challenge_outcome(&dispute.challenger, true)?;
 
                 self.settlement.record_fraud_conviction(
                     job.job_id.clone(),
@@ -390,14 +435,21 @@ impl ComputeProtocol {
 
             DisputeResolution::FalseAccusation { .. } => {
                 // Verifier was wrong
-                let _verifier = self.verifiers.get(&dispute.challenger)?
+                let _verifier = self
+                    .verifiers
+                    .get(&dispute.challenger)?
                     .ok_or_else(|| ComputeError::VerifierNotFound(dispute.challenger.clone()))?;
 
-                let slash_amt = self.settlement.calculate_false_accuse_slash(dispute.challenge_deposit_sat);
+                let slash_amt = self
+                    .settlement
+                    .calculate_false_accuse_slash(dispute.challenge_deposit_sat);
                 self.verifiers.slash_stake(&dispute.challenger, slash_amt)?;
-                self.verifiers.record_challenge_outcome(&dispute.challenger, false)?;
+                self.verifiers
+                    .record_challenge_outcome(&dispute.challenger, false)?;
 
-                let worker = self.workers.get(&worker_addr)?
+                let worker = self
+                    .workers
+                    .get(&worker_addr)?
                     .ok_or_else(|| ComputeError::WorkerNotFound(worker_addr.clone()))?;
 
                 self.workers.record_job_outcome(&worker_addr, true)?;
@@ -428,7 +480,9 @@ impl ComputeProtocol {
     /// Transitions: COMPLETED → FINALIZED
     /// Distributes worker reward.
     pub fn finalize_job(&self, job_id: &str) -> Result<SettlementRecord> {
-        let mut job = self.get_job(job_id)?.ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
+        let mut job = self
+            .get_job(job_id)?
+            .ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
 
         // Must be COMPLETED with challenge window expired
         let (worker_addr, result_hash) = match &job.status {
@@ -456,7 +510,9 @@ impl ComputeProtocol {
             }
         };
 
-        let worker = self.workers.get(&worker_addr)?
+        let worker = self
+            .workers
+            .get(&worker_addr)?
             .ok_or_else(|| ComputeError::WorkerNotFound(worker_addr.clone()))?;
 
         job.status = ComputeJobStatus::Finalized {
@@ -467,8 +523,11 @@ impl ComputeProtocol {
         self.save_job(&job)?;
 
         // Record settlement
-        let settlement =
-            self.settlement.record_success(job.job_id.clone(), job.fee_sat, worker.reputation_score)?;
+        let settlement = self.settlement.record_success(
+            job.job_id.clone(),
+            job.fee_sat,
+            worker.reputation_score,
+        )?;
 
         // Update worker reputation for success
         self.workers.record_job_outcome(&worker_addr, true)?;
@@ -480,7 +539,9 @@ impl ComputeProtocol {
     ///
     /// Transitions: Any → EXPIRED
     pub fn expire_job(&self, job_id: &str) -> Result<SettlementRecord> {
-        let mut job = self.get_job(job_id)?.ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
+        let mut job = self
+            .get_job(job_id)?
+            .ok_or_else(|| ComputeError::JobNotFound(job_id.to_string()))?;
 
         let now = current_ts();
         if now <= job.deadline_ts {
@@ -496,7 +557,11 @@ impl ComputeProtocol {
 
     /// Get a job by ID.
     pub fn get_job(&self, job_id: &str) -> Result<Option<ComputeJob>> {
-        match self.jobs_partition.get(job_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
+        match self
+            .jobs_partition
+            .get(job_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
             Some(v) => {
                 let (job, _) = bincode::serde::decode_from_slice::<ComputeJob, _>(
                     &v,
@@ -511,7 +576,11 @@ impl ComputeProtocol {
 
     /// Get a dispute by ID.
     pub fn get_dispute(&self, dispute_id: &str) -> Result<Option<DisputeRecord>> {
-        match self.disputes_partition.get(dispute_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
+        match self
+            .disputes_partition
+            .get(dispute_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
             Some(v) => {
                 let (dispute, _) = bincode::serde::decode_from_slice::<DisputeRecord, _>(
                     &v,
@@ -525,11 +594,17 @@ impl ComputeProtocol {
     }
 
     /// List jobs for a requester.
-    pub fn list_jobs_for_requester(&self, requester: &str, limit: usize) -> Result<Vec<ComputeJob>> {
+    pub fn list_jobs_for_requester(
+        &self,
+        requester: &str,
+        limit: usize,
+    ) -> Result<Vec<ComputeJob>> {
         let mut jobs = Vec::new();
         for kv in self.jobs_partition.iter() {
             let (_, v) = kv.map_err(|e| ComputeError::Storage(e.to_string()))?;
-            if let Ok((job, _)) = bincode::serde::decode_from_slice::<ComputeJob, _>(&v, bincode::config::standard()) {
+            if let Ok((job, _)) =
+                bincode::serde::decode_from_slice::<ComputeJob, _>(&v, bincode::config::standard())
+            {
                 if job.requester == requester {
                     jobs.push(job);
                 }
@@ -541,11 +616,17 @@ impl ComputeProtocol {
     }
 
     /// List jobs by status.
-    pub fn list_jobs_by_status(&self, target_status: &str, limit: usize) -> Result<Vec<ComputeJob>> {
+    pub fn list_jobs_by_status(
+        &self,
+        target_status: &str,
+        limit: usize,
+    ) -> Result<Vec<ComputeJob>> {
         let mut jobs = Vec::new();
         for kv in self.jobs_partition.iter() {
             let (_, v) = kv.map_err(|e| ComputeError::Storage(e.to_string()))?;
-            if let Ok((job, _)) = bincode::serde::decode_from_slice::<ComputeJob, _>(&v, bincode::config::standard()) {
+            if let Ok((job, _)) =
+                bincode::serde::decode_from_slice::<ComputeJob, _>(&v, bincode::config::standard())
+            {
                 let status_str = match &job.status {
                     ComputeJobStatus::Submitted => "Submitted",
                     ComputeJobStatus::Assigned { .. } => "Assigned",
@@ -583,7 +664,8 @@ impl ComputeProtocol {
 
     /// Register a new verifier for disputes.
     pub fn register_verifier(&self, req: RegisterVerifierRequest) -> Result<VerifierRegistration> {
-        self.verifiers.register(req.verifier_id, req.initial_stake_sat)
+        self.verifiers
+            .register(req.verifier_id, req.initial_stake_sat)
     }
 
     /// List recent settlements.

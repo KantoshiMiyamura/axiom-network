@@ -24,8 +24,8 @@ use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 use thiserror::Error;
 
-pub const FEATURE_MAX: i64 = 10_000;        // inclusive upper bound per feature
-pub const SCORE_MAX: i64 = 1_000_000;       // max anomaly score (basis points × 100)
+pub const FEATURE_MAX: i64 = 10_000; // inclusive upper bound per feature
+pub const SCORE_MAX: i64 = 1_000_000; // max anomaly score (basis points × 100)
 
 #[derive(Debug, Error)]
 pub enum ModelError {
@@ -116,7 +116,9 @@ impl AnomalyWeights {
         }
         // Generous: allow the total magnitude up to 1<<30 so that
         // total * FEATURE_MAX (~1e4) is still well inside i64.
-        if acc > (1 << 30) { return Err(ModelError::WeightOverflow); }
+        if acc > (1 << 30) {
+            return Err(ModelError::WeightOverflow);
+        }
         Ok(())
     }
 }
@@ -136,12 +138,15 @@ impl GuardianModel {
     pub fn new(weights: AnomalyWeights, version: u32) -> Result<Self, ModelError> {
         weights.validate()?;
         let commitment = commit_weights(&weights, version);
-        Ok(GuardianModel { weights, commitment, version })
+        Ok(GuardianModel {
+            weights,
+            commitment,
+            version,
+        })
     }
 
     pub fn default_model() -> Self {
-        Self::new(AnomalyWeights::default_weights(), 1)
-            .expect("default weights validate")
+        Self::new(AnomalyWeights::default_weights(), 1).expect("default weights validate")
     }
 
     pub fn commitment(&self) -> Hash256 {
@@ -226,7 +231,7 @@ mod tests {
             timestamp_skew: FEATURE_MAX,
         };
         let s = m.score(&saturated);
-        assert!(s >= 0 && s <= SCORE_MAX);
+        assert!((0..=SCORE_MAX).contains(&s));
     }
 
     #[test]

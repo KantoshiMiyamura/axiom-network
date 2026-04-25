@@ -405,8 +405,16 @@ fn keygen_large_scale_uniqueness() {
         let priv_hex = hex::encode(kp.export_private_key());
         let pub_hex = hex::encode(kp.public_key());
         let addr = Address::from_pubkey_hash(kp.public_key_hash()).to_string();
-        assert!(priv_set.insert(priv_hex), "duplicate private key in {} trials", N);
-        assert!(pub_set.insert(pub_hex), "duplicate public key in {} trials", N);
+        assert!(
+            priv_set.insert(priv_hex),
+            "duplicate private key in {} trials",
+            N
+        );
+        assert!(
+            pub_set.insert(pub_hex),
+            "duplicate public key in {} trials",
+            N
+        );
         assert!(addr_set.insert(addr), "duplicate address in {} trials", N);
     }
     assert_eq!(priv_set.len(), N);
@@ -453,7 +461,10 @@ fn keygen_address_derivation_deterministic_and_distinct() {
         assert_eq!(a1, a2, "address derivation must be deterministic");
         let parsed = Address::from_string(&a1).unwrap();
         assert_eq!(parsed.pubkey_hash(), &h, "address round-trip lost the hash");
-        assert!(seen.insert(a1), "collision in 256 keypairs — CSPRNG or derivation bug");
+        assert!(
+            seen.insert(a1),
+            "collision in 256 keypairs — CSPRNG or derivation bug"
+        );
     }
 }
 
@@ -582,7 +593,7 @@ fn bump_fee_end_to_end_preserves_destination() {
     let original = TransactionBuilder::new()
         .add_input(Hash256::zero(), 0)
         .add_output(Amount::from_sat(50_000).unwrap(), dest_hash) // destination
-        .add_output(Amount::from_sat(10_000).unwrap(), own_hash)  // change (last)
+        .add_output(Amount::from_sat(10_000).unwrap(), own_hash) // change (last)
         .nonce(7)
         .chain_id(chain)
         .keypair(keypair.clone())
@@ -596,7 +607,10 @@ fn bump_fee_end_to_end_preserves_destination() {
     let bumped = TransactionBuilder::new()
         .add_input(Hash256::zero(), 0)
         .add_output(original.outputs[0].value, original.outputs[0].pubkey_hash)
-        .add_output(Amount::from_sat(new_change).unwrap(), original.outputs[1].pubkey_hash)
+        .add_output(
+            Amount::from_sat(new_change).unwrap(),
+            original.outputs[1].pubkey_hash,
+        )
         .nonce(7)
         .chain_id(chain)
         .keypair(keypair.clone())
@@ -605,7 +619,10 @@ fn bump_fee_end_to_end_preserves_destination() {
 
     // Destination untouched.
     assert_eq!(bumped.outputs[0].value, original.outputs[0].value);
-    assert_eq!(bumped.outputs[0].pubkey_hash, original.outputs[0].pubkey_hash);
+    assert_eq!(
+        bumped.outputs[0].pubkey_hash,
+        original.outputs[0].pubkey_hash
+    );
     // Change reduced by exactly extra_fee.
     assert_eq!(bumped.outputs[1].value.as_sat(), new_change);
     assert_eq!(bumped.outputs[1].pubkey_hash, own_hash);
@@ -618,13 +635,17 @@ fn bump_fee_end_to_end_preserves_destination() {
         signature: axiom_primitives::Signature::placeholder(),
         pubkey,
     }];
-    let unsigned =
-        axiom_protocol::Transaction::new_transfer(ui, bumped.outputs.clone(), 7, 0);
+    let unsigned = axiom_protocol::Transaction::new_transfer(ui, bumped.outputs.clone(), 7, 0);
     let bytes = axiom_protocol::serialize_transaction(&unsigned);
     let sign_hash = axiom_crypto::transaction_signing_hash(chain, &bytes);
     let sig = bumped.inputs[0].signature.as_bytes();
     assert!(keypair.verify(sign_hash.as_bytes(), sig).unwrap());
 
     // Original signature no longer valid for the bumped tx (different outputs).
-    assert!(!keypair.verify(sign_hash.as_bytes(), original.inputs[0].signature.as_bytes()).unwrap());
+    assert!(!keypair
+        .verify(
+            sign_hash.as_bytes(),
+            original.inputs[0].signature.as_bytes()
+        )
+        .unwrap());
 }

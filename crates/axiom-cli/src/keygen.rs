@@ -27,10 +27,10 @@ struct Args {
 fn read_password_silent(prompt: &str) -> std::io::Result<String> {
     match rpassword::prompt_password(prompt) {
         Ok(s) => Ok(s),
-        Err(e) => Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("failed to read password: {}", e),
-        )),
+        Err(e) => Err(std::io::Error::other(format!(
+            "failed to read password: {}",
+            e
+        ))),
     }
 }
 
@@ -56,10 +56,11 @@ fn main() {
     let pubkey_hash_hex = hex::encode(pubkey_hash.as_bytes());
 
     // Get password for encryption — no echo, twice for confirmation.
-    let mut password = read_password_silent("Enter password to encrypt wallet: ").unwrap_or_else(|e| {
-        eprintln!("error: {}", e);
-        std::process::exit(1);
-    });
+    let mut password =
+        read_password_silent("Enter password to encrypt wallet: ").unwrap_or_else(|e| {
+            eprintln!("error: {}", e);
+            std::process::exit(1);
+        });
     if password.len() < 8 {
         password.zeroize();
         eprintln!("error: password must be at least 8 characters");

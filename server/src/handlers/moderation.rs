@@ -1,6 +1,6 @@
 //! Moderation action handlers (Moderator+ role required)
 
-use axum::extract::{State, Query, ConnectInfo, Extension};
+use axum::extract::{ConnectInfo, Extension, Query, State};
 use axum::http::StatusCode;
 use axum::Json;
 use serde::Deserialize;
@@ -9,10 +9,10 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tracing::info;
 
-use crate::permissions;
-use crate::state::AppState;
 use crate::error::{Result, ServerError};
 use crate::middleware::auth::UserContext;
+use crate::permissions;
+use crate::state::AppState;
 
 /// Create moderation action
 pub async fn create_action(
@@ -61,7 +61,11 @@ pub async fn create_action(
     }
 
     // Replay protection: reject if this signature was already used
-    if !state.signature_nonce_tracker.check_and_record(&req.signature, &user_ctx.address, "moderation_action").await {
+    if !state
+        .signature_nonce_tracker
+        .check_and_record(&req.signature, &user_ctx.address, "moderation_action")
+        .await
+    {
         return Err(ServerError::Shared(
             axiom_community_shared::Error::InvalidSignature,
         ));
@@ -98,7 +102,10 @@ pub async fn create_action(
         )
         .await;
 
-    info!("Moderation action {} created: {} on {}", action_id, req.action, req.target);
+    info!(
+        "Moderation action {} created: {} on {}",
+        action_id, req.action, req.target
+    );
 
     let response = json!({
         "status": "ok",

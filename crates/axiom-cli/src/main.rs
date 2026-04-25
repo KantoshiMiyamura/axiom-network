@@ -166,7 +166,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(Arc::new(tokio::sync::RwLock::new(g)))
         }
         Err(e) => {
-            warn!("AxiomMind failed to initialise ({}); running without guard", e);
+            warn!(
+                "AxiomMind failed to initialise ({}); running without guard",
+                e
+            );
             None
         }
     };
@@ -666,8 +669,7 @@ fn load_or_create_wallet() -> Result<axiom_primitives::Hash256, Box<dyn std::err
         let json = fs::read_to_string(&wallet_path)?;
         let keystore = import_keystore(&json)?;
         let password = read_password("Enter wallet password: ")?;
-        let key_bytes = unlock_keystore(&keystore, &password)
-            .map_err(|_| "Wrong password")?;
+        let key_bytes = unlock_keystore(&keystore, &password).map_err(|_| "Wrong password")?;
         let keypair = axiom_wallet::KeyPair::from_private_key(key_bytes.to_vec())?;
         let address = Address::from_pubkey_hash(keypair.public_key_hash());
         let address_str = address.to_string();
@@ -952,7 +954,9 @@ async fn transaction_broadcast_loop(
                 match peer_mgr.broadcast(tx_msg).await {
                     Ok(sent) => {
                         if sent > 0 {
-                            let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+                            let txid = axiom_crypto::double_hash256(
+                                &axiom_protocol::serialize_transaction_unsigned(tx),
+                            );
                             debug!(
                                 "TX_BROADCAST_MEMPOOL: txid={}, peers={}",
                                 hex::encode(&txid.as_bytes()[..8]),

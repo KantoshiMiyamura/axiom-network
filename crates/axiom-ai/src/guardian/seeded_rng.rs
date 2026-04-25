@@ -23,7 +23,10 @@ pub struct SeededRng {
 
 impl SeededRng {
     pub fn new(seed: [u8; 32]) -> Self {
-        SeededRng { state: seed, counter: 0 }
+        SeededRng {
+            state: seed,
+            counter: 0,
+        }
     }
 
     /// Derive a seed from a block hash + height. Matches the spec's
@@ -57,7 +60,9 @@ impl SeededRng {
     /// peer lists); the bias is negligible and we accept the modulo for
     /// simplicity.
     pub fn gen_range(&mut self, n: u64) -> u64 {
-        if n == 0 { return 0; }
+        if n == 0 {
+            return 0;
+        }
         self.next_u64() % n
     }
 }
@@ -83,7 +88,9 @@ mod tests {
         // First 8 draws must not all collide.
         let mut collisions = 0;
         for _ in 0..8 {
-            if a.next_u64() == b.next_u64() { collisions += 1; }
+            if a.next_u64() == b.next_u64() {
+                collisions += 1;
+            }
         }
         assert!(collisions < 8);
     }

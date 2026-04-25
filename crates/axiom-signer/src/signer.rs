@@ -147,11 +147,7 @@ impl LocalSigner {
     ///
     /// # Returns
     /// Ok(()) if the signature is valid, Error otherwise
-    pub fn verify_signature(
-        &self,
-        transaction_hash: &[u8],
-        signature: &[u8],
-    ) -> Result<()> {
+    pub fn verify_signature(&self, transaction_hash: &[u8], signature: &[u8]) -> Result<()> {
         let keypair = self
             .keypair
             .as_ref()
@@ -193,16 +189,18 @@ impl LocalSigner {
     ) -> Result<()> {
         // Verify chain_id
         if chain_id != "axiom-mainnet-1" && !chain_id.starts_with("axiom-testnet-") {
-            return Err(Error::ReplayProtectionViolation(
-                format!("Invalid chain_id: {}", chain_id),
-            ));
+            return Err(Error::ReplayProtectionViolation(format!(
+                "Invalid chain_id: {}",
+                chain_id
+            )));
         }
 
         // Verify tx_version is current
         if tx_version != 1 {
-            return Err(Error::ReplayProtectionViolation(
-                format!("Invalid tx_version: {}", tx_version),
-            ));
+            return Err(Error::ReplayProtectionViolation(format!(
+                "Invalid tx_version: {}",
+                tx_version
+            )));
         }
 
         // Verify nonce
@@ -229,11 +227,7 @@ impl LocalSigner {
     ///
     /// # Returns
     /// Ok(()) if fees are valid, Error otherwise
-    pub fn validate_fee(
-        &self,
-        fee_amount: u64,
-        tx_size_bytes: usize,
-    ) -> Result<()> {
+    pub fn validate_fee(&self, fee_amount: u64, tx_size_bytes: usize) -> Result<()> {
         const MIN_FEE_RATE: u64 = 1; // satoshis per byte
         const MAX_FEE_RATE: u64 = 1000; // satoshis per byte
 
@@ -246,21 +240,17 @@ impl LocalSigner {
         let fee_rate = fee_amount / tx_size_bytes as u64;
 
         if fee_rate < MIN_FEE_RATE {
-            return Err(Error::FeeValidationFailed(
-                format!(
-                    "Fee too low: {} sat/byte (minimum: {} sat/byte)",
-                    fee_rate, MIN_FEE_RATE
-                ),
-            ));
+            return Err(Error::FeeValidationFailed(format!(
+                "Fee too low: {} sat/byte (minimum: {} sat/byte)",
+                fee_rate, MIN_FEE_RATE
+            )));
         }
 
         if fee_rate > MAX_FEE_RATE {
-            return Err(Error::FeeValidationFailed(
-                format!(
-                    "Fee too high: {} sat/byte (maximum: {} sat/byte)",
-                    fee_rate, MAX_FEE_RATE
-                ),
-            ));
+            return Err(Error::FeeValidationFailed(format!(
+                "Fee too high: {} sat/byte (maximum: {} sat/byte)",
+                fee_rate, MAX_FEE_RATE
+            )));
         }
 
         Ok(())

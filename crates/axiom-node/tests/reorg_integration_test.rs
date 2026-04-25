@@ -19,8 +19,10 @@ use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }
@@ -33,7 +35,7 @@ fn create_block_at_height(height: u32, prev_hash: Hash256, difficulty: u32) -> B
     };
     let coinbase = Transaction::new_coinbase(vec![output], height);
 
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
     let header = BlockHeader {
         version: 1,
@@ -195,8 +197,10 @@ fn test_restart_after_reorg() {
     let data_dir = temp_dir.path().to_path_buf();
 
     let best_hash = {
-        let mut config = Config::default();
-        config.data_dir = data_dir.clone();
+        let config = Config {
+            data_dir: data_dir.clone(),
+            ..Default::default()
+        };
         let mut node = Node::new(config).unwrap();
 
         // Build some blocks
@@ -210,8 +214,10 @@ fn test_restart_after_reorg() {
     };
 
     // Restart node
-    let mut config = Config::default();
-    config.data_dir = data_dir;
+    let config = Config {
+        data_dir,
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
 
     // State should be preserved

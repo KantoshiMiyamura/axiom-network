@@ -7,11 +7,11 @@
 // NOT cause block rejection or transaction eviction. The `recommended_action`
 // strings are operator hints, not control-plane instructions.
 
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::sync::RwLock;
 
 /// Anomaly types detected by AxiomMind v2
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -480,7 +480,8 @@ impl Detector for NetworkAnomalyDetector {
                     data.peer_count, self.min_peer_count
                 ),
                 affected_entity: "Network".to_string(),
-                recommended_action: "Investigate network partition or connectivity issues".to_string(),
+                recommended_action: "Investigate network partition or connectivity issues"
+                    .to_string(),
             });
         }
 
@@ -502,16 +503,16 @@ pub struct AnomalyDetectionEngine {
 impl AnomalyDetectionEngine {
     pub fn new(alert_threshold: f64) -> Self {
         let detectors: Vec<Box<dyn Detector>> = vec![
-            Box::new(TimestampDetector::new(600)),       // 10 minutes max drift
-            Box::new(RapidBlocksDetector::new(30)),      // 30 seconds minimum
-            Box::new(OrphanBlocksDetector::new(0.05)),   // 5% max orphan rate
+            Box::new(TimestampDetector::new(600)),  // 10 minutes max drift
+            Box::new(RapidBlocksDetector::new(30)), // 30 seconds minimum
+            Box::new(OrphanBlocksDetector::new(0.05)), // 5% max orphan rate
             Box::new(NonceAnomalyDetector::new(u64::MAX)), // 90% saturation threshold
             Box::new(MerkleAnomalyDetector::new()),
             Box::new(FeeAnomalyDetector::new(0.00001, 1000.0)), // Reasonable fee range
-            Box::new(MempoolAnomalyDetector::new(100000)), // 100k transaction limit
-            Box::new(SignatureAnomalyDetector::new(0.01)), // 1% max invalid rate
-            Box::new(ConsensusAnomalyDetector::new(10)),   // 10 block max drift
-            Box::new(NetworkAnomalyDetector::new(3)),      // Minimum 3 peers
+            Box::new(MempoolAnomalyDetector::new(100000)),      // 100k transaction limit
+            Box::new(SignatureAnomalyDetector::new(0.01)),      // 1% max invalid rate
+            Box::new(ConsensusAnomalyDetector::new(10)),        // 10 block max drift
+            Box::new(NetworkAnomalyDetector::new(3)),           // Minimum 3 peers
         ];
 
         AnomalyDetectionEngine {
@@ -553,12 +554,7 @@ impl AnomalyDetectionEngine {
     /// Get anomaly history
     pub async fn get_history(&self, limit: usize) -> Vec<AnomalyEvent> {
         let history = self.history.read().await;
-        history
-            .iter()
-            .rev()
-            .take(limit)
-            .cloned()
-            .collect()
+        history.iter().rev().take(limit).cloned().collect()
     }
 
     /// Mark anomaly as resolved
@@ -643,7 +639,10 @@ mod tests {
 
         let alert = detector.detect(&data);
         assert!(alert.is_some());
-        assert_eq!(alert.unwrap().anomaly_type, AnomalyType::TimestampManipulation);
+        assert_eq!(
+            alert.unwrap().anomaly_type,
+            AnomalyType::TimestampManipulation
+        );
     }
 
     #[test]

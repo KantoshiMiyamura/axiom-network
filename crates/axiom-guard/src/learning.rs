@@ -34,8 +34,7 @@ impl EwmaBaseline {
         }
         let delta = value - self.mean;
         self.mean += self.alpha * delta;
-        self.variance =
-            (1.0 - self.alpha) * (self.variance + self.alpha * delta * delta);
+        self.variance = (1.0 - self.alpha) * (self.variance + self.alpha * delta * delta);
     }
 
     /// Z-score style anomaly score. 0 = normal, >3 = notable, >6 = anomalous.
@@ -46,10 +45,18 @@ impl EwmaBaseline {
         (value - self.mean).abs() / self.variance.sqrt()
     }
 
-    pub fn mean(&self) -> f64 { self.mean }
-    pub fn std_dev(&self) -> f64 { self.variance.sqrt() }
-    pub fn sample_count(&self) -> u64 { self.sample_count }
-    pub fn is_trained(&self) -> bool { self.sample_count >= 30 }
+    pub fn mean(&self) -> f64 {
+        self.mean
+    }
+    pub fn std_dev(&self) -> f64 {
+        self.variance.sqrt()
+    }
+    pub fn sample_count(&self) -> u64 {
+        self.sample_count
+    }
+    pub fn is_trained(&self) -> bool {
+        self.sample_count >= 30
+    }
 }
 
 /// All baselines AxiomMind tracks about network health.
@@ -70,17 +77,19 @@ pub struct NetworkBaselines {
 impl NetworkBaselines {
     pub fn new() -> Self {
         Self {
-            block_interval_secs:  EwmaBaseline::new(0.08),
-            tx_count_per_block:   EwmaBaseline::new(0.05),
+            block_interval_secs: EwmaBaseline::new(0.08),
+            tx_count_per_block: EwmaBaseline::new(0.05),
             difficulty_change_pct: EwmaBaseline::new(0.10),
-            mempool_size:         EwmaBaseline::new(0.15),
-            fee_rate:             EwmaBaseline::new(0.05),
+            mempool_size: EwmaBaseline::new(0.15),
+            fee_rate: EwmaBaseline::new(0.05),
         }
     }
 }
 
 impl Default for NetworkBaselines {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
@@ -94,7 +103,10 @@ mod tests {
             b.update(30.0);
         }
         assert!((b.mean() - 30.0).abs() < 0.01, "mean should converge to 30");
-        assert!(b.std_dev() < 0.5, "std_dev should be near 0 for constant input");
+        assert!(
+            b.std_dev() < 0.5,
+            "std_dev should be near 0 for constant input"
+        );
     }
 
     #[test]
@@ -105,7 +117,11 @@ mod tests {
         }
         // A value 10× the mean should produce a very high anomaly score
         let score = b.anomaly_score(300.0);
-        assert!(score > 5.0, "spike should yield anomaly score > 5, got {}", score);
+        assert!(
+            score > 5.0,
+            "spike should yield anomaly score > 5, got {}",
+            score
+        );
     }
 
     #[test]

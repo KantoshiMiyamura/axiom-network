@@ -24,20 +24,12 @@ mod tests {
 
         // Step 1: Generate challenge
         let nonce = crypto::random_hex(32);
-        let challenge_hash = crypto::create_challenge_hex(
-            nonce.as_bytes(),
-            &address,
-            AUTH_DOMAIN,
-            user_agent,
-        );
+        let challenge_hash =
+            crypto::create_challenge_hex(nonce.as_bytes(), &address, AUTH_DOMAIN, user_agent);
 
         // Verify challenge is deterministic
-        let challenge_hash2 = crypto::create_challenge_hex(
-            nonce.as_bytes(),
-            &address,
-            AUTH_DOMAIN,
-            user_agent,
-        );
+        let challenge_hash2 =
+            crypto::create_challenge_hex(nonce.as_bytes(), &address, AUTH_DOMAIN, user_agent);
         assert_eq!(challenge_hash, challenge_hash2);
 
         // Step 2: Generate ML-DSA-87 keypair and sign the challenge
@@ -55,7 +47,8 @@ mod tests {
         assert_eq!(sig_bytes.len(), 4627);
 
         // Step 3: Verify signature
-        let valid = crypto::verify_ml_dsa_87(&vk_bytes, challenge_message.as_bytes(), &sig_bytes).unwrap();
+        let valid =
+            crypto::verify_ml_dsa_87(&vk_bytes, challenge_message.as_bytes(), &sig_bytes).unwrap();
         assert!(valid);
 
         // Step 4: Construct VerifyRequest

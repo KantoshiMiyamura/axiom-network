@@ -42,7 +42,8 @@ impl<'a> StorageBatch<'a> {
     }
 
     pub fn put_transaction(&mut self, tx: &Transaction) -> Result<Hash256> {
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
         let key = keys::tx_key(&txid);
         let value = bincode::serde::encode_to_vec(tx, bincode::config::standard())
             .map_err(|e| Error::Serialization(e.to_string()))?;
@@ -103,7 +104,8 @@ impl<'a> StorageBatch<'a> {
         let block_hash = block.hash();
 
         for (pos, tx) in block.transactions.iter().enumerate() {
-            let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
+            let txid =
+                axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(tx));
 
             let location = crate::TxLocation {
                 block_hash,

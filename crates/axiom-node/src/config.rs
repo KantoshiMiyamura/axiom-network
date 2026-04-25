@@ -110,8 +110,10 @@ mod tests {
 
     #[test]
     fn test_invalid_mempool_size() {
-        let mut config = Config::default();
-        config.mempool_max_size = 0;
+        let config = Config {
+            mempool_max_size: 0,
+            ..Config::default()
+        };
         assert!(config.validate().is_err());
     }
 }

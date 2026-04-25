@@ -78,7 +78,9 @@ impl AnomalyDetector {
                         score,
                         details: format!(
                             "Block interval {:.1}s vs baseline {:.1}s ({}x faster, {} consecutive)",
-                            interval, mean, (mean / interval.max(0.1)) as u32,
+                            interval,
+                            mean,
+                            (mean / interval.max(0.1)) as u32,
                             self.consecutive_fast_blocks
                         ),
                     });
@@ -94,7 +96,9 @@ impl AnomalyDetector {
                         score,
                         details: format!(
                             "No block for {:.0}s (baseline {:.0}s, {:.0}x stall)",
-                            interval, mean, interval / mean.max(1.0)
+                            interval,
+                            mean,
+                            interval / mean.max(1.0)
                         ),
                     });
                 }
@@ -110,7 +114,8 @@ impl AnomalyDetector {
                     score: 10.0,
                     details: format!(
                         "Timestamp went BACKWARDS by {}s (height {})",
-                        diff.abs(), block.height
+                        diff.abs(),
+                        block.height
                     ),
                 });
             } else if diff > 7_200 {
@@ -119,7 +124,8 @@ impl AnomalyDetector {
                     score: 5.0 + (diff as f64 / 3_600.0),
                     details: format!(
                         "Timestamp jumped forward {:.1}h at height {}",
-                        diff as f64 / 3_600.0, block.height
+                        diff as f64 / 3_600.0,
+                        block.height
                     ),
                 });
             }
@@ -129,7 +135,8 @@ impl AnomalyDetector {
         if let Some(prev_diff) = block.prev_difficulty {
             if prev_diff > 0 {
                 let change_pct = (block.difficulty_target as f64 - prev_diff as f64).abs()
-                    / prev_diff as f64 * 100.0;
+                    / prev_diff as f64
+                    * 100.0;
                 let score = baselines.difficulty_change_pct.anomaly_score(change_pct);
                 if score > 4.0 && change_pct > 35.0 {
                     results.push(DetectionResult {
@@ -146,7 +153,9 @@ impl AnomalyDetector {
 
         // ── 5. Transaction volume spike ───────────────────────────────────────
         if baselines.tx_count_per_block.is_trained() {
-            let score = baselines.tx_count_per_block.anomaly_score(block.tx_count as f64);
+            let score = baselines
+                .tx_count_per_block
+                .anomaly_score(block.tx_count as f64);
             if score > 6.0 {
                 results.push(DetectionResult {
                     kind: AlertKind::TransactionAnomalySpike,
@@ -210,7 +219,10 @@ impl AnomalyDetector {
             Some(DetectionResult {
                 kind: AlertKind::PeerDiversityLow,
                 score: (4 - peer_count) as f64 * 2.5,
-                details: format!("Only {} peer(s) connected — eclipse attack risk", peer_count),
+                details: format!(
+                    "Only {} peer(s) connected — eclipse attack risk",
+                    peer_count
+                ),
             })
         } else {
             None
@@ -245,7 +257,10 @@ impl AnomalyDetector {
             return None;
         }
 
-        let n = blocks_announced.len().min(timestamps.len()).min(block_heights.len());
+        let n = blocks_announced
+            .len()
+            .min(timestamps.len())
+            .min(block_heights.len());
         let mut max_threat: Option<ThreatLevel> = None;
 
         // --- Check 1: rapid burst from this peer ----------------------------
@@ -270,7 +285,11 @@ impl AnomalyDetector {
 
         if queue.len() >= SELFISH_MINING_RAPID_THRESHOLD {
             let threat = ThreatLevel::High;
-            max_threat = Some(max_threat.map(|t: ThreatLevel| t.max(threat)).unwrap_or(threat));
+            max_threat = Some(
+                max_threat
+                    .map(|t: ThreatLevel| t.max(threat))
+                    .unwrap_or(threat),
+            );
         }
 
         // --- Check 2: fork race — same height from different peers ----------
@@ -284,24 +303,22 @@ impl AnomalyDetector {
                     if gap <= FORK_RACE_WINDOW_SECS {
                         let threat = ThreatLevel::Medium;
                         max_threat = Some(
-                            max_threat.map(|t: ThreatLevel| t.max(threat)).unwrap_or(threat),
+                            max_threat
+                                .map(|t: ThreatLevel| t.max(threat))
+                                .unwrap_or(threat),
                         );
                     }
                 }
             }
 
             // Record latest announcement for this height.
-            self.last_seen_by_height.insert(height, (ts, peer_id.clone()));
+            self.last_seen_by_height
+                .insert(height, (ts, peer_id.clone()));
         }
 
         // Prune height map to avoid unbounded growth (keep last 500 heights).
         if self.last_seen_by_height.len() > 500 {
-            let min_height = self
-                .last_seen_by_height
-                .keys()
-                .copied()
-                .min()
-                .unwrap_or(0);
+            let min_height = self.last_seen_by_height.keys().copied().min().unwrap_or(0);
             self.last_seen_by_height.remove(&min_height);
         }
 
@@ -310,5 +327,7 @@ impl AnomalyDetector {
 }
 
 impl Default for AnomalyDetector {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

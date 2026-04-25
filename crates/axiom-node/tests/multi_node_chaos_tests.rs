@@ -9,24 +9,24 @@
 
 use axiom_consensus::Block;
 use axiom_node::{Config, Node};
+use axiom_primitives::Amount;
 use axiom_primitives::Hash256;
 use axiom_protocol::{Transaction, TxOutput};
-use axiom_primitives::Amount;
 use std::sync::{Arc, Mutex};
 use tempfile::TempDir;
 
 fn create_node_with_dir(dir: &std::path::Path) -> Node {
-    let mut config = Config::default();
-    config.data_dir = dir.to_path_buf();
+    let config = Config {
+        data_dir: dir.to_path_buf(),
+        ..Default::default()
+    };
     Node::new(config).unwrap()
 }
 
 #[test]
 fn multi_node_independent_chain_growth() {
     // Test 5 nodes building independent chains
-    let temp_dirs: Vec<_> = (0..5)
-        .map(|_| TempDir::new().unwrap())
-        .collect();
+    let temp_dirs: Vec<_> = (0..5).map(|_| TempDir::new().unwrap()).collect();
 
     let mut nodes: Vec<_> = temp_dirs
         .iter()
@@ -64,7 +64,11 @@ fn fork_resolution_by_chainwork() {
     let mut node_b = create_node_with_dir(temp_dir_b.path());
 
     let genesis_hash = node_a.best_block_hash().unwrap();
-    assert_eq!(node_b.best_block_hash().unwrap(), genesis_hash, "Genesis should match");
+    assert_eq!(
+        node_b.best_block_hash().unwrap(),
+        genesis_hash,
+        "Genesis should match"
+    );
 
     // Node A builds chain: A1 -> A2 -> A3
     for _ in 0..3 {
@@ -94,7 +98,10 @@ fn fork_resolution_by_chainwork() {
     let work_a = node_a.get_chain_work().unwrap();
     let work_b = node_b.get_chain_work().unwrap();
 
-    println!("Node A chainwork: {:?}, Node B chainwork: {:?}", work_a, work_b);
+    println!(
+        "Node A chainwork: {:?}, Node B chainwork: {:?}",
+        work_a, work_b
+    );
     println!("✓ Fork resolution: Chains maintain independent state");
 }
 
@@ -137,7 +144,10 @@ fn reorg_stability_under_competing_blocks() {
         "Chain should continue growing"
     );
 
-    println!("✓ Reorg stability: Chain maintained height {} -> {}", height_after_main, final_height);
+    println!(
+        "✓ Reorg stability: Chain maintained height {} -> {}",
+        height_after_main, final_height
+    );
 }
 
 #[test]
@@ -157,7 +167,10 @@ fn duplicate_block_propagation_across_nodes() {
     let result_a = node_a.process_block(block.clone());
     let result_b = node_b.process_block(block.clone());
 
-    println!("Node A result: {:?}, Node B result: {:?}", result_a, result_b);
+    println!(
+        "Node A result: {:?}, Node B result: {:?}",
+        result_a, result_b
+    );
 
     // Both should either accept or reject consistently (not panic)
     assert!(
@@ -178,9 +191,7 @@ fn duplicate_block_propagation_across_nodes() {
 #[test]
 fn concurrent_multi_node_block_production() {
     // Simulate concurrent block production across 5 nodes
-    let temp_dirs: Vec<_> = (0..5)
-        .map(|_| TempDir::new().unwrap())
-        .collect();
+    let temp_dirs: Vec<_> = (0..5).map(|_| TempDir::new().unwrap()).collect();
 
     let mut nodes: Vec<_> = temp_dirs
         .iter()
@@ -223,9 +234,7 @@ fn concurrent_multi_node_block_production() {
 
 #[test]
 fn chain_tip_consistency_across_nodes() {
-    let temp_dirs: Vec<_> = (0..3)
-        .map(|_| TempDir::new().unwrap())
-        .collect();
+    let temp_dirs: Vec<_> = (0..3).map(|_| TempDir::new().unwrap()).collect();
 
     let mut nodes: Vec<_> = temp_dirs
         .iter()
@@ -290,8 +299,9 @@ fn orphan_block_handling_under_load() {
             pubkey_hash: Hash256::zero(),
         };
         let coinbase = Transaction::new_coinbase(vec![output], i);
-        let merkle_root =
-            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&coinbase));
+        let merkle_root = axiom_crypto::double_hash256(
+            &axiom_protocol::serialize_transaction_unsigned(&coinbase),
+        );
 
         // Use a fake parent that doesn't exist
         let fake_parent = Hash256::from_bytes([i as u8; 32]);
@@ -302,7 +312,7 @@ fn orphan_block_handling_under_load() {
             merkle_root,
             timestamp: now,
             difficulty_target: 0x207fffff,
-            nonce: i as u32,
+            nonce: i,
         };
 
         let block = Block {

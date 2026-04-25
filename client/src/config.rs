@@ -23,12 +23,10 @@ impl ClientConfig {
 
         let server_url =
             env::var("SERVER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
-        let data_dir = env::var("DATA_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-                home.join(".axiom-community")
-            });
+        let data_dir = env::var("DATA_DIR").map(PathBuf::from).unwrap_or_else(|_| {
+            let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+            home.join(".axiom-community")
+        });
 
         // Create data directory if it doesn't exist
         std::fs::create_dir_all(&data_dir)?;

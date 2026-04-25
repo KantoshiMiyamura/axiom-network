@@ -82,12 +82,8 @@ impl RateLimitManager {
 
     /// Check if verify attempt is allowed.
     pub async fn check_verify(&self, ip: IpAddr) -> bool {
-        self.check_rate_limit_ip(
-            &self.verify_limiters,
-            ip,
-            rate_limits::VERIFY_PER_MINUTE,
-        )
-        .await
+        self.check_rate_limit_ip(&self.verify_limiters, ip, rate_limits::VERIFY_PER_MINUTE)
+            .await
     }
 
     /// Check if message posting is allowed.
@@ -102,12 +98,8 @@ impl RateLimitManager {
 
     /// Check if job creation is allowed.
     pub async fn check_job(&self, key: &str) -> bool {
-        self.check_rate_limit_key(
-            &self.job_limiters,
-            key,
-            rate_limits::JOBS_PER_MINUTE,
-        )
-        .await
+        self.check_rate_limit_key(&self.job_limiters, key, rate_limits::JOBS_PER_MINUTE)
+            .await
     }
 
     async fn check_rate_limit_ip(
@@ -124,7 +116,10 @@ impl RateLimitManager {
         if limiter.check() {
             true
         } else {
-            warn!("Rate limit exceeded for IP {}: {} per minute", ip, per_minute);
+            warn!(
+                "Rate limit exceeded for IP {}: {} per minute",
+                ip, per_minute
+            );
             false
         }
     }

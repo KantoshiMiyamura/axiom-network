@@ -20,7 +20,9 @@ impl VerifierRegistry {
     /// Open (or create) the verifier registry.
     pub fn open<P: AsRef<Path>>(data_dir: P) -> Result<Self> {
         let path = data_dir.as_ref().join("ai_verifiers");
-        let keyspace = Config::new(path).open().map_err(|e| ComputeError::Storage(e.to_string()))?;
+        let keyspace = Config::new(path)
+            .open()
+            .map_err(|e| ComputeError::Storage(e.to_string()))?;
         let partition = keyspace
             .open_partition("verifiers", PartitionCreateOptions::default())
             .map_err(|e| ComputeError::Storage(e.to_string()))?;
@@ -31,7 +33,11 @@ impl VerifierRegistry {
     }
 
     /// Register a new verifier with initial stake.
-    pub fn register(&self, verifier_id: String, initial_stake_sat: u64) -> Result<VerifierRegistration> {
+    pub fn register(
+        &self,
+        verifier_id: String,
+        initial_stake_sat: u64,
+    ) -> Result<VerifierRegistration> {
         if initial_stake_sat < MIN_VERIFIER_STAKE_SAT {
             return Err(ComputeError::InsufficientStake {
                 required: MIN_VERIFIER_STAKE_SAT,
@@ -39,8 +45,15 @@ impl VerifierRegistry {
             });
         }
 
-        if self.partition.contains_key(&verifier_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
-            return Err(ComputeError::VerifierNotFound(format!("Verifier {} already registered", verifier_id)));
+        if self
+            .partition
+            .contains_key(&verifier_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
+            return Err(ComputeError::VerifierNotFound(format!(
+                "Verifier {} already registered",
+                verifier_id
+            )));
         }
 
         let verifier = VerifierRegistration {
@@ -60,7 +73,11 @@ impl VerifierRegistry {
 
     /// Get a verifier by ID.
     pub fn get(&self, verifier_id: &str) -> Result<Option<VerifierRegistration>> {
-        match self.partition.get(verifier_id).map_err(|e| ComputeError::Storage(e.to_string()))? {
+        match self
+            .partition
+            .get(verifier_id)
+            .map_err(|e| ComputeError::Storage(e.to_string()))?
+        {
             Some(v) => {
                 let (verifier, _) = bincode::serde::decode_from_slice::<VerifierRegistration, _>(
                     &v,
@@ -98,9 +115,10 @@ impl VerifierRegistry {
             .get(verifier_id)?
             .ok_or_else(|| ComputeError::VerifierNotFound(verifier_id.to_string()))?;
 
-        verifier.stake_sat = verifier.stake_sat.checked_add(amount_sat).ok_or_else(|| {
-            ComputeError::Storage("Stake overflow".to_string())
-        })?;
+        verifier.stake_sat = verifier
+            .stake_sat
+            .checked_add(amount_sat)
+            .ok_or_else(|| ComputeError::Storage("Stake overflow".to_string()))?;
 
         self.save(&verifier)?;
         Ok(verifier)
@@ -128,7 +146,11 @@ impl VerifierRegistry {
     }
 
     /// Record a challenge outcome (successful or false accusation).
-    pub fn record_challenge_outcome(&self, verifier_id: &str, caught_fraud: bool) -> Result<VerifierRegistration> {
+    pub fn record_challenge_outcome(
+        &self,
+        verifier_id: &str,
+        caught_fraud: bool,
+    ) -> Result<VerifierRegistration> {
         let mut verifier = self
             .get(verifier_id)?
             .ok_or_else(|| ComputeError::VerifierNotFound(verifier_id.to_string()))?;
@@ -138,7 +160,8 @@ impl VerifierRegistry {
         if caught_fraud {
             verifier.successful_challenges = verifier.successful_challenges.saturating_add(1);
             // Boost reputation for catching fraud
-            verifier.reputation_score = (verifier.reputation_score + REPUTATION_SUCCESS_BONUS).min(1.0);
+            verifier.reputation_score =
+                (verifier.reputation_score + REPUTATION_SUCCESS_BONUS).min(1.0);
         }
 
         self.save(&verifier)?;
@@ -282,7 +305,9 @@ mod tests {
         let verifier = reg.register("axm_verifier_1".into(), 10_000).unwrap();
         assert_eq!(verifier.successful_challenges, 0);
 
-        let updated = reg.record_challenge_outcome("axm_verifier_1", true).unwrap();
+        let updated = reg
+            .record_challenge_outcome("axm_verifier_1", true)
+            .unwrap();
         assert_eq!(updated.total_challenges, 1);
         assert_eq!(updated.successful_challenges, 1);
         assert!(updated.reputation_score >= 1.0); // Bumped up or stable
@@ -293,7 +318,9 @@ mod tests {
         let (_tmp, reg) = open_registry();
         reg.register("axm_verifier_1".into(), 10_000).unwrap();
 
-        let updated = reg.record_challenge_outcome("axm_verifier_1", false).unwrap();
+        let updated = reg
+            .record_challenge_outcome("axm_verifier_1", false)
+            .unwrap();
         assert_eq!(updated.total_challenges, 1);
         assert_eq!(updated.successful_challenges, 0);
         // No reputation boost

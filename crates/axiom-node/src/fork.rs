@@ -193,10 +193,7 @@ impl OrphanPool {
 
         // CRITICAL FIX: Track orphans by peer
         if let Some(peer) = peer_id {
-            self.by_peer
-                .entry(peer)
-                .or_default()
-                .push(block_hash);
+            self.by_peer.entry(peer).or_default().push(block_hash);
         }
 
         Ok(())
@@ -302,7 +299,7 @@ mod tests {
         };
         let coinbase = Transaction::new_coinbase(vec![output], height);
 
-        let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+        let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
         let header = BlockHeader {
             version: 1,

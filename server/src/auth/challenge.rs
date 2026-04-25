@@ -48,21 +48,13 @@ impl ChallengeManager {
     }
 
     /// Create new challenge
-    pub async fn create_challenge(
-        &self,
-        address: &str,
-        user_agent: &str,
-    ) -> (String, String, i64) {
+    pub async fn create_challenge(&self, address: &str, user_agent: &str) -> (String, String, i64) {
         let nonce = crypto::random_hex(32); // 32 bytes = 64 hex chars
         let now = current_timestamp();
         let expires_at = now + CHALLENGE_EXPIRY_SECS;
 
-        let challenge = crypto::create_challenge_hex(
-            nonce.as_bytes(),
-            address,
-            AUTH_DOMAIN,
-            user_agent,
-        );
+        let challenge =
+            crypto::create_challenge_hex(nonce.as_bytes(), address, AUTH_DOMAIN, user_agent);
 
         let record = Challenge {
             nonce: nonce.clone(),
@@ -87,7 +79,10 @@ impl ChallengeManager {
             }
         }
 
-        debug!("Created challenge for {} (expires in {}s)", address, CHALLENGE_EXPIRY_SECS);
+        debug!(
+            "Created challenge for {} (expires in {}s)",
+            address, CHALLENGE_EXPIRY_SECS
+        );
 
         (nonce, challenge, expires_at)
     }
@@ -163,7 +158,10 @@ impl ChallengeManager {
         let after = challenges.len();
 
         if before != after {
-            debug!("Cleaned up {} expired challenges from memory", before - after);
+            debug!(
+                "Cleaned up {} expired challenges from memory",
+                before - after
+            );
         }
 
         // Also clean DB

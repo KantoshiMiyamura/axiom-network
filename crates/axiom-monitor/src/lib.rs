@@ -9,4 +9,6 @@ pub mod optimizer;
 pub mod types;
 
 pub use agent::NetworkMonitorAgent;
-pub use types::{AdaptiveBaselines, AgentAlert, MonitorReport, NetworkHealthScore, ParameterRecommendation};
+pub use types::{
+    AdaptiveBaselines, AgentAlert, MonitorReport, NetworkHealthScore, ParameterRecommendation,
+};

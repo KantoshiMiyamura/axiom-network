@@ -306,7 +306,8 @@ mod tests {
 
     fn make_tx(outputs: Vec<TxOutput>) -> (Hash256, Transaction) {
         let tx = Transaction::new_transfer(vec![], outputs, 1, 0);
-        let txid = axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
+        let txid =
+            axiom_crypto::double_hash256(&axiom_protocol::serialize_transaction_unsigned(&tx));
         (txid, tx)
     }
 

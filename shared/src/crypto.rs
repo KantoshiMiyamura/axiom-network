@@ -8,12 +8,12 @@
 //! - ML-DSA-87 (FIPS 204) signing and verification
 
 use crate::error::Result;
-use crate::{Error, models::*};
-use sha3::{Sha3_256, Digest};
-use sha2::Sha256;
-use rand::Rng;
-use hex::{encode as hex_encode, decode as hex_decode};
+use crate::{models::*, Error};
+use hex::{decode as hex_decode, encode as hex_encode};
 use ml_dsa::{EncodedSignature, EncodedSigningKey, EncodedVerifyingKey, MlDsa87};
+use rand::Rng;
+use sha2::Sha256;
+use sha3::{Digest, Sha3_256};
 use signature::{Signer, Verifier};
 
 /// Generate random bytes
@@ -54,12 +54,7 @@ pub fn sha256_hex(data: &[u8]) -> String {
 /// Create authentication challenge
 ///
 /// Challenge = SHA-3(nonce || address || domain || user_agent)
-pub fn create_challenge(
-    nonce: &[u8],
-    address: &str,
-    domain: &str,
-    user_agent: &str,
-) -> Vec<u8> {
+pub fn create_challenge(nonce: &[u8], address: &str, domain: &str, user_agent: &str) -> Vec<u8> {
     let mut data = Vec::new();
     data.extend_from_slice(nonce);
     data.extend_from_slice(address.as_bytes());
@@ -69,12 +64,7 @@ pub fn create_challenge(
 }
 
 /// Create authentication challenge as hex string
-pub fn create_challenge_hex(
-    nonce: &[u8],
-    address: &str,
-    domain: &str,
-    user_agent: &str,
-) -> String {
+pub fn create_challenge_hex(nonce: &[u8], address: &str, domain: &str, user_agent: &str) -> String {
     hex_encode(create_challenge(nonce, address, domain, user_agent))
 }
 
@@ -103,21 +93,19 @@ pub const ML_DSA_87_SIG_BYTES: usize = 4627;
 /// - signature: Signature bytes (4627 bytes for ML-DSA-87)
 ///
 /// Returns: Ok(true) if signature is valid, Ok(false) if invalid
-pub fn verify_ml_dsa_87(
-    public_key: &[u8],
-    message: &[u8],
-    signature: &[u8],
-) -> Result<bool> {
+pub fn verify_ml_dsa_87(public_key: &[u8], message: &[u8], signature: &[u8]) -> Result<bool> {
     if public_key.len() != ML_DSA_87_VK_BYTES {
         return Err(Error::crypto(format!(
             "ML-DSA-87 public key must be {} bytes, got {}",
-            ML_DSA_87_VK_BYTES, public_key.len()
+            ML_DSA_87_VK_BYTES,
+            public_key.len()
         )));
     }
     if signature.len() != ML_DSA_87_SIG_BYTES {
         return Err(Error::crypto(format!(
             "ML-DSA-87 signature must be {} bytes, got {}",
-            ML_DSA_87_SIG_BYTES, signature.len()
+            ML_DSA_87_SIG_BYTES,
+            signature.len()
         )));
     }
 
@@ -147,14 +135,12 @@ pub fn verify_ml_dsa_87(
 /// - message: Message to sign (raw bytes)
 ///
 /// Returns: Signature bytes (4627 bytes)
-pub fn sign_ml_dsa_87(
-    private_key: &[u8],
-    message: &[u8],
-) -> Result<Vec<u8>> {
+pub fn sign_ml_dsa_87(private_key: &[u8], message: &[u8]) -> Result<Vec<u8>> {
     if private_key.len() != ML_DSA_87_SK_BYTES {
         return Err(Error::crypto(format!(
             "ML-DSA-87 signing key must be {} bytes, got {}",
-            ML_DSA_87_SK_BYTES, private_key.len()
+            ML_DSA_87_SK_BYTES,
+            private_key.len()
         )));
     }
 
@@ -187,10 +173,7 @@ pub fn verify_challenge_signature(
     // Reconstruct the message that should have been signed (with domain separation prefix)
     let message = format!(
         "axiom-community-auth:{}|{}|{}|{}",
-        nonce,
-        challenge,
-        domain,
-        expires_at,
+        nonce, challenge, domain, expires_at,
     );
 
     let signature = hex_decode(signature_hex)

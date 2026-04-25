@@ -49,7 +49,9 @@ impl GuardianAgent {
         }
     }
 
-    pub fn model(&self) -> &GuardianModel { &self.model }
+    pub fn model(&self) -> &GuardianModel {
+        &self.model
+    }
 
     /// Produce a decision for a single observation tick.
     ///
@@ -71,11 +73,17 @@ impl GuardianAgent {
         };
 
         let proof = GuardianProof::compute(&state, &decision, &self.model);
-        let record = DecisionRecord { state, decision, proof };
+        let record = DecisionRecord {
+            state,
+            decision,
+            proof,
+        };
 
         {
             let mut hist = self.history.write().expect("guardian history lock");
-            if hist.len() == HISTORY_CAP { hist.pop_front(); }
+            if hist.len() == HISTORY_CAP {
+                hist.pop_front();
+            }
             hist.push_back(record.clone());
         }
 
@@ -106,8 +114,8 @@ impl GuardianAgent {
 /// is auditable and reproducible.
 fn derive_features(obs: &GuardianObservation) -> FeatureVector {
     // Mempool pressure: saturates at 10k pending txs.
-    let mempool_pressure = ((obs.tx_patterns.mempool_size as i64) * FEATURE_MAX / 10_000)
-        .clamp(0, FEATURE_MAX);
+    let mempool_pressure =
+        ((obs.tx_patterns.mempool_size as i64) * FEATURE_MAX / 10_000).clamp(0, FEATURE_MAX);
 
     // Block size anomaly: ratio of max block size in window vs average,
     // in basis points. Saturates at 10k (== 100× average).
@@ -115,20 +123,29 @@ fn derive_features(obs: &GuardianObservation) -> FeatureVector {
     let max_size = max_block_size(obs);
     let block_size_anomaly = if avg_size > 0 {
         ((max_size.saturating_mul(FEATURE_MAX as u64)) / avg_size.max(1)) as i64
-    } else { 0 }.clamp(0, FEATURE_MAX);
+    } else {
+        0
+    }
+    .clamp(0, FEATURE_MAX);
 
     // Fee anomaly: dust-fraction of the mempool. 10k means the entire
     // mempool is dust.
     let fee_anomaly = if obs.tx_patterns.mempool_size > 0 {
         (obs.tx_patterns.dust_count as i64) * FEATURE_MAX
             / (obs.tx_patterns.mempool_size as i64).max(1)
-    } else { 0 }.clamp(0, FEATURE_MAX);
+    } else {
+        0
+    }
+    .clamp(0, FEATURE_MAX);
 
     // Peer instability: handshake failures per peer, capped at FEATURE_MAX.
     let peer_instability = if obs.peer_stats.peer_count > 0 {
         (obs.peer_stats.handshake_failures as i64) * FEATURE_MAX
             / (obs.peer_stats.peer_count as i64).max(1)
-    } else { 0 }.clamp(0, FEATURE_MAX);
+    } else {
+        0
+    }
+    .clamp(0, FEATURE_MAX);
 
     // Timestamp skew: gap (seconds) between the two most recent blocks
     // relative to the protocol target (60s). 60s → 0, 600s → FEATURE_MAX.
@@ -140,21 +157,30 @@ fn derive_features(obs: &GuardianObservation) -> FeatureVector {
         fee_anomaly,
         peer_instability,
         timestamp_skew,
-    }.clamp()
+    }
+    .clamp()
 }
 
 fn avg_block_size(obs: &GuardianObservation) -> u64 {
-    if obs.block_window.is_empty() { return 0; }
+    if obs.block_window.is_empty() {
+        return 0;
+    }
     let total: u64 = obs.block_window.iter().map(|b| b.size_bytes as u64).sum();
     total / (obs.block_window.len() as u64)
 }
 
 fn max_block_size(obs: &GuardianObservation) -> u64 {
-    obs.block_window.iter().map(|b| b.size_bytes as u64).max().unwrap_or(0)
+    obs.block_window
+        .iter()
+        .map(|b| b.size_bytes as u64)
+        .max()
+        .unwrap_or(0)
 }
 
 fn recent_block_gap_skew(obs: &GuardianObservation) -> i64 {
-    if obs.block_window.len() < 2 { return 0; }
+    if obs.block_window.len() < 2 {
+        return 0;
+    }
     let mut by_height: Vec<_> = obs.block_window.iter().collect();
     by_height.sort_by_key(|b| b.height);
     let a = by_height[by_height.len() - 2];
@@ -172,7 +198,9 @@ fn recent_block_gap_skew(obs: &GuardianObservation) -> i64 {
 fn derive_priority_hint(obs: &GuardianObservation) -> TxPriorityHint {
     let floor = if obs.tx_patterns.mempool_size > 5_000 {
         obs.tx_patterns.avg_fee_rate_millisat
-    } else { 0 };
+    } else {
+        0
+    };
     TxPriorityHint {
         median_fee_floor_millisat: floor,
         promote_senders: Vec::new(),
@@ -182,23 +210,47 @@ fn derive_priority_hint(obs: &GuardianObservation) -> TxPriorityHint {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::state::{BlockSummary, GuardianObservation, PeerStats, TxPatternStats};
+    use super::*;
 
     fn obs() -> GuardianObservation {
         GuardianObservation {
             height: 5,
             tip_hash: [9u8; 32],
             block_window: vec![
-                BlockSummary { hash: [1u8; 32], height: 3, tx_count: 2, size_bytes: 1000, timestamp: 100 },
-                BlockSummary { hash: [2u8; 32], height: 4, tx_count: 2, size_bytes: 1100, timestamp: 160 },
-                BlockSummary { hash: [3u8; 32], height: 5, tx_count: 3, size_bytes: 1200, timestamp: 220 },
+                BlockSummary {
+                    hash: [1u8; 32],
+                    height: 3,
+                    tx_count: 2,
+                    size_bytes: 1000,
+                    timestamp: 100,
+                },
+                BlockSummary {
+                    hash: [2u8; 32],
+                    height: 4,
+                    tx_count: 2,
+                    size_bytes: 1100,
+                    timestamp: 160,
+                },
+                BlockSummary {
+                    hash: [3u8; 32],
+                    height: 5,
+                    tx_count: 3,
+                    size_bytes: 1200,
+                    timestamp: 220,
+                },
             ],
             tx_patterns: TxPatternStats {
-                mempool_size: 100, avg_fee_rate_millisat: 2000,
-                unique_senders: 40, dust_count: 5,
+                mempool_size: 100,
+                avg_fee_rate_millisat: 2000,
+                unique_senders: 40,
+                dust_count: 5,
             },
-            peer_stats: PeerStats { peer_count: 8, handshake_failures: 0, median_latency_ms: 50 },
+            peer_stats: PeerStats {
+                peer_count: 8,
+                handshake_failures: 0,
+                median_latency_ms: 50,
+            },
         }
     }
 
@@ -236,7 +288,8 @@ mod tests {
     fn deterministic_rng_depends_on_tip() {
         let agent = GuardianAgent::new(GuardianModel::default_model());
         let mut rng_a = agent.deterministic_rng(&obs());
-        let mut o2 = obs(); o2.tip_hash[0] ^= 1;
+        let mut o2 = obs();
+        o2.tip_hash[0] ^= 1;
         let mut rng_b = agent.deterministic_rng(&o2);
         assert_ne!(rng_a.next_u64(), rng_b.next_u64());
     }

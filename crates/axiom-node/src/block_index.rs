@@ -138,19 +138,12 @@ impl BlockIndex {
 
     /// Get the best (highest chainwork) block at a given height.
     pub fn best_at_height(&self, height: u32) -> Option<Hash256> {
-        self.height_map
-            .get(&height)
-            .and_then(|hashes| {
-                hashes
-                    .iter()
-                    .max_by_key(|h| {
-                        self.entries
-                            .get(h)
-                            .map(|e| e.chainwork)
-                            .unwrap_or(0)
-                    })
-                    .copied()
-            })
+        self.height_map.get(&height).and_then(|hashes| {
+            hashes
+                .iter()
+                .max_by_key(|h| self.entries.get(h).map(|e| e.chainwork).unwrap_or(0))
+                .copied()
+        })
     }
 
     /// Get all fully valid blocks.
@@ -207,7 +200,14 @@ mod tests {
         let hash1 = Hash256::zero();
         let hash2 = Hash256::from_bytes([1u8; 32]);
 
-        index.insert(hash1, Hash256::zero(), 0, 0x207fffff, 1, BlockSource::LocalMined);
+        index.insert(
+            hash1,
+            Hash256::zero(),
+            0,
+            0x207fffff,
+            1,
+            BlockSource::LocalMined,
+        );
         index.insert(hash2, hash1, 1, 0x207fffff, 2, BlockSource::Peer);
 
         assert_eq!(index.get_at_height(0).len(), 1);
@@ -220,7 +220,14 @@ mod tests {
         let parent = Hash256::zero();
         let child = Hash256::from_bytes([1u8; 32]);
 
-        index.insert(parent, Hash256::zero(), 0, 0x207fffff, 1, BlockSource::LocalMined);
+        index.insert(
+            parent,
+            Hash256::zero(),
+            0,
+            0x207fffff,
+            1,
+            BlockSource::LocalMined,
+        );
         index.insert(child, parent, 1, 0x207fffff, 2, BlockSource::Peer);
 
         let children = index.get_children(&parent);

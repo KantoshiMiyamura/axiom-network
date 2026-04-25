@@ -7,15 +7,17 @@
 use axiom_consensus::{
     calculate_block_reward, compute_merkle_root, Block, BlockHeader, ConsensusValidator,
 };
-use axiom_node::{Config, Network, Node};
+use axiom_node::{Config, Node};
 use axiom_primitives::{Amount, Hash256};
 use axiom_protocol::{Transaction, TxOutput};
 use tempfile::TempDir;
 
 fn create_test_node() -> (TempDir, Node) {
     let temp_dir = TempDir::new().unwrap();
-    let mut config = Config::default();
-    config.data_dir = temp_dir.path().to_path_buf();
+    let config = Config {
+        data_dir: temp_dir.path().to_path_buf(),
+        ..Default::default()
+    };
     let node = Node::new(config).unwrap();
     (temp_dir, node)
 }
@@ -28,7 +30,7 @@ fn create_valid_block(height: u32, prev_hash: Hash256) -> Block {
     };
     let coinbase = Transaction::new_coinbase(vec![output], height);
 
-    let merkle_root = compute_merkle_root(&[coinbase.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&coinbase));
 
     // Use current Unix time + height so the timestamp always passes MTP and drift checks.
     let now = std::time::SystemTime::now()
@@ -162,7 +164,7 @@ fn test_reject_no_coinbase() {
     let prev_hash = Hash256::zero();
 
     let tx = Transaction::new_transfer(vec![], vec![], 0, 0);
-    let merkle_root = compute_merkle_root(&[tx.clone()]);
+    let merkle_root = compute_merkle_root(std::slice::from_ref(&tx));
 
     let header = BlockHeader {
         version: 1,
@@ -268,7 +270,7 @@ fn test_deterministic_merkle_root() {
     let tx1 = Transaction::new_coinbase(vec![output.clone()], 0);
     let tx2 = Transaction::new_coinbase(vec![output], 0);
 
-    let merkle1 = compute_merkle_root(&[tx1.clone()]);
+    let merkle1 = compute_merkle_root(std::slice::from_ref(&tx1));
     let merkle2 = compute_merkle_root(&[tx2]);
 
     // Same transactions produce same merkle root
@@ -340,8 +342,10 @@ fn test_state_consistency_after_restart() {
 
     // First session: build blocks
     {
-        let mut config = Config::default();
-        config.data_dir = data_dir.clone();
+        let config = Config {
+            data_dir: data_dir.clone(),
+            ..Default::default()
+        };
         let mut node = Node::new(config).unwrap();
 
         for _ in 0..3 {
@@ -355,8 +359,10 @@ fn test_state_consistency_after_restart() {
 
     // Second session: reopen and verify state
     {
-        let mut config = Config::default();
-        config.data_dir = data_dir;
+        let config = Config {
+            data_dir,
+            ..Default::default()
+        };
         let node = Node::new(config).unwrap();
 
         assert_eq!(node.best_height(), final_height);
