@@ -26,18 +26,46 @@ Axiom Network is a layered peer-to-peer monetary system.
 
 ## Crate Map
 
+The crate map is split into the **stable blockchain core** that ships in the
+testnet release and the **experimental optional modules** that live in the
+repo for development convenience but are not part of the released
+binaries. See [MODULES.md](MODULES.md) for the per-module status of the
+experimental set.
+
+### Stable — blockchain core
+
 | Crate | Purpose |
 |-------|---------|
 | `axiom-primitives` | Block, transaction, and UTXO data structures |
-| `axiom-crypto` | SHA-256, Ed25519, double-hash primitives |
+| `axiom-crypto` | SHA-256, ML-DSA-87 (FIPS 204) signing, BIP39 seed handling |
 | `axiom-protocol` | Wire protocol message types and serialization |
-| `axiom-consensus` | PoW validation, difficulty adjustment rules |
+| `axiom-consensus` | PoW validation, LWMA-3 difficulty adjustment |
 | `axiom-storage` | fjall-backed UTXO set, block store, nonce index |
 | `axiom-node` | Node runtime: mempool, chain state, peer manager, network service |
-| `axiom-rpc` | Axum HTTP RPC server (11 endpoints + `/utxos/:address`) |
-| `axiom-wallet` | Ed25519 keypair, address derivation, transaction builder |
-| `axiom-cli` | Node binary: P2P networking, mining loop, RPC server |
-| `axiom-stress` | Stress-test CLI: flood, metrics collection, scenario runner |
+| `axiom-rpc` | Axum HTTP/WebSocket RPC server |
+| `axiom-wallet` | Keypair handling, address derivation, transaction builder |
+| `axiom-signer` | Standalone `axiom-sign` transaction signer binary |
+| `axiom-cli` | Node binaries: `axiom`, `axiom-node`, `axiom-keygen`, `axiom-bump-fee` |
+| `axiom-ai` | PoUC compute market (consensus-adjacent, on-chain inference accounting) |
+| `axiom-guard` | Per-node persistent ML-DSA-87 identity keypair |
+| `axiom-ct` | Pedersen commitments + Bulletproof range proofs (optional confidential txs) |
+| `axiom-monitor` | Autonomous monitoring agent, health scoring, fee optimizer |
+
+### Experimental — optional modules
+
+These compile in the workspace but are **not** built by the release
+pipeline, **not** signed, and **not** advertised in the downloads page.
+They have varying maturity and may change without notice. Read
+[MODULES.md](MODULES.md) before depending on any of them.
+
+| Crate / dir | Purpose | Status |
+|-------------|---------|--------|
+| `wallet/src-tauri/` (`axiom-desktop-wallet`) | Tauri 2 desktop wallet backend | Build gated off in CI; ready for hardening pass |
+| `wallet/src/` | Tauri 2 desktop wallet frontend (React + TS) | Same lifecycle as `axiom-desktop-wallet` |
+| `shared/` (`axiom-community-shared`) | Community-platform shared types and crypto | Compiles; library only |
+| `server/` (`axiom-community-server`) | Off-chain community server (auth, jobs, messaging) | Compiles; security refactor pending |
+| `client/` (`axiom-community-client`) | Community CLI/TUI client | Skeleton — TUI rendering not implemented |
+| `server/axiom-mind/` + `server/axiom_mind.py` | AxiomMind guardian daemon (Python) | Standalone; advisory-only; not wired to consensus |
 
 ## Cryptographic Primitives
 

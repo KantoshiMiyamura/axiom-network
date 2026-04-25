@@ -38,6 +38,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Initialize tracing
     init_tracing();
 
+    print_experimental_banner();
+
     // Load configuration
     let config = ClientConfig::from_env()?;
     info!("Loaded client configuration");
@@ -201,6 +203,16 @@ fn print_help() {
     println!("    help                  Show this help");
     println!();
     println!("Running without arguments starts interactive TUI mode.");
+}
+
+/// Warn the operator that this binary is not part of the testnet release.
+fn print_experimental_banner() {
+    eprintln!(
+        "WARNING: axiom-community client is EXPERIMENTAL and not part of \
+         the v{} testnet release. The TUI is a skeleton and most features \
+         are not yet wired. See docs/MODULES.md.",
+        env!("CARGO_PKG_VERSION")
+    );
 }
 
 /// Initialize tracing and logging

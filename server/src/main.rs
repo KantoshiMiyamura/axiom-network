@@ -46,6 +46,8 @@ async fn main() -> anyhow::Result<()> {
     // Initialize tracing
     init_tracing();
 
+    print_experimental_banner();
+
     // Load configuration
     let config = Config::from_env()?;
     info!("Loaded configuration: {} environment", config.environment);
@@ -194,6 +196,17 @@ fn build_cors_layer(config: &config::Config) -> CorsLayer {
             .allow_methods(allowed_methods)
             .allow_headers(allowed_headers)
     }
+}
+
+/// Warn the operator that this binary is not part of the testnet release.
+fn print_experimental_banner() {
+    eprintln!(
+        "WARNING: axiom-community-server is EXPERIMENTAL and not part of \
+         the v{} testnet release. Security refactor pending — do not \
+         deploy to production without applying the changes tracked in \
+         the repository security plan. See docs/MODULES.md.",
+        env!("CARGO_PKG_VERSION")
+    );
 }
 
 /// Initialize tracing and logging

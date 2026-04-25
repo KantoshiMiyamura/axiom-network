@@ -17,6 +17,13 @@ throwaway test tokens, not an asset.
 
 ## What's in this repo
 
+This repository contains two layers of code with **different maturity levels**:
+
+- **Stable (testnet):** the blockchain core — node, RPC, wallet library, CLI, consensus, networking. This is what `v1.0.1-testnet.1` ships and what the release pipeline builds.
+- **Experimental (in development):** the desktop wallet, the off-chain community platform, and the AxiomMind guardian daemon. These live in this repo for development convenience but are **not part of the released testnet binaries**. See [docs/MODULES.md](docs/MODULES.md) for status, scope, and what's missing per module.
+
+### Stable — blockchain core
+
 | Crate / dir          | Purpose                                              |
 |----------------------|------------------------------------------------------|
 | `crates/axiom-primitives` | Hash, address, byte types                       |
@@ -33,6 +40,18 @@ throwaway test tokens, not an asset.
 | `web/`               | Static website (downloads, docs, releases pages)    |
 | `docs/`              | Architecture, protocol, operator, security docs     |
 | `scripts/testnet/`   | Local 4-node testnet harness (docker-compose + drivers) |
+
+### Experimental — optional modules (not part of the testnet release)
+
+| Crate / dir          | Purpose                                              | Status |
+|----------------------|------------------------------------------------------|--------|
+| `wallet/`            | Tauri 2 desktop wallet (React + Rust)                | Build gated off in CI; ready for hardening pass |
+| `shared/`            | Community-platform shared types and crypto           | Compiles; library only |
+| `server/` (Rust)     | Off-chain community server (auth, jobs, messaging)   | Compiles; security refactor pending |
+| `client/`            | Community CLI/TUI client                             | Skeleton — TUI rendering not implemented |
+| `server/axiom-mind/` | AxiomMind guardian daemon (Python, advisory only)    | Standalone; not wired to consensus |
+
+Read [docs/MODULES.md](docs/MODULES.md) before depending on any experimental module.
 
 ---
 
