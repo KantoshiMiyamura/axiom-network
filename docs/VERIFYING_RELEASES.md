@@ -44,14 +44,33 @@ If it prints anything else, **do not run the binaries**. Open an issue.
 
 ### 1. Install tools
 
-```bash
-# Linux/macOS
-sudo apt-get install -y minisign coreutils       # Debian/Ubuntu
-brew install minisign                             # macOS
+`minisign` is not packaged in the Debian/Ubuntu repos, so install the
+official binary directly from the upstream release. Pin the version that
+matches the one used in CI to ensure reproducible verification.
 
+```bash
+# Linux x86_64 — install the pinned upstream binary (same version used in CI).
+MINISIGN_VERSION="0.12"
+curl -fsSL "https://github.com/jedisct1/minisign/releases/download/${MINISIGN_VERSION}/minisign-${MINISIGN_VERSION}-linux.tar.gz" \
+    -o minisign.tar.gz
+tar -xzf minisign.tar.gz
+sudo install -m 755 "minisign-linux/x86_64/minisign" /usr/local/bin/minisign
+rm -rf minisign.tar.gz minisign-linux
+minisign -v
+```
+
+```bash
+# macOS
+brew install minisign
+```
+
+```powershell
 # Windows (PowerShell, as Administrator)
 winget install jedisct1.minisign
 ```
+
+You also need standard checksum tools (`sha256sum` on Linux, `shasum -a 256`
+on macOS, `Get-FileHash` on Windows).
 
 ### 2. Download the public key and the release
 
