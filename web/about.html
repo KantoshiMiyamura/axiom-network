@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — Kantoshi Miyamura | Axiom Network</title>
+  <meta name="description" content="Axiom Network was built by Kantoshi Miyamura as a post-quantum, fair-distribution Layer 1 blockchain. Mission, vision, and the principles behind the project.">
+  <meta property="og:title" content="About — Kantoshi Miyamura | Axiom Network">
+  <meta property="og:description" content="A post-quantum, proof-of-work Layer 1 blockchain. No pre-mine, no ICO, no team allocation. Built on the principle of just weights.">
+  <meta property="og:type" content="profile">
+  <meta property="og:image" content="images/kantoshi-pfp.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">A</div>
+      <span class="logo-text">Axiom</span>
+    </a>
+    <nav class="nav">
+      <a href="downloads.html">Downloads</a>
+      <a href="docs.html">Docs</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="security.html">Security</a>
+      <a href="tokenomics.html">Tokenomics</a>
+      <a href="about.html" class="active">About</a>
+      <a href="faq.html">FAQ</a>
+      <a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" aria-label="Menu">&#9776;</button>
+  </div>
+  <nav class="mobile-nav">
+    <a href="downloads.html">Downloads</a>
+    <a href="docs.html">Docs</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="security.html">Security</a>
+    <a href="tokenomics.html">Tokenomics</a>
+    <a href="about.html">About</a>
+    <a href="faq.html">FAQ</a>
+    <a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</header>
+
+<main class="page about-page">
+
+  <!-- Portrait + Identity -->
+  <section class="about-hero">
+    <div class="container">
+      <div class="about-hero-grid">
+        <div class="portrait-frame">
+          <img src="images/kantoshi-pfp.png" alt="Kantoshi Miyamura — Axiom Network" loading="eager" />
+          <div class="portrait-glow" aria-hidden="true"></div>
+        </div>
+        <div class="about-intro">
+          <div class="eyebrow"><span class="dot"></span> Architect of Axiom Network</div>
+          <h1>Kantoshi <span class="accent">Miyamura</span></h1>
+          <p class="lede">I build incorruptible money for a world where every adversary &mdash; classical, quantum, institutional &mdash; will eventually try to forge it.</p>
+          <p class="bio">Axiom Network is a Layer 1, proof-of-work blockchain written from scratch in Rust. Every signature is post-quantum (ML-DSA-87, FIPS 204). Every coin enters circulation through computational work. There is no pre-mine. There is no ICO. There is no team allocation. The chain is the product; everything else is noise.</p>
+          <div class="about-cta">
+            <a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener" class="btn btn-primary">View the Source</a>
+            <a href="downloads.html" class="btn btn-outline">&#11015; Run a Node</a>
+            <a href="docs.html" class="btn btn-outline">Read the Protocol</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Scripture Quote -->
+  <section class="section">
+    <div class="container">
+      <figure class="scripture">
+        <div class="scripture-hebrew" lang="he" dir="rtl">מֹאזְנֵי צֶדֶק אַבְנֵי־צֶדֶק יִהְיֶה לָכֶם</div>
+        <blockquote class="scripture-en">&ldquo;You shall have just balances, and just weights.&rdquo;</blockquote>
+        <figcaption class="scripture-cite">Leviticus 19:36</figcaption>
+        <p class="scripture-note">Honest weights are the oldest demand of a free economy. Axiom encodes that demand in cryptography &mdash; the supply schedule is public, the consensus rules are deterministic, and no party can secretly mint, freeze, or rewrite history.</p>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Mission & Vision -->
+  <section class="section">
+    <div class="container">
+      <div class="dual-grid">
+        <div class="dual-card">
+          <div class="dual-tag">Mission</div>
+          <h2>Make sound money survive the next century.</h2>
+          <p>Public-key cryptography built before 2024 will not survive a sufficiently large quantum computer. Most of the chains people hold value on today are signed with curves that will, eventually, be broken. Axiom is a refusal to wait for that day. Every transaction on this network is signed with a NIST Category 5 lattice scheme designed to resist both classical and quantum cryptanalysis. The chain is engineered to be running, intact, the morning after a cryptographically relevant quantum computer is announced.</p>
+        </div>
+        <div class="dual-card accent-card">
+          <div class="dual-tag">Vision</div>
+          <h2>A monetary network nobody can quietly debase.</h2>
+          <p>A blockchain is a contract between strangers about what counts as a coin. If insiders can pre-mine, allocate themselves a treasury, or push consensus changes through a foundation, that contract is unenforceable. Axiom commits to the opposite: a fixed schedule, a single class of holders, and a protocol whose only legitimate path to change is a genuine fork that miners and node-runners adopt on their own machines. Sovereignty over money should belong to the people running the software.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Principles -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">Principles</h2>
+      <p class="section-sub">The non-negotiables. Every line of code in this repository is in service of these.</p>
+      <div class="pillars">
+        <div class="pillar">
+          <div class="pillar-num">01</div>
+          <div class="pillar-body">
+            <h3>Post-quantum from day one</h3>
+            <p>ML-DSA-87 (FIPS 204) signatures on every transaction. SHA3-256 proof-of-work. Argon2id key derivation. XChaCha20-Poly1305 keystore encryption. No legacy ECDSA hiding anywhere in the trust path.</p>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-num">02</div>
+          <div class="pillar-body">
+            <h3>Fair distribution, no exceptions</h3>
+            <p>Zero pre-mine. Zero ICO. Zero team allocation. Zero foundation treasury. Every AXM that exists was minted by the same proof-of-work coinbase rule that any miner can verify against the block they just produced.</p>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-num">03</div>
+          <div class="pillar-body">
+            <h3>Self-sovereign by default</h3>
+            <p>You hold your keys. The wallet seals them with the operating system&rsquo;s native key store. The cache is encrypted with a device-bound key. The clipboard is wiped after thirty seconds. The default RPC binds to localhost. Nothing in the stack assumes you trust a server.</p>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-num">04</div>
+          <div class="pillar-body">
+            <h3>Engineering discipline over marketing</h3>
+            <p>Pinned Rust toolchain. Reproducible release builds. Signed tags and minisigned SHA256SUMS. Public CI. Documented audit policy with every advisory ignore justified. The release notes are an engineering log, not a press release.</p>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-num">05</div>
+          <div class="pillar-body">
+            <h3>Public testnet before mainnet</h3>
+            <p>Mainnet is not live. The testnet is open so the protocol gets bruised in the open before any unit of value depends on it. Tokens on this testnet have no monetary value and never will. The chain you run today is the chain that earns the right to launch.</p>
+          </div>
+        </div>
+        <div class="pillar">
+          <div class="pillar-num">06</div>
+          <div class="pillar-body">
+            <h3>Open source, fully auditable</h3>
+            <p>Every crate in the workspace is public. Consensus, networking, storage, signer, RPC &mdash; you can read the rule, find the test that pins it, and run the binary that enforces it. There is no closed component. There is no hosted service you have to trust.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why "Kantoshi Miyamura" -->
+  <section class="section">
+    <div class="container">
+      <div class="card max-w-3" style="margin: 0 auto; padding: 2rem;">
+        <h2 style="font-size:1.25rem;font-weight:600;margin-bottom:0.75rem;">On the name</h2>
+        <p style="color:var(--text-2); line-height:1.75; font-size:0.9375rem;">A name is a liability. The protocol is the work; the author is incidental. The bust above is a reminder that the face matters less than the rules it ratified. Read the code, audit the consensus, run a node, and form your own judgment about whether this network earns your trust. Nothing else should.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section-lg">
+    <div class="container">
+      <div class="cta-box">
+        <h2>Don&rsquo;t take my word for it.</h2>
+        <p>The protocol is the only authoritative statement. Read it, build it, run it, and break it.</p>
+        <div class="cta-btns">
+          <a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener" class="btn btn-primary">&#9881; Source on GitHub</a>
+          <a href="docs.html" class="btn btn-outline">&#128214; Protocol Docs</a>
+          <a href="security.html" class="btn btn-outline">&#128737; Security Model</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
+        <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
+        <div class="footer-version">v1.0.1-testnet.3</div>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="downloads.html">Downloads</a></li>
+          <li><a href="releases.html">Releases</a></li>
+          <li><a href="run-node.html">Run a Node</a></li>
+          <li><a href="mining.html">Mining</a></li>
+          <li><a href="wallet.html">Wallet</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Developers</h4>
+        <ul>
+          <li><a href="docs.html">Documentation</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="security.html">Security</a></li>
+          <li><a href="https://github.com/Ayano-X-Tech/axiom-network" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Network</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="tokenomics.html">Tokenomics</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+        <div style="margin-top:1.5rem">
+          <div class="footer-spec"><span class="label">Block time</span><span class="value">30s</span></div>
+          <div class="footer-spec"><span class="label">Supply</span><span class="value">~5M AXM</span></div>
+          <div class="footer-spec"><span class="label">Signatures</span><span class="value">ML-DSA-87</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>Axiom Network. Open-source software.</p>
+      <p>No pre-mine. No ICO. No team allocation. 100% proof-of-work distribution.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
