@@ -6,25 +6,14 @@ use std::collections::{HashSet, VecDeque};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs, UdpSocket};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub const MAINNET_DNS_SEEDS: &[&str] = &[
-    // Hardcoded bootstrap node — always reachable even if DNS is unavailable.
-    "178.104.8.137:9000",
-    // DNS seeds (resolve when A records are configured).
-    "seed.axiom-network.io:9000",
-    "seed2.axiom-network.io:9000",
-    "seed3.axiom-network.io:9000",
-    "seed-eu.axiom-network.io:9000",
-    "seed-us.axiom-network.io:9000",
-    "seed-ap.axiom-network.io:9000",
-];
-
-pub const TESTNET_DNS_SEEDS: &[&str] = &[
-    "testnet-seed.axiom-network.io:9000",
-    "testnet-seed2.axiom-network.io:9000",
-];
-
-// Devnet is isolated by design. No default peers, no DNS seeding.
-// Operators wiring multi-node devnets pass peers explicitly via `--peer`.
+// Axiom is operated by node-runners, not by a foundation. There are no
+// project-controlled bootstrap servers and no project-controlled DNS seeds.
+// Every network — mainnet, testnet, devnet — starts as an isolated chain
+// until operators wire peers explicitly via `--peer ADDR`. This mirrors the
+// early-Bitcoin model: a fresh node is a sovereign chain; you join one by
+// connecting to peers you trust.
+pub const MAINNET_DNS_SEEDS: &[&str] = &[];
+pub const TESTNET_DNS_SEEDS: &[&str] = &[];
 pub const DEVNET_DNS_SEEDS: &[&str] = &[];
 
 /// Resolve DNS seeds; unreachable hostnames are silently skipped.
@@ -440,7 +429,8 @@ mod tests {
     #[test]
     fn test_peer_discovery_rejects_self_from_gossip() {
         let mut d = PeerDiscovery::new(vec![]);
-        let self_addr = SocketAddr::from_str("178.104.8.137:9000").unwrap();
+        // RFC 5737 TEST-NET-1 — never routable on the public internet.
+        let self_addr = SocketAddr::from_str("203.0.113.1:9000").unwrap();
         d.set_self_addrs(vec![self_addr]);
 
         d.add_peer(self_addr);

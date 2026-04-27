@@ -133,11 +133,13 @@ enum Commands {
         data_dir: Option<String>,
     },
 
-    /// One-click mining — creates wallet, connects to network, starts mining
+    /// One-click mining — creates wallet, starts node, mines locally.
+    /// Without `--peer`, the node mines standalone (Bitcoin-style first
+    /// node). Pass one or more `--peer ADDR` to join a friend's network.
     Mine {
-        /// Connect to a specific node (default: bootstrap node)
-        #[arg(long, default_value = "178.104.8.137:9000")]
-        peer: String,
+        /// Connect to a peer (repeatable). Example: --peer 1.2.3.4:9000
+        #[arg(long = "peer", value_name = "ADDR")]
+        peers: Vec<String>,
 
         /// Data directory
         #[arg(long)]
@@ -291,10 +293,10 @@ fn main() {
         Commands::Version => cmd_version(),
         Commands::Init { data_dir } => cmd_init(data_dir),
         Commands::Mine {
-            peer,
+            peers,
             data_dir,
             log_level,
-        } => cmd_mine(peer, data_dir, log_level),
+        } => cmd_mine(peers, data_dir, log_level),
     }
 }
 
@@ -1333,7 +1335,7 @@ fn read_wallet_password() -> String {
 
 // ── axiom mine (one-click, like Bitcoin Core) ───────────────────────────────
 
-fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
+fn cmd_mine(peers: Vec<String>, data_dir: Option<String>, log_level: String) {
     let data_path = data_dir
         .clone()
         .map(PathBuf::from)
@@ -1487,7 +1489,13 @@ fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
 
     // Step 3: Start mining
     println!("  Network: axiom-mainnet-v1");
-    println!("  Peer:    {}", peer);
+    if peers.is_empty() {
+        println!("  Peers:   (standalone — no peers, mining locally)");
+    } else {
+        for p in &peers {
+            println!("  Peer:    {}", p);
+        }
+    }
     println!(
         "  Wallet:  {}...{}",
         &miner_address[..14],
@@ -1507,7 +1515,7 @@ fn cmd_mine(peer: String, data_dir: Option<String>, log_level: String) {
         "0.0.0.0:9000".to_string(),
         true,
         Some(miner_address),
-        vec![peer],
+        peers,
         log_level,
         30,
         None,

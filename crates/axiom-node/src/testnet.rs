@@ -1,15 +1,11 @@
 // Copyright (c) 2026 Kantoshi Miyamura
 
-//! Testnet configuration and bootstrap.
+//! Testnet parameters.
+//!
+//! The testnet has no project-operated seed nodes. A fresh node starts
+//! standalone; operators connect to peers explicitly via `--peer ADDR`.
 
 use std::net::SocketAddr;
-use std::str::FromStr;
-
-pub const TESTNET_SEED_NODES: &[&str] = &[
-    "seed1.axiom.network:9100",
-    "seed2.axiom.network:9100",
-    "seed3.axiom.network:9100",
-];
 
 pub const TESTNET_NETWORK_ID: &str = "axiom-testnet-v1";
 
@@ -36,11 +32,8 @@ pub struct TestnetConfig {
 
 impl Default for TestnetConfig {
     fn default() -> Self {
-        let seed_nodes = vec![SocketAddr::from_str("127.0.0.1:9100")
-            .unwrap_or_else(|_| "127.0.0.1:9100".parse().unwrap())];
-
         TestnetConfig {
-            seed_nodes,
+            seed_nodes: Vec::new(),
             network_id: TESTNET_NETWORK_ID.to_string(),
             genesis_hash: TESTNET_GENESIS_HASH.to_string(),
             initial_difficulty: TESTNET_INITIAL_DIFFICULTY,
@@ -58,10 +51,6 @@ impl TestnetConfig {
     }
 
     pub fn validate(&self) -> Result<(), String> {
-        if self.seed_nodes.is_empty() {
-            return Err("No seed nodes configured".to_string());
-        }
-
         if self.network_id.is_empty() {
             return Err("Network ID cannot be empty".to_string());
         }
@@ -85,7 +74,7 @@ mod tests {
     #[test]
     fn test_testnet_config_default() {
         let config = TestnetConfig::default();
-        assert!(!config.seed_nodes.is_empty());
+        assert!(config.seed_nodes.is_empty());
         assert_eq!(config.network_id, TESTNET_NETWORK_ID);
     }
 
@@ -96,9 +85,9 @@ mod tests {
     }
 
     #[test]
-    fn test_testnet_seed_nodes_count() {
+    fn test_testnet_config_has_no_default_peers() {
         let config = TestnetConfig::default();
-        assert!(!config.seed_nodes.is_empty());
+        assert!(config.seed_nodes.is_empty());
     }
 
     #[test]

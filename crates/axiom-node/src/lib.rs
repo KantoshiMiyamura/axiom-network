@@ -38,6 +38,6 @@ pub use mining_snapshot::MiningSnapshot;
 pub use node::{Node, NodeError, MAX_REORG_DEPTH};
 pub use reorg::{ReorgEngine, ReorgError};
 pub use state::{ChainState, StateError};
-pub use testnet::{TestnetConfig, TESTNET_SEED_NODES};
+pub use testnet::TestnetConfig;
 pub use validation::{TransactionValidator, ValidationError, ValidationMode};
 pub use watchdog::{install_panic_hook, spawn_resilient, Watchdog, WatchdogConfig};

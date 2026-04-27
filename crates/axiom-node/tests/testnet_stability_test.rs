@@ -14,10 +14,11 @@ fn test_testnet_config_valid() {
 }
 
 #[test]
-fn test_testnet_seed_nodes_reachable() {
+fn test_testnet_has_no_default_seed_nodes() {
+    // Axiom has no project-operated seed nodes — operators wire peers
+    // manually via `--peer ADDR`. A fresh testnet config must be empty.
     let config = TestnetConfig::default();
-    let seed_nodes = config.get_seed_nodes();
-    assert!(!seed_nodes.is_empty());
+    assert!(config.get_seed_nodes().is_empty());
 }
 
 #[test]

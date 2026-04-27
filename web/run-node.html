@@ -102,14 +102,17 @@ cd axiom-v1.0.1-testnet.3-x86_64-unknown-linux-gnu
       <div class="code-block mb-3">
         <div class="code-header"><span>Key configuration options</span><span>toml</span></div>
         <pre><code># Peer-to-peer network port
-listen_port = 9333
+p2p_bind = "0.0.0.0:9000"
 
 # Maximum peer connections
 max_peers = 50
 
-# RPC interface (127.0.0.1 = local only, safe default)
-rpc_bind = "127.0.0.1"
-rpc_port = 9332
+# Manual peers (Bitcoin-style — no auto-discovery, no DNS seeds).
+# Add one or more friends/known nodes here, or pass --peer on the CLI.
+peers = []
+
+# RPC interface (127.0.0.1 = local only, safe default — never expose publicly)
+rpc_bind = "127.0.0.1:8332"
 
 # Enable mining (default: off)
 mine = false
@@ -183,11 +186,24 @@ sudo journalctl -u axiom -f</code></pre>
 
     <!-- Peer Discovery -->
     <section class="section">
-      <h2 class="section-title">Peer Discovery</h2>
-      <p class="text-sm text-muted mb-2">The node discovers peers through a combination of hardcoded seed nodes and peer exchange. No manual peer configuration is required for most setups.</p>
+      <h2 class="section-title">Peer Discovery — Bitcoin-Style</h2>
+      <p class="text-sm text-muted mb-2">Axiom has <strong>no project-operated bootstrap servers</strong> and <strong>no project-operated DNS seeds</strong>. A fresh node starts as a sovereign chain on its own; to join an existing network, you connect to peers you trust.</p>
+      <div class="code-block mb-3">
+        <div class="code-header"><span>Start standalone — your node, your chain</span></div>
+        <pre><code>axiom-node --p2p-bind 0.0.0.0:9000 --rpc-bind 127.0.0.1:8332</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <div class="code-block mb-3">
+        <div class="code-header"><span>Join a friend's network — manual peer</span></div>
+        <pre><code>axiom-node --p2p-bind 0.0.0.0:9000 --rpc-bind 127.0.0.1:8332 \
+  --peer 1.2.3.4:9000 \
+  --peer 5.6.7.8:9000</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <p class="text-sm text-muted mb-2">Once one peer is reached, the node learns about the rest of the network through peer-exchange (gossip). The first <code>--peer</code> is the only out-of-band step you need.</p>
       <div class="info-box info">
         <div class="icon">&#8505;</div>
-        <div><p>If you are behind a NAT or firewall, ensure TCP port 9333 is forwarded to your node. This allows inbound connections and helps the network.</p></div>
+        <div><p>If you are behind a NAT or firewall, forward TCP port 9000 to your node so other peers can dial in. Outbound-only nodes still work, but they don't help the network propagate blocks.</p></div>
       </div>
     </section>
 
@@ -219,7 +235,7 @@ grep "ERROR\|WARN" ~/.axiom/logs/axiom.log</code></pre>
         <li>Run the node on a dedicated machine or VPS for maximum uptime</li>
         <li>Monitor disk space — prune old logs periodically</li>
         <li>Never expose RPC to the internet without proper authentication</li>
-        <li>Forward port 9333 to accept inbound peer connections</li>
+        <li>Forward TCP port 9000 (P2P) to accept inbound peer connections</li>
         <li>Synchronize your system clock with NTP</li>
       </ul>
     </section>

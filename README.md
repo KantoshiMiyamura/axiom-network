@@ -69,23 +69,41 @@ tracked revision. `cargo clippy --workspace --release --all-targets` reports
 
 ---
 
-## Run a node (testnet)
+## Run a node
+
+Axiom has no project-operated bootstrap servers and no project-operated DNS
+seeds. A fresh node starts as a sovereign chain. To join an existing network,
+you connect to peers run by people you know — Bitcoin-style.
+
+### First node (standalone — start your own chain)
 
 ```bash
 ./target/release/axiom-node \
   --network test \
   --data-dir ./testnet-data \
-  --port 29000 \
-  --rpc-port 18330 \
-  --peer <bootstrap-host:29000>
+  --p2p-bind 0.0.0.0:9000 \
+  --rpc-bind 127.0.0.1:8332
 ```
+
+### Later node (join a peer)
+
+```bash
+./target/release/axiom-node \
+  --network test \
+  --data-dir ./testnet-data \
+  --p2p-bind 0.0.0.0:9000 \
+  --rpc-bind 127.0.0.1:8332 \
+  --peer <friend-host:9000>
+```
+
+`--peer` is repeatable — pass it multiple times to wire several known peers.
 
 Query the node:
 
 ```bash
-curl -s http://127.0.0.1:18330/tip
-curl -s http://127.0.0.1:18330/peer_count
-curl -s http://127.0.0.1:18330/metrics
+curl -s http://127.0.0.1:8332/tip
+curl -s http://127.0.0.1:8332/peer_count
+curl -s http://127.0.0.1:8332/metrics
 ```
 
 ---
