@@ -99,6 +99,11 @@ pub struct NetworkAnalyzer {
     node: Arc<RwLock<Node>>,
     history: AnalysisHistory,
     fee_predictor: FeePredictor,
+    /// Whether the operator configured this node to expect peers (i.e. passed
+    /// `--peer ADDR` or has DNS seeds available). When false, low/zero peer
+    /// counts are treated as informational rather than critical, so a
+    /// standalone first-node deployment does not produce alert noise.
+    expects_peers: bool,
 }
 
 struct AnalysisHistory {
@@ -141,11 +146,12 @@ impl AnalysisHistory {
 }
 
 impl NetworkAnalyzer {
-    pub fn new(node: Arc<RwLock<Node>>) -> Self {
+    pub fn new(node: Arc<RwLock<Node>>, expects_peers: bool) -> Self {
         NetworkAnalyzer {
             node,
             history: AnalysisHistory::new(),
             fee_predictor: FeePredictor::new(),
+            expects_peers,
         }
     }
 
@@ -192,6 +198,7 @@ impl NetworkAnalyzer {
             &block_time_analysis,
             &network_analysis,
             &health,
+            self.expects_peers,
         );
         let recommendations =
             generate_recommendations(&fee_analysis, &block_time_analysis, &network_analysis);
@@ -407,6 +414,7 @@ pub fn generate_alerts(
     block_time: &BlockTimeAnalysis,
     network: &NetworkAnalysis,
     health: &NetworkHealthScore,
+    expects_peers: bool,
 ) -> Vec<AgentAlert> {
     let now_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -415,8 +423,33 @@ pub fn generate_alerts(
 
     let mut alerts = Vec::new();
 
-    // Peer count alerts
-    if network.peer_count < 3 {
+    // Peer count alerts.
+    //
+    // When the operator did not configure any peers and no DNS seeds are
+    // available, the node is running in standalone-by-design mode. In that
+    // case zero/low peer counts are expected and we emit only an informational
+    // notice so the alert stream is not flooded with false-positive criticals.
+    // Once the operator wires at least one peer (or seeds resolve), the full
+    // critical/warning thresholds apply.
+    if !expects_peers {
+        if network.peer_count == 0 {
+            alerts.push(AgentAlert {
+                id: format!("{:016x}", now_ms ^ 0x01),
+                severity: AlertSeverity::Info,
+                category: "network_health".to_string(),
+                message: "Standalone node — no peers configured (informational, not an error)"
+                    .to_string(),
+                recommendation:
+                    "Pass --peer ADDR (repeatable) to join an existing network when ready."
+                        .to_string(),
+                timestamp_ms: now_ms,
+                data: serde_json::json!({
+                    "peer_count": network.peer_count,
+                    "mode": "standalone",
+                }),
+            });
+        }
+    } else if network.peer_count < 3 {
         alerts.push(AgentAlert {
             id: format!("{:016x}", now_ms ^ 0x01),
             severity: AlertSeverity::Critical,
@@ -426,7 +459,7 @@ pub fn generate_alerts(
                 network.peer_count
             ),
             recommendation:
-                "Check network connectivity and seed node availability. Consider adding --peer flags."
+                "Check network connectivity and peer reachability. Consider adding --peer flags."
                     .to_string(),
             timestamp_ms: now_ms,
             data: serde_json::json!({"peer_count": network.peer_count}),
@@ -525,16 +558,33 @@ pub fn generate_alerts(
         });
     }
 
-    // Low overall health
+    // Low overall health.
+    //
+    // The composite score is dragged down by peer_connectivity when there
+    // are no peers, so on a standalone-by-design node a low score is an
+    // expected condition rather than an incident. Surface it as a Warning
+    // (or Info, if very mild) instead of Critical so operator alerting
+    // pipelines do not treat the intentional setup as an outage.
+    let health_severity = if !expects_peers {
+        if health.overall < 30.0 {
+            AlertSeverity::Warning
+        } else {
+            AlertSeverity::Info
+        }
+    } else {
+        AlertSeverity::Critical
+    };
     if health.overall < 50.0 {
         alerts.push(AgentAlert {
             id: format!("{:016x}", now_ms ^ 0x07),
-            severity: AlertSeverity::Critical,
+            severity: health_severity,
             category: "network_health".to_string(),
-            message: format!("Network health score critical: {:.1}/100", health.overall),
-            recommendation:
-                "Immediate investigation required. Check peers, chain progress, and mempool status."
-                    .to_string(),
+            message: format!("Network health score: {:.1}/100", health.overall),
+            recommendation: if !expects_peers {
+                "Score reflects standalone mode (peer_connectivity=0 by design).".to_string()
+            } else {
+                "Investigate peers, chain progress, and mempool status.".to_string()
+            },
             timestamp_ms: now_ms,
             data: serde_json::json!(health.components),
         });

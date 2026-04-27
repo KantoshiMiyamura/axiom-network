@@ -175,7 +175,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     info!("Initialising NetworkMonitorAgent...");
-    let monitor_agent = NetworkMonitorAgent::new(node_state.clone());
+    // The monitor downgrades zero/low peer-count alerts when the operator
+    // never supplied a peer source (no `--peer` and the per-network DNS
+    // seed list is empty). That keeps a standalone first node from
+    // emitting CRITICAL alerts for an expected condition.
+    let dns_seed_hosts: &[&str] = match network {
+        Network::Mainnet => MAINNET_DNS_SEEDS,
+        Network::Test => TESTNET_DNS_SEEDS,
+        Network::Dev => &[],
+    };
+    let expects_peers = !args.peers.is_empty() || !dns_seed_hosts.is_empty();
+    let monitor_agent = NetworkMonitorAgent::new(node_state.clone(), expects_peers);
     let monitor_store = monitor_agent.reports_store();
     tokio::spawn(monitor_agent.run());
     info!("✓ NetworkMonitorAgent started (analysis interval: 30s)");

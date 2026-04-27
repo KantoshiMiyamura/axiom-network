@@ -22,10 +22,16 @@ pub struct NetworkMonitorAgent {
 }
 
 impl NetworkMonitorAgent {
-    pub fn new(node: Arc<RwLock<Node>>) -> Self {
+    /// Construct an agent.
+    ///
+    /// `expects_peers` should be `true` when the operator has configured at
+    /// least one peer source (a `--peer ADDR` argument or a resolvable DNS
+    /// seed list); `false` for a standalone-by-design first node. The flag
+    /// changes how zero/low peer counts are surfaced in alerts.
+    pub fn new(node: Arc<RwLock<Node>>, expects_peers: bool) -> Self {
         let (tx, _) = broadcast::channel(64);
         NetworkMonitorAgent {
-            analyzer: NetworkAnalyzer::new(node),
+            analyzer: NetworkAnalyzer::new(node, expects_peers),
             report_tx: tx,
             reports: Arc::new(RwLock::new(Vec::new())),
         }
