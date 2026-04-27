@@ -52,54 +52,73 @@
       <p>Release history for Axiom Network. Each release includes pre-built binaries for all supported platforms.</p>
     </div>
 
-    <!-- v1.0.1-testnet.3 — Current public testnet -->
+    <!-- v1.0.1-testnet.6 — Current public testnet -->
     <div class="card mb-4" style="border-color:rgba(16,185,129,0.3)">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
         <div>
           <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.25rem">
-            <h2 style="font-size:1.25rem;font-weight:600">v1.0.1-testnet.3 — Public Testnet</h2>
+            <h2 style="font-size:1.25rem;font-weight:600">v1.0.1-testnet.6 — Public Testnet</h2>
             <span style="display:inline-block;padding:0.2rem 0.625rem;border-radius:99px;font-size:0.6875rem;font-weight:500;background:var(--accent-muted);color:var(--accent);border:1px solid rgba(16,185,129,0.2)">Testnet</span>
           </div>
           <div class="text-xs text-muted mono">Testnet only — tokens have no monetary value. Mainnet has not launched.</div>
         </div>
       </div>
 
-      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">What's in this release</h3>
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">What's new in this release</h3>
+      <ul class="bullet-list mb-4">
+        <li><strong>Local-first peer model.</strong> The default network configuration no longer ships hardcoded peer IPs or project-operated DNS seed lists. A node started without <code>--peer ADDR</code> runs as a standalone chain; joining an existing network requires the operator to wire one or more known peers explicitly.</li>
+        <li><strong>Watchdog adjusted for standalone mode.</strong> When the operator has not configured any peer source, the network monitor downgrades zero/low peer-count alerts from <code>CRITICAL</code> to <code>INFO</code>, and softens the composite network-health-score alert. Operator alert pipelines no longer treat the intentional setup as an outage.</li>
+        <li><strong>Repeatable <code>--peer</code> flag.</strong> Pass it multiple times (<code>--peer 1.2.3.4:9000 --peer 5.6.7.8:9000</code>) to wire several known peers. The <code>axiom mine</code> wrapper accepts the same flag.</li>
+      </ul>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">What's in the rest of the release</h3>
       <ul class="bullet-list mb-4">
         <li>ML-DSA-87 (FIPS 204) post-quantum transaction signatures</li>
         <li>SHA3-256 proof-of-work with LWMA difficulty retarget</li>
         <li>v2 handshake with domain-separated 256-bit nonce, persistent node identity, and self-peer rejection</li>
         <li>UTXO mempool with fee-rate ordering and admission rate limiting</li>
-        <li>HTTP + WebSocket RPC</li>
+        <li>HTTP + WebSocket RPC (localhost-bound by default)</li>
         <li>Unified <code>axiom</code> CLI + <code>axiom-node</code>, <code>axiom-keygen</code>, <code>axiom-sign</code>, <code>axiom-bump-fee</code> binaries</li>
-        <li>Test suite: 993 passed, 0 failed, 4 ignored on the tagged source</li>
       </ul>
 
       <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Platforms</h3>
       <ul class="bullet-list mb-4">
         <li>Windows x86_64 (<code>.zip</code>)</li>
         <li>Linux x86_64, glibc 2.31+ (<code>.tar.gz</code>)</li>
-        <li><strong>macOS builds are not produced for this release.</strong> The hosted <code>macos-13</code> runner queue stalled past 40 minutes during the v1.0.1-testnet.2 publish, and the <code>macos-14</code> (Apple Silicon) runner was exiting 101 in <code>cargo build</code>. Both targets are temporarily removed from the release matrix and will return in a later testnet release once a stable runner + toolchain combination is confirmed. macOS users can build from source with <code>cargo build --release -p axiom-cli</code>.</li>
+        <li>macOS builds are not produced for this release. macOS users can build from source with <code>cargo build --release -p axiom-cli</code>.</li>
       </ul>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Run a standalone first node</h3>
+      <div class="code-block mb-3">
+        <pre><code>axiom-node --network test --data-dir ~/.axiom-local \
+  --p2p-bind 0.0.0.0:9000 --rpc-bind 127.0.0.1:8332</code></pre>
+      </div>
+
+      <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Join a known peer</h3>
+      <div class="code-block mb-3">
+        <pre><code>axiom-node --network test --data-dir ~/.axiom-local \
+  --p2p-bind 0.0.0.0:9000 --rpc-bind 127.0.0.1:8332 \
+  --peer &lt;host&gt;:9000</code></pre>
+      </div>
 
       <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem">Node downloads (GitHub release)</h3>
       <p class="text-xs text-muted mb-3">Binaries are published on the GitHub release. Always verify with SHA256SUMS + minisign before running — see <a href="docs.html">Verifying releases</a>.</p>
       <div class="gap-4 mb-3">
-        <a href="https://github.com/Ayano-X-Tech/axiom-network/releases/tag/v1.0.1-testnet.3" class="btn btn-primary btn-sm" target="_blank" rel="noopener">&#11015; GitHub Release</a>
+        <a href="https://github.com/KantoshiMiyamura/axiom-network/releases/tag/v1.0.1-testnet.6" class="btn btn-primary btn-sm" target="_blank" rel="noopener">&#11015; GitHub Release</a>
       </div>
 
       <p class="text-xs text-muted">Desktop wallet installers are not part of this release. Use the CLI wallet (<code>axiom-keygen</code> / <code>axiom</code>).</p>
     </div>
 
-    <!-- v1.0.1-testnet.2 — superseded -->
+    <!-- v1.0.1-testnet.2 through .5 — superseded by the local-first transition -->
     <div class="card mb-4" style="opacity:0.75">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem">
         <div>
           <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.25rem">
-            <h2 style="font-size:1.125rem;font-weight:600">v1.0.1-testnet.2</h2>
+            <h2 style="font-size:1.125rem;font-weight:600">v1.0.1-testnet.2 → v1.0.1-testnet.5</h2>
             <span style="display:inline-block;padding:0.2rem 0.625rem;border-radius:99px;font-size:0.6875rem;font-weight:500;background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid rgba(255,255,255,0.08)">Superseded</span>
           </div>
-          <div class="text-xs text-muted mono">Tag exists for audit history but the release publish was blocked by macOS runner stalls. Use v1.0.1-testnet.3.</div>
+          <div class="text-xs text-muted mono">Pre-pivot tags. v1.0.1-testnet.6 is the recommended baseline — the local-first peer-model transition lives at that tag.</div>
         </div>
       </div>
     </div>
@@ -183,7 +202,7 @@
       <div class="footer-brand">
         <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
         <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
-        <div class="footer-version">v1.0.1-testnet.3</div>
+        <div class="footer-version">v1.0.1-testnet.6</div>
       </div>
       <div>
         <h4>Product</h4>
