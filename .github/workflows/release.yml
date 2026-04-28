@@ -131,25 +131,100 @@ jobs:
           set -eu
           VERSION="${TAG#v}"
           STAGE="axiom-v${VERSION}-${{ matrix.name }}"
-          mkdir -p "$STAGE"
+          mkdir -p "$STAGE/tools"
           EXT=""
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then EXT=".exe"; fi
 
-          for bin in axiom axiom-node axiom-keygen axiom-sign axiom-bump-fee; do
+          # Primary entry point — the only binary most users need.
+          src="target/${{ matrix.target }}/release/axiom${EXT}"
+          if [ -f "$src" ]; then
+            cp "$src" "$STAGE/"
+          else
+            echo "::error::missing binary: $src"
+            exit 1
+          fi
+
+          # Internal binaries — kept for advanced users + tooling, but moved
+          # under tools/ so the archive root stays uncluttered for newcomers.
+          for bin in axiom-node axiom-keygen axiom-sign axiom-bump-fee; do
             src="target/${{ matrix.target }}/release/${bin}${EXT}"
             if [ -f "$src" ]; then
-              cp "$src" "$STAGE/"
+              cp "$src" "$STAGE/tools/"
             else
               echo "::error::missing binary: $src"
               exit 1
             fi
           done
 
+          # Quick-start guide. Plain text so it opens in Notepad / any editor.
           cat > "$STAGE/README.txt" <<EOF
           Axiom Network ${TAG}
+          Post-quantum Layer 1 blockchain — runs on your machine.
+
+          ─────────────────────────────────────────────────────────────
+          QUICK START
+          ─────────────────────────────────────────────────────────────
+
+          1. Open a terminal in this folder.
+
+          2. Run:
+
+                 axiom mine
+
+             That command creates your wallet, starts a node, and
+             begins mining on your own chain. You are mining.
+
+          3. Anytime, in another terminal:
+
+                 axiom status        — node + chain status
+                 axiom wallet balance — your balance
+                 axiom               — quick-start menu
+
+          ─────────────────────────────────────────────────────────────
+          DATA LOCATION
+          ─────────────────────────────────────────────────────────────
+
+          Your wallet and chain data live in the OS data directory:
+              Linux:    ~/.local/share/axiom
+              macOS:    ~/Library/Application Support/axiom
+              Windows:  %APPDATA%\axiom
+
+          Use --data-dir DIR to override.
+
+          ─────────────────────────────────────────────────────────────
+          JOINING A KNOWN PEER
+          ─────────────────────────────────────────────────────────────
+
+          To connect to someone else's node instead of starting a new
+          chain, pass their address as a peer:
+
+              axiom mine --peer HOST:9000
+
+          You can pass --peer multiple times to wire several peers.
+
+          ─────────────────────────────────────────────────────────────
+          ADVANCED
+          ─────────────────────────────────────────────────────────────
+
+          Internal binaries are under tools/:
+              tools/axiom-node       direct full-node binary
+              tools/axiom-keygen     standalone keypair generator
+              tools/axiom-sign       offline transaction signer
+              tools/axiom-bump-fee   replace-by-fee helper
+
+          Most users do not need these. The 'axiom' wrapper covers the
+          common workflow.
+
+          ─────────────────────────────────────────────────────────────
+          BUILD INFO
+          ─────────────────────────────────────────────────────────────
+
           Target: ${{ matrix.target }}
           Commit: ${GITHUB_SHA}
           Built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          Verify before running: see SHA256SUMS + SHA256SUMS.minisig
+          on the GitHub release page.
           EOF
 
           echo "STAGE=$STAGE" >> "$GITHUB_ENV"

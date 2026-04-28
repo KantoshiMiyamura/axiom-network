@@ -107,8 +107,8 @@ p2p_bind = "0.0.0.0:9000"
 # Maximum peer connections
 max_peers = 50
 
-# Manual peers (Bitcoin-style — no auto-discovery, no DNS seeds).
-# Add one or more friends/known nodes here, or pass --peer on the CLI.
+# Manual peers (no auto-discovery, no DNS seeds).
+# Add one or more known nodes here, or pass --peer on the CLI.
 peers = []
 
 # RPC interface (127.0.0.1 = local only, safe default — never expose publicly)
@@ -135,14 +135,20 @@ log_level = "info"</code></pre>
     <!-- Running -->
     <section class="section">
       <h2 class="section-title">Running the Node</h2>
+      <p class="text-sm text-muted mb-3">Run <code>axiom</code> with no arguments to see a quick-start menu (it tells you whether a wallet exists and what to type next).</p>
       <div class="code-block mb-2">
-        <div class="code-header"><span>Start the node</span></div>
+        <div class="code-header"><span>One-step: wallet + node + mining</span></div>
+        <pre><code>axiom mine</code></pre>
+        <button class="copy-btn">copy</button>
+      </div>
+      <div class="code-block mb-2">
+        <div class="code-header"><span>Start a node without mining</span></div>
         <pre><code>axiom start</code></pre>
         <button class="copy-btn">copy</button>
       </div>
       <div class="code-block mb-2">
-        <div class="code-header"><span>Start with mining</span></div>
-        <pre><code>axiom start --mine</code></pre>
+        <div class="code-header"><span>Join a known peer</span></div>
+        <pre><code>axiom mine --peer HOST:9000</code></pre>
         <button class="copy-btn">copy</button>
       </div>
       <div class="code-block">

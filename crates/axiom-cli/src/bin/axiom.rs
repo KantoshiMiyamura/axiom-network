@@ -39,13 +39,13 @@ fn default_wallet_path() -> PathBuf {
     name = "axiom",
     about = "Axiom Network — Post-Quantum Blockchain",
     version = VERSION,
-    long_about = "Production CLI for the Axiom Network.\n\n\
-                  Run a full node, create wallets, mine blocks, and check rewards.\n\
-                  All private keys stay on your device — nothing leaves your machine."
+    long_about = "Run a full node, create wallets, and mine blocks.\n\n\
+                  All private keys stay on your device — nothing leaves your machine.\n\
+                  Run `axiom` with no arguments for a quick-start guide."
 )]
 struct Cli {
     #[command(subcommand)]
-    command: Commands,
+    command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
@@ -134,8 +134,8 @@ enum Commands {
     },
 
     /// One-click mining — creates wallet, starts node, mines locally.
-    /// Without `--peer`, the node mines standalone (Bitcoin-style first
-    /// node). Pass one or more `--peer ADDR` to join a friend's network.
+    /// Without `--peer`, the node mines standalone on its own chain.
+    /// Pass one or more `--peer ADDR` to join a known network.
     Mine {
         /// Connect to a peer (repeatable). Example: --peer 1.2.3.4:9000
         #[arg(long = "peer", value_name = "ADDR")]
@@ -243,7 +243,12 @@ enum WorkerAction {
 fn main() {
     let cli = Cli::parse();
 
-    match cli.command {
+    let Some(command) = cli.command else {
+        cmd_welcome();
+        return;
+    };
+
+    match command {
         Commands::Start {
             network,
             data_dir,
@@ -1163,6 +1168,70 @@ fn cmd_status(rpc: &str) {
         }
     }
 
+    println!();
+}
+
+// ── axiom (no subcommand) — friendly welcome ─────────────────────────────────
+
+fn cmd_welcome() {
+    let data_dir = default_data_dir();
+    let wallet_path = data_dir.join("wallet.dat");
+    let wallet_exists = wallet_path.exists();
+
+    println!();
+    println!("  Axiom Network v{VERSION}");
+    println!("  Post-quantum Layer 1 blockchain — runs on your machine.");
+    println!();
+
+    if wallet_exists {
+        // Returning user — show what they have and how to resume.
+        let addr = fs::read_to_string(&wallet_path)
+            .ok()
+            .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+            .and_then(|v| v.get("address").and_then(|a| a.as_str()).map(String::from));
+
+        println!("  Wallet found:");
+        if let Some(a) = &addr {
+            // Print a shortened form so the terminal doesn't wrap awkwardly.
+            let short = if a.len() > 22 {
+                format!("{}...{}", &a[..14], &a[a.len() - 8..])
+            } else {
+                a.clone()
+            };
+            println!("    Address  {short}");
+        }
+        println!("    Path     {}", wallet_path.display());
+        println!();
+        println!("  Common commands:");
+        println!("    axiom mine          — start mining with your wallet");
+        println!("    axiom status        — show node + chain status");
+        println!("    axiom wallet balance — check balance");
+        println!("    axiom version       — show version + build info");
+        println!();
+        println!("  To join a known peer: axiom mine --peer HOST:9000");
+    } else {
+        // First run — explain what's about to happen.
+        println!("  First time here?");
+        println!("  Run this and you are mining:");
+        println!();
+        println!("    axiom mine");
+        println!();
+        println!("  That command:");
+        println!("    1. creates a data directory at:");
+        println!("       {}", data_dir.display());
+        println!("    2. creates a local wallet (your keys, your machine)");
+        println!("    3. starts a node and begins mining on your own chain");
+        println!();
+        println!("  Other useful commands:");
+        println!("    axiom status        — show node + chain status");
+        println!("    axiom wallet balance — check balance");
+        println!("    axiom version       — show version + build info");
+        println!();
+        println!("  To join a friend's network instead of starting a new one:");
+        println!("    axiom mine --peer HOST:9000");
+    }
+    println!();
+    println!("  Full command list: axiom --help");
     println!();
 }
 

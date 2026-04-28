@@ -73,30 +73,47 @@ tracked revision. `cargo clippy --workspace --release --all-targets` reports
 
 Axiom has no project-operated bootstrap servers and no project-operated DNS
 seeds. A fresh node starts as a sovereign chain. To join an existing network,
-you connect to peers run by people you know — Bitcoin-style.
+you connect to peers you know.
 
-### First node (standalone — start your own chain)
+The release archive ships with one main binary at the root: **`axiom`**. The
+internal binaries (`axiom-node`, `axiom-keygen`, `axiom-sign`, `axiom-bump-fee`)
+live under `tools/` for advanced use.
+
+### Quick start (one command)
 
 ```bash
-./target/release/axiom-node \
+./axiom mine
+```
+
+That creates a wallet, starts a node, and begins mining on your own chain.
+Run `./axiom` with no arguments for a quick-start menu.
+
+### Join a known peer
+
+```bash
+./axiom mine --peer <host>:9000
+```
+
+`--peer` is repeatable — pass it multiple times to wire several known peers.
+
+### Useful commands
+
+```bash
+./axiom               # quick-start menu (status if a wallet already exists)
+./axiom status        # node + chain status
+./axiom wallet balance  # wallet balance
+./axiom version       # build info
+```
+
+### Advanced — direct node binary
+
+```bash
+./tools/axiom-node \
   --network test \
   --data-dir ./testnet-data \
   --p2p-bind 0.0.0.0:9000 \
   --rpc-bind 127.0.0.1:8332
 ```
-
-### Later node (join a peer)
-
-```bash
-./target/release/axiom-node \
-  --network test \
-  --data-dir ./testnet-data \
-  --p2p-bind 0.0.0.0:9000 \
-  --rpc-bind 127.0.0.1:8332 \
-  --peer <friend-host:9000>
-```
-
-`--peer` is repeatable — pass it multiple times to wire several known peers.
 
 Query the node:
 

@@ -233,16 +233,16 @@
 
     <!-- Package Contents -->
     <section class="section">
-      <h2 class="section-title">Node CLI Contents</h2>
-      <p class="section-sub">Each node download includes everything you need to run and manage an Axiom node.</p>
+      <h2 class="section-title">What's in the archive</h2>
+      <p class="section-sub">One main binary at the root, helpers under <code>tools/</code>.</p>
       <div class="card">
         <ul class="bullet-list">
-          <li><code>axiom</code> &#8212; unified CLI binary (wallet, node, mining, status)</li>
-          <li><code>axiom-node</code> &#8212; standalone full node daemon</li>
-          <li><code>axiom-keygen</code> &#8212; key pair and address generation tool</li>
-          <li><code>axiom-bump-fee</code> &#8212; transaction fee replacement utility</li>
-          <li><code>axiom.conf.example</code> &#8212; example configuration file</li>
-          <li><code>README.txt</code> &#8212; quick start instructions and license</li>
+          <li><code>axiom</code> &#8212; the only binary most users need (wallet, node, mining, status)</li>
+          <li><code>README.txt</code> &#8212; quick-start guide</li>
+          <li><code>tools/axiom-node</code> &#8212; direct full-node binary (advanced)</li>
+          <li><code>tools/axiom-keygen</code> &#8212; standalone keypair generator (advanced)</li>
+          <li><code>tools/axiom-sign</code> &#8212; offline transaction signer (advanced)</li>
+          <li><code>tools/axiom-bump-fee</code> &#8212; replace-by-fee helper (advanced)</li>
         </ul>
       </div>
     </section>
@@ -268,7 +268,7 @@
     <!-- Quick Start -->
     <section class="section">
       <h2 class="section-title">Quick Start</h2>
-      <p class="section-sub">Three steps to get your node running.</p>
+      <p class="section-sub">Two steps to get mining.</p>
       <div class="max-w-3 steps">
         <div class="step">
           <div class="step-num">1</div>
@@ -284,20 +284,17 @@ cd axiom-v1.0.1-testnet.6-*
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-body">
-            <h3>Install the binary</h3>
-            <div class="code-block"><pre><code># Linux
-sudo cp axiom axiom-node /usr/local/bin/
-# or run the installer: bash install.sh
-
-# Windows: add the extracted folder to your system PATH</code></pre><button class="copy-btn">copy</button></div>
+            <h3>Run</h3>
+            <div class="code-block"><pre><code>./axiom mine</code></pre><button class="copy-btn">copy</button></div>
+            <p class="text-xs text-muted mt-2">That command creates your wallet, starts a node, and begins mining on your own chain. Run <code>./axiom</code> with no arguments for the quick-start menu, <code>./axiom status</code> for live status, <code>./axiom wallet balance</code> for your balance.</p>
           </div>
         </div>
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-body">
-            <h3>Initialize and start</h3>
-            <div class="code-block"><pre><code>axiom init
-axiom start</code></pre><button class="copy-btn">copy</button></div>
+            <h3>Optional — join a known peer</h3>
+            <div class="code-block"><pre><code>./axiom mine --peer HOST:9000</code></pre><button class="copy-btn">copy</button></div>
+            <p class="text-xs text-muted mt-2">Repeat <code>--peer ADDR</code> to wire several known nodes. Without a peer, your node mines on its own chain.</p>
           </div>
         </div>
       </div>
