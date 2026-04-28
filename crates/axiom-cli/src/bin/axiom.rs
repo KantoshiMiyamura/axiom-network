@@ -321,25 +321,41 @@ fn cmd_start(
     rpc_auth_token: Option<String>,
 ) {
     // Delegate to axiom-node binary — it has the full async runtime.
+    //
+    // The release archive ships axiom-node under ./tools/ to keep the archive
+    // root uncluttered. Local cargo builds put it next to axiom in target/release
+    // (or wherever the user copies them). Check both, plus PATH, so the wrapper
+    // works in both layouts.
     let exe_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
         .unwrap_or_else(|| PathBuf::from("."));
 
-    let node_exe = if cfg!(windows) {
-        exe_dir.join("axiom-node.exe")
+    let node_filename = if cfg!(windows) {
+        "axiom-node.exe"
     } else {
-        exe_dir.join("axiom-node")
+        "axiom-node"
     };
 
-    if !node_exe.exists() {
-        eprintln!(
-            "error: axiom-node binary not found at {}",
-            node_exe.display()
-        );
-        eprintln!("       Make sure axiom-node is in the same directory as axiom.");
-        std::process::exit(1);
-    }
+    let candidates = [
+        exe_dir.join("tools").join(node_filename), // release archive layout
+        exe_dir.join(node_filename),               // dev / cargo build layout
+    ];
+
+    let node_exe = match candidates.iter().find(|p| p.exists()).cloned() {
+        Some(p) => p,
+        None => {
+            eprintln!("error: axiom-node binary not found.");
+            eprintln!("       Looked in:");
+            for p in &candidates {
+                eprintln!("         {}", p.display());
+            }
+            eprintln!(
+                "       Make sure the release archive was extracted intact (axiom + tools/ folder)."
+            );
+            std::process::exit(1);
+        }
+    };
 
     let data = data_dir.unwrap_or_else(|| default_data_dir().to_string_lossy().to_string());
 
@@ -1412,7 +1428,7 @@ fn cmd_mine(peers: Vec<String>, data_dir: Option<String>, log_level: String) {
 
     println!();
     println!("  ========================================================");
-    println!("       AXIOM NETWORK v0.5.0");
+    println!("       AXIOM NETWORK v{VERSION}");
     println!("  ========================================================");
     println!();
 

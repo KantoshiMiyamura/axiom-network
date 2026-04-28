@@ -1,6 +1,6 @@
 # Axiom Network
 
-**Status:** Public testnet — `v1.0.1-testnet.7` — **not yet mainnet**
+**Status:** Public testnet — `v1.0.1-testnet.8` — **not yet mainnet**
 **License:** MIT
 **Source:** <https://github.com/Ayano-X-Tech/axiom-network>
 
@@ -19,7 +19,7 @@ throwaway test tokens, not an asset.
 
 This repository contains two layers of code with **different maturity levels**:
 
-- **Stable (testnet):** the blockchain core — node, RPC, wallet library, CLI, consensus, networking. This is what `v1.0.1-testnet.7` ships and what the release pipeline builds.
+- **Stable (testnet):** the blockchain core — node, RPC, wallet library, CLI, consensus, networking. This is what `v1.0.1-testnet.8` ships and what the release pipeline builds.
 - **Experimental (in development):** the desktop wallet, the off-chain community platform, and the AxiomMind guardian daemon. These live in this repo for development convenience but are **not part of the released testnet binaries**. See [docs/MODULES.md](docs/MODULES.md) for status, scope, and what's missing per module.
 
 ### Stable — blockchain core
