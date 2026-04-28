@@ -22,7 +22,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.1-testnet.6"
+version = "1.0.1-testnet.7"
 edition = "2021"
 license = "MIT"
 authors = ["Kantoshi Miyamura"]
