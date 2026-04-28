@@ -51,6 +51,14 @@ wallet.json
 seeds.json
 seeds_*.json
 
+# Release-signing private material — `docs/minisign.pub` is committed
+# (it is the public key) but the matching secret key, the GnuPG keyring,
+# and any local minisign workspace must never be tracked.
+minisign.key
+*.minisign.key
+.minisign/
+.gnupg/
+
 # ── IDE and editor files ─────────────────────────────────
 .vscode/
 .idea/
