@@ -132,6 +132,47 @@ log_level = "info"</code></pre>
       </div>
     </section>
 
+    <!-- Connect with a friend -->
+    <section class="section">
+      <h2 class="section-title">Connect with a Friend</h2>
+      <p class="text-sm text-muted mb-3">Two simple commands. No central server, no DNS seeds, no router gymnastics for the dial-out side. The friend who hosts (the side accepting inbound connections) needs port <code>9000</code> reachable from the internet — usually a router port-forward.</p>
+
+      <div class="max-w-3 steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Find your public address</h3>
+            <div class="code-block"><pre><code>axiom myip</code></pre><button class="copy-btn">copy</button></div>
+            <p class="text-xs text-muted mt-2">Prints something like <code>203.0.113.5:9000</code>. Send that to your friend.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Friend dials you</h3>
+            <div class="code-block"><pre><code>axiom connect 203.0.113.5:9000</code></pre><button class="copy-btn">copy</button></div>
+            <p class="text-xs text-muted mt-2">If they get <strong>✓ Connected to peer</strong>, you're linked. If <strong>✖ Failed to connect</strong>, port 9000 is probably not reachable on your end — see the next note.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Confirm</h3>
+            <div class="code-block"><pre><code>axiom status</code></pre><button class="copy-btn">copy</button></div>
+            <p class="text-xs text-muted mt-2">The <code>[PEERS]</code> section lists every live peer with its address.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box info" style="margin-top:1rem">
+        <div class="icon">&#8505;</div>
+        <div>
+          <strong>If your friend can't reach you</strong>
+          <p>That just means port 9000 isn't open inbound on your side. Either open it (router admin → "Port forwarding" → forward TCP 9000 to your machine) <em>or</em> flip the roles — they run <code>axiom myip</code> and you run <code>axiom connect &lt;their-ip&gt;:9000</code>. Whoever has the open port hosts.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Running -->
     <section class="section">
       <h2 class="section-title">Running the Node</h2>

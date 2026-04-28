@@ -168,7 +168,8 @@ impl RpcServer {
             .route(
                 "/axiom/enable",
                 post(crate::axiommind_handlers::set_axiom_mind_enabled),
-            );
+            )
+            .route("/peers/connect", post(connect_peer));
 
         // Protected endpoints always require either bearer-token auth or localhost restriction.
         // In open mode (no token configured), restrict to localhost only — never expose

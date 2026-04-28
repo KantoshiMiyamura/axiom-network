@@ -133,6 +133,30 @@ enum Commands {
         data_dir: Option<String>,
     },
 
+    /// Connect to a peer dynamically (node must be running).
+    /// Example: axiom connect 203.0.113.5:9000
+    Connect {
+        /// Peer address as host:port (e.g. 203.0.113.5:9000).
+        address: String,
+
+        /// RPC URL of the local node.
+        #[arg(long, default_value = "http://127.0.0.1:8332")]
+        rpc: String,
+    },
+
+    /// Print this machine's public IP and the address a friend would use
+    /// to dial this node (assuming the listen port is forwarded). Uses
+    /// api.ipify.org by default.
+    Myip {
+        /// P2P port to advertise alongside the public IP.
+        #[arg(long, default_value = "9000")]
+        port: u16,
+
+        /// Override the IP-lookup endpoint (must return the IP as plain text).
+        #[arg(long, default_value = "https://api.ipify.org")]
+        endpoint: String,
+    },
+
     /// One-click mining — creates wallet, starts node, mines locally.
     /// Without `--peer`, the node mines standalone on its own chain.
     /// Pass one or more `--peer ADDR` to join a known network.
@@ -297,6 +321,8 @@ fn main() {
         Commands::Status { rpc } => cmd_status(&rpc),
         Commands::Version => cmd_version(),
         Commands::Init { data_dir } => cmd_init(data_dir),
+        Commands::Connect { address, rpc } => cmd_connect(&address, &rpc),
+        Commands::Myip { port, endpoint } => cmd_myip(port, &endpoint),
         Commands::Mine {
             peers,
             data_dir,
@@ -1147,6 +1173,38 @@ fn cmd_status(rpc: &str) {
         }
     }
 
+    // Peers — full list with addresses and connection status
+    let peers_url = format!("{}/peers", base);
+    if let Ok(resp) = reqwest::blocking::get(&peers_url) {
+        if resp.status().is_success() {
+            if let Ok(body) = resp.json::<serde_json::Value>() {
+                println!();
+                println!("[PEERS]");
+                let count = body.get("count").and_then(|v| v.as_u64()).unwrap_or(0);
+                println!("  Count:      {}", count);
+                if count == 0 {
+                    println!("  (no peers — see hint below)");
+                } else if let Some(arr) = body.get("peers").and_then(|v| v.as_array()) {
+                    for p in arr {
+                        let addr = p.get("address").and_then(|v| v.as_str()).unwrap_or("?");
+                        let connected = p
+                            .get("connected")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+                        let mark = if connected { "✓" } else { "·" };
+                        println!("  {}  {}", mark, addr);
+                    }
+                }
+                if count == 0 {
+                    println!();
+                    println!("  No peers connected. To connect a friend:");
+                    println!("    1. axiom myip                    # share this with them");
+                    println!("    2. axiom connect <friend-ip>:9000");
+                }
+            }
+        }
+    }
+
     // Metrics
     let metrics_url = format!("{}/metrics", base);
     if let Ok(resp) = reqwest::blocking::get(&metrics_url) {
@@ -1154,9 +1212,6 @@ fn cmd_status(rpc: &str) {
             if let Ok(body) = resp.json::<serde_json::Value>() {
                 println!();
                 println!("[NETWORK]");
-                if let Some(v) = body.get("peer_count") {
-                    println!("  Peers:      {}", v);
-                }
                 if let Some(v) = body.get("mempool_size") {
                     println!("  Mempool:    {} txs", v);
                 }
@@ -1185,6 +1240,107 @@ fn cmd_status(rpc: &str) {
     }
 
     println!();
+}
+
+// ── axiom connect ────────────────────────────────────────────────────────────
+
+fn cmd_connect(address: &str, rpc: &str) {
+    // Local validation first — surface a clear error before bothering the RPC.
+    if address.parse::<std::net::SocketAddr>().is_err() {
+        eprintln!("✖ Invalid address '{address}'.");
+        eprintln!("  Expected host:port — e.g. 203.0.113.5:9000");
+        std::process::exit(1);
+    }
+
+    let url = format!("{}/peers/connect", rpc.trim_end_matches('/'));
+    let body = serde_json::json!({ "address": address });
+
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .expect("reqwest client");
+
+    match client.post(&url).json(&body).send() {
+        Ok(resp) => {
+            let status = resp.status();
+            let parsed = resp.json::<serde_json::Value>().ok();
+            let message = parsed
+                .as_ref()
+                .and_then(|v| v.get("message").and_then(|s| s.as_str()))
+                .unwrap_or("(no message)")
+                .to_string();
+            let success = parsed
+                .as_ref()
+                .and_then(|v| v.get("success").and_then(|s| s.as_bool()))
+                .unwrap_or(status.is_success());
+
+            if success {
+                println!("✓ Connected to peer");
+                println!("  Address: {address}");
+                println!("  {message}");
+            } else {
+                eprintln!("✖ Failed to connect to peer");
+                eprintln!("  Address: {address}");
+                eprintln!("  {message}");
+                std::process::exit(1);
+            }
+        }
+        Err(e) => {
+            eprintln!("✖ Cannot reach RPC at {rpc}: {e}");
+            eprintln!("  Is axiom-node running? Start it with: axiom mine");
+            std::process::exit(1);
+        }
+    }
+}
+
+// ── axiom myip ───────────────────────────────────────────────────────────────
+
+fn cmd_myip(port: u16, endpoint: &str) {
+    println!();
+    println!("  Looking up public IP via {endpoint} ...");
+
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .expect("reqwest client");
+
+    match client.get(endpoint).send() {
+        Ok(resp) if resp.status().is_success() => {
+            let ip = resp.text().unwrap_or_default().trim().to_string();
+            if ip.is_empty() {
+                eprintln!("✖ The lookup endpoint returned an empty body.");
+                std::process::exit(1);
+            }
+            // Wrap IPv6 in brackets so the address parses cleanly with the port.
+            let formatted = if ip.contains(':') && !ip.starts_with('[') {
+                format!("[{ip}]:{port}")
+            } else {
+                format!("{ip}:{port}")
+            };
+            println!();
+            println!("  Your public address:");
+            println!("    {formatted}");
+            println!();
+            println!("  Share that with a friend. They can dial you with:");
+            println!("    axiom connect {formatted}");
+            println!();
+            println!(
+                "  Note: incoming connections require TCP port {port} to be reachable from the"
+            );
+            println!("  internet (router port-forward or UPnP). If your friend cannot reach you,");
+            println!("  flip the roles — they share their address, you run `axiom connect`.");
+            println!();
+        }
+        Ok(resp) => {
+            eprintln!("✖ IP lookup returned HTTP {}", resp.status());
+            std::process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("✖ Cannot reach {endpoint}: {e}");
+            eprintln!("  Check your internet connection, or pass --endpoint <URL>.");
+            std::process::exit(1);
+        }
+    }
 }
 
 // ── axiom (no subcommand) — friendly welcome ─────────────────────────────────
@@ -1588,6 +1744,17 @@ fn cmd_mine(peers: Vec<String>, data_dir: Option<String>, log_level: String) {
     );
     println!("  Data:    {}", data_path.display());
     println!();
+    if peers.is_empty() {
+        println!("  No peers connected. To connect a friend later (in another terminal):");
+        println!("    axiom myip                     # share this address with them");
+        println!("    axiom connect <friend-ip>:9000 # dial them");
+        println!();
+        println!("  Inbound connections need TCP port 9000 reachable from the internet.");
+        println!(
+            "  If a friend can't reach you, flip the roles and `axiom connect` from your end."
+        );
+        println!();
+    }
     println!("  ========================================================");
     println!("       MINING — DO NOT CLOSE THIS WINDOW");
     println!("  ========================================================");

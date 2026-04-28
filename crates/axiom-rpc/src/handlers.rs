@@ -304,6 +304,65 @@ pub async fn get_peer_count(
     Ok(Json(count))
 }
 
+/// Dial a peer dynamically. The body is `{"address": "host:port"}`. The
+/// address is validated, then the network service is asked to spawn an
+/// outbound handshake. The call returns immediately — actual connection
+/// establishment is asynchronous; the caller can confirm via /peers a
+/// few seconds later.
+pub async fn connect_peer(
+    State(_state): State<SharedNodeState>,
+    Extension(ns): Extension<Option<SharedNetworkService>>,
+    Json(req): Json<ConnectPeerRequest>,
+) -> Result<Json<ConnectPeerResponse>> {
+    use std::net::SocketAddr;
+
+    let addr: SocketAddr = req.address.parse().map_err(|_| {
+        RpcError::TransactionRejected(format!(
+            "invalid address '{}': expected host:port (e.g. 203.0.113.5:9000)",
+            req.address
+        ))
+    })?;
+
+    let ns = match ns {
+        Some(ns) => ns,
+        None => {
+            return Err(RpcError::TransactionRejected(
+                "network service is not running".to_string(),
+            ));
+        }
+    };
+
+    let svc = ns.read().await;
+
+    // If we already have a live connection to this address, report success
+    // without re-dialing. The v2 handshake nonce will reject self-connects
+    // automatically downstream, so we don't need an explicit self check here.
+    if svc.peer_manager().is_addr_connected(addr).await {
+        return Ok(Json(ConnectPeerResponse {
+            success: true,
+            address: addr.to_string(),
+            message: "already connected".to_string(),
+        }));
+    }
+
+    match svc
+        .peer_manager()
+        .add_peer(addr, axiom_node::network::Direction::Outbound)
+        .await
+    {
+        Ok(_peer_id) => Ok(Json(ConnectPeerResponse {
+            success: true,
+            address: addr.to_string(),
+            message: "dialing peer — confirm via /peers in a few seconds".to_string(),
+        })),
+        Err(e) => Ok(Json(ConnectPeerResponse {
+            success: false,
+            address: addr.to_string(),
+            message: format!("dial failed: {e}"),
+        })),
+    }
+}
+
 pub async fn get_recent_blocks(
     State(state): State<SharedNodeState>,
     Query(params): Query<PaginationParams>,

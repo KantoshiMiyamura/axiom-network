@@ -207,6 +207,19 @@ pub struct PeerListResponse {
     pub count: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectPeerRequest {
+    /// Peer address as `host:port` (IPv4 or IPv6, e.g. "203.0.113.5:9000").
+    pub address: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectPeerResponse {
+    pub success: bool,
+    pub address: String,
+    pub message: String,
+}
+
 // ── SPV / light-client types ───────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

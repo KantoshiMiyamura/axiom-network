@@ -195,12 +195,42 @@ jobs:
           JOINING A KNOWN PEER
           ─────────────────────────────────────────────────────────────
 
-          To connect to someone else's node instead of starting a new
-          chain, pass their address as a peer:
+          At startup, pass one or more --peer flags:
 
-              axiom mine --peer HOST:9000
+              axiom mine --peer HOST:9000 --peer OTHER:9000
 
-          You can pass --peer multiple times to wire several peers.
+          ─────────────────────────────────────────────────────────────
+          CONNECT WITH A FRIEND (NODE ALREADY RUNNING)
+          ─────────────────────────────────────────────────────────────
+
+          1. Find your public address:
+
+                 axiom myip
+
+             That prints something like:
+
+                 Your public address:
+                   203.0.113.5:9000
+
+          2. Send that address to your friend (any messenger).
+
+          3. Your friend, on their machine, runs:
+
+                 axiom connect 203.0.113.5:9000
+
+          4. Confirm the link:
+
+                 axiom status
+
+             The PEERS section lists every connected peer.
+
+          NETWORKING NOTES
+          - Inbound connections require TCP port 9000 to be reachable
+            from the internet. On home networks that means a router
+            port-forward (or UPnP enabled on your router).
+          - If a friend cannot reach you, flip the roles: they share
+            their public address with `axiom myip`, you run
+            `axiom connect <their-ip>:9000` from your end.
 
           ─────────────────────────────────────────────────────────────
           ADVANCED
