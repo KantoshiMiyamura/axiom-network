@@ -1,6 +1,21 @@
-# Axiom Network
+# Axiom Network — `v2-dev` (experimental)
 
-**Status:** Public testnet — `v1.0.1-testnet.8` — **not yet mainnet**
+> ⚠️ **You are on the `v2-dev` branch. This is an experimental development line
+> and is *not* compatible with the v1 release series (master).**
+>
+> - Network identifier: `axiom-test-v2` (separate from v1's `axiom-test-1`).
+> - Wire-level handshakes between a `v2-dev` node and a v1 node are **rejected
+>   on purpose** — the chains do not converge and tokens do not cross.
+> - No `v2-dev` build is published as a signed release. Releases continue to
+>   ship from `master`. To get a stable testnet binary, switch back to
+>   `master` and follow [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md).
+> - Everything below describes intended behaviour. Treat anything specific to
+>   v2 (post-quantum transport, hybrid signatures, replay protection, key
+>   rotation, UPnP) as in-flight design unless this banner is removed.
+
+---
+
+**Status:** Public testnet (v1 line) — `v1.0.1-testnet.8` — **not yet mainnet**
 **License:** MIT
 **Source:** <https://github.com/Ayano-X-Tech/axiom-network>
 

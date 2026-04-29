@@ -187,7 +187,7 @@ fn test_chain_id_distinct_across_networks() {
 fn test_chain_id_stable() {
     use axiom_node::Network;
     assert_eq!(Network::Dev.chain_id(), "axiom-dev-1");
-    assert_eq!(Network::Test.chain_id(), "axiom-test-1");
+    assert_eq!(Network::Test.chain_id(), "axiom-test-v2");
 }
 
 // ── Domain-separated signing ──────────────────────────────────────────────────

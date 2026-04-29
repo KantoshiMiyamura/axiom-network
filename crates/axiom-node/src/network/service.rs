@@ -1328,7 +1328,10 @@ impl NetworkService {
 fn network_from_chain_id(chain_id: &str) -> Network {
     match chain_id {
         "axiom-mainnet-1" => Network::Mainnet,
-        "axiom-test-1" => Network::Test,
+        // v2-dev: testnet identifier moved from "axiom-test-1" to
+        // "axiom-test-v2". A v1 chain id will fall through to Dev so we
+        // do not silently accept a v1 node as a v2 testnet peer.
+        "axiom-test-v2" => Network::Test,
         _ => Network::Dev,
     }
 }

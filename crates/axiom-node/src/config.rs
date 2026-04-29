@@ -42,8 +42,12 @@ impl Network {
 
     pub fn chain_id(&self) -> &'static str {
         match self {
+            // `axiom-dev-1` and `axiom-mainnet-1` are unchanged from v1 so dev
+            // tooling and any future mainnet handshake stay consistent across
+            // branches. Only the testnet identifier moves to v2 — that is what
+            // hard-separates v2-dev nodes from the v1 testnet at handshake.
             Network::Dev => "axiom-dev-1",
-            Network::Test => "axiom-test-1",
+            Network::Test => "axiom-test-v2",
             Network::Mainnet => "axiom-mainnet-1",
         }
     }

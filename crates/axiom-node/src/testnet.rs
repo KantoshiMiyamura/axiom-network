@@ -7,7 +7,10 @@
 
 use std::net::SocketAddr;
 
-pub const TESTNET_NETWORK_ID: &str = "axiom-testnet-v1";
+// v2-dev: bumped from "axiom-testnet-v1" so a v2-dev node and a v1 node
+// reject each other at the version-message exchange instead of silently
+// producing incompatible state.
+pub const TESTNET_NETWORK_ID: &str = "axiom-test-v2";
 
 pub const TESTNET_GENESIS_HASH: &str =
     "98474bd9866dcec530767a7e2a7cfd696227d4f47d873c1518bdb2d79c56e750";
