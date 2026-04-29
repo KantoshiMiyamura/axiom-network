@@ -247,8 +247,8 @@ Code skeleton: [`crates/axiom-crypto/src/kem_v2.rs`](../crates/axiom-crypto/src/
 
 | Stage | Component | Status on `v2-dev` |
 |---|---|---|
-| 1 | Skeleton + spec (this document, this commit) | done |
-| 2 | ML-KEM-768 wrapper (`encapsulate`, `decapsulate`, KAT vectors) | stub returns `unimplemented!()` |
+| 1 | Skeleton + spec (this document) | done |
+| 2 | ML-KEM-768 wrapper (`generate_keypair`, `encapsulate`, `decapsulate` over RustCrypto `ml-kem` 0.2; round-trip + tamper + size + length-validation tests) | **done** |
 | 3 | Hybrid handshake (transcript, identity proof, key derivation) | stub |
 | 4 | Encrypted transport plumbing (replace `EncryptedConnection` for v2 listener) | stub |
 | 5 | Hybrid node-identity sign/verify (`fingerprint_v2.rs`) | stub |

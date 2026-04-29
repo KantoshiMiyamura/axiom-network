@@ -13,3 +13,6 @@ rand = "0.8"
 ml-dsa.workspace = true
 signature.workspace = true
 rand_core.workspace = true
+# v2-dev: post-quantum KEM for the v2 P2P handshake. RustCrypto pure-Rust
+# implementation of FIPS 203. Keep pinned; bumping requires re-running KAT.
+ml-kem = "0.2"
