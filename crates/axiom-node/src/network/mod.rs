@@ -14,6 +14,10 @@ pub mod scoring;
 mod service;
 mod transport;
 
+// v2-dev: skeleton-only. Declared so the v2 type surface is checked by
+// `cargo check`; not referenced from any v1 path. See V2_PROTOCOL.md.
+pub mod p2p_v2;
+
 pub use discovery::{
     dedupe_and_filter_self, is_self_addr, resolve_dns_seeds, self_p2p_addrs, PeerAddressBook,
     PeerDiscovery, DEVNET_DNS_SEEDS, MAINNET_DNS_SEEDS, TESTNET_DNS_SEEDS,

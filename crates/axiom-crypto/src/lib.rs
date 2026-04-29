@@ -6,6 +6,10 @@ mod error;
 mod hash;
 mod sign;
 
+// v2-dev: skeleton-only. Spec: docs/V2_PROTOCOL.md §4.2 / §8 stage 2.
+// Not used by any v1 signing or verification path.
+pub mod kem_v2;
+
 pub use error::{Error, Result};
 pub use hash::{double_hash256, hash256, tagged_hash};
 pub use sign::{

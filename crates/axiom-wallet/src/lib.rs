@@ -13,6 +13,10 @@ pub mod seed;
 pub mod signing;
 pub mod wallet;
 
+// v2-dev: skeleton-only. Spec: docs/V2_PROTOCOL.md §7. Not consulted by
+// the existing keystore, signer, or transaction-builder code paths.
+pub mod rotation_v2;
+
 pub use address::Address;
 pub use builder::TransactionBuilder;
 pub use error::{Result, WalletError};
