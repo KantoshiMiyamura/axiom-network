@@ -20,6 +20,7 @@ pub mod flow;
 pub mod handshake;
 pub mod identity;
 pub mod session;
+pub mod transport;
 
 pub use flow::{
     initiator_build_hello, initiator_handle_ack, responder_handle_hello,
@@ -28,6 +29,7 @@ pub use flow::{
 pub use handshake::{transcript_hash, HandshakeError, HelloAckV2, HelloV2};
 pub use identity::{sign_identity, verify_identity, NodeIdentityProof};
 pub use session::{derive_session_keys, SessionKeys};
+pub use transport::{EncryptedConnectionV2, TransportV2Error, MAX_FRAME_BODY_BYTES};
 
 /// Domain-separation tag mixed into the v2 handshake transcript hash.
 /// Bumping this string produces an entirely disjoint transcript space —

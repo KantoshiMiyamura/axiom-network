@@ -133,9 +133,43 @@ either.
 
 ### 4.4 Wire framing
 
-Unchanged from v1: `[u32 LE length][12-byte AEAD nonce][ciphertext + 16-byte
-tag]`. The cap (`MAX_ENCRYPTED_FRAME_SIZE`) and the 4-MB block limit carry
-over.
+Each post-handshake message is one length-prefixed frame:
+
+```text
+   [u32 LE  frame_body_len]
+   [u64 LE  sequence_number]
+   [N      ciphertext]
+   [16     AEAD authentication tag]
+```
+
+`frame_body_len = 8 + ciphertext_len + 16` (excludes the 4-byte length
+prefix). The receiver size-checks before allocating the read buffer so a
+malicious peer cannot prompt a multi-gigabyte allocation purely from the
+wire.
+
+The AEAD is **XChaCha20-Poly1305** (24-byte nonce, 32-byte key, 16-byte
+tag). Nonces are derived deterministically from the sequence number — the
+seq number on the wire IS the nonce input, not a separate quantity:
+
+```text
+   nonce[0..8]  = sequence_number (LE)
+   nonce[8..24] = 0
+```
+
+Each direction has its own 32-byte ChaCha key (`tx_key`, `rx_key`) from
+the v2 handshake. Different keys per direction make the (key, nonce) pair
+unique per encrypted message even though both sides start at seq = 0.
+
+Ordering is **strict-monotonic**: the receiver rejects any frame whose
+seq is not exactly the previous one + 1. TCP guarantees in-order
+delivery, so the only way an out-of-order frame can land is an active
+attacker reordering bytes — which we want to refuse. Any error from the
+transport layer (AEAD failure, replay/reorder, oversized frame, IO
+truncation) is fatal: the caller closes the connection. There is no
+recovery, no retry, no partial state.
+
+Cap: `MAX_FRAME_BODY_BYTES = 4_000_024` — matches the v1 4-MB block
+relay limit plus the seq + tag overhead.
 
 ---
 
@@ -249,8 +283,8 @@ Code skeleton: [`crates/axiom-crypto/src/kem_v2.rs`](../crates/axiom-crypto/src/
 |---|---|---|
 | 1 | Skeleton + spec (this document) | done |
 | 2 | ML-KEM-768 wrapper (`generate_keypair`, `encapsulate`, `decapsulate` over RustCrypto `ml-kem` 0.2; round-trip + tamper + size + length-validation tests) | done |
-| 3 | Hybrid handshake — transcript hash, HelloV2/HelloAckV2 wire format, hybrid (X25519+ML-KEM) key agreement, HKDF-SHA256 directional session keys, ML-DSA+Ed25519 dual identity proof; 10 round-trip / tamper / downgrade-binding tests | **done** |
-| 4 | Encrypted transport plumbing (replace `EncryptedConnection` for v2 listener) | stub |
+| 3 | Hybrid handshake — transcript hash, HelloV2/HelloAckV2 wire format, hybrid (X25519+ML-KEM) key agreement, HKDF-SHA256 directional session keys, ML-DSA+Ed25519 dual identity proof; 10 round-trip / tamper / downgrade-binding tests | done |
+| 4 | Encrypted transport — XChaCha20-Poly1305 framing with on-wire seq + AEAD; `EncryptedConnectionV2` over any `AsyncRead+AsyncWrite`; strict-monotonic replay rejection; 4-MB frame cap; 11 round-trip / tamper / replay / oversized / truncated / wrong-key tests | **done** |
 | 5 | Hybrid node-identity sign/verify (`fingerprint_v2.rs`) | stub |
 | 6 | Replay-rule enforcement in `validation.rs` (gated on `tx.v2_extension.is_some()`) | not started |
 | 7 | Wallet rotation UI + `axiom wallet rotate` CLI | stub |
