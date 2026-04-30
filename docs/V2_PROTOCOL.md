@@ -248,8 +248,8 @@ Code skeleton: [`crates/axiom-crypto/src/kem_v2.rs`](../crates/axiom-crypto/src/
 | Stage | Component | Status on `v2-dev` |
 |---|---|---|
 | 1 | Skeleton + spec (this document) | done |
-| 2 | ML-KEM-768 wrapper (`generate_keypair`, `encapsulate`, `decapsulate` over RustCrypto `ml-kem` 0.2; round-trip + tamper + size + length-validation tests) | **done** |
-| 3 | Hybrid handshake (transcript, identity proof, key derivation) | stub |
+| 2 | ML-KEM-768 wrapper (`generate_keypair`, `encapsulate`, `decapsulate` over RustCrypto `ml-kem` 0.2; round-trip + tamper + size + length-validation tests) | done |
+| 3 | Hybrid handshake — transcript hash, HelloV2/HelloAckV2 wire format, hybrid (X25519+ML-KEM) key agreement, HKDF-SHA256 directional session keys, ML-DSA+Ed25519 dual identity proof; 10 round-trip / tamper / downgrade-binding tests | **done** |
 | 4 | Encrypted transport plumbing (replace `EncryptedConnection` for v2 listener) | stub |
 | 5 | Hybrid node-identity sign/verify (`fingerprint_v2.rs`) | stub |
 | 6 | Replay-rule enforcement in `validation.rs` (gated on `tx.v2_extension.is_some()`) | not started |
