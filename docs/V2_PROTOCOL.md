@@ -131,6 +131,22 @@ Ed25519 component is *additive*: a future ML-DSA-87 implementation flaw does
 not let an attacker forge node identity, and a future Ed25519 break does not
 either.
 
+The canonical 32-byte **peer ID** is a hash of the long-term identity keys:
+
+```text
+   PeerId = SHA-256-tagged(
+       "axiom-id-v2",
+       u32 LE ml_dsa_pk_len || ml_dsa_pubkey || ed25519_pubkey
+   )
+```
+
+The length prefix on the ML-DSA pubkey eliminates concatenation boundary
+ambiguity (same rationale as `axiom_crypto::transaction_signing_hash`).
+The peer ID is **derived from the long-term keys only** — not from
+ephemeral handshake material — so it is stable across reconnections and
+can be cached in a peer address book. Implementation:
+[`axiom_guard::fingerprint_v2`](../crates/axiom-guard/src/fingerprint_v2.rs).
+
 ### 4.4 Wire framing
 
 Each post-handshake message is one length-prefixed frame:
@@ -284,8 +300,8 @@ Code skeleton: [`crates/axiom-crypto/src/kem_v2.rs`](../crates/axiom-crypto/src/
 | 1 | Skeleton + spec (this document) | done |
 | 2 | ML-KEM-768 wrapper (`generate_keypair`, `encapsulate`, `decapsulate` over RustCrypto `ml-kem` 0.2; round-trip + tamper + size + length-validation tests) | done |
 | 3 | Hybrid handshake — transcript hash, HelloV2/HelloAckV2 wire format, hybrid (X25519+ML-KEM) key agreement, HKDF-SHA256 directional session keys, ML-DSA+Ed25519 dual identity proof; 10 round-trip / tamper / downgrade-binding tests | done |
-| 4 | Encrypted transport — XChaCha20-Poly1305 framing with on-wire seq + AEAD; `EncryptedConnectionV2` over any `AsyncRead+AsyncWrite`; strict-monotonic replay rejection; 4-MB frame cap; 11 round-trip / tamper / replay / oversized / truncated / wrong-key tests | **done** |
-| 5 | Hybrid node-identity sign/verify (`fingerprint_v2.rs`) | stub |
+| 4 | Encrypted transport — XChaCha20-Poly1305 framing with on-wire seq + AEAD; `EncryptedConnectionV2` over any `AsyncRead+AsyncWrite`; strict-monotonic replay rejection; 4-MB frame cap; 11 round-trip / tamper / replay / oversized / truncated / wrong-key tests | done |
+| 5 | Hybrid node-identity (`axiom_guard::fingerprint_v2`) — `PeerId` = SHA-256-tagged hash of (ml_dsa_pk \|\| ed25519_pk) with length-prefix anti-collision; `compute_peer_id` and `verify_announced_peer_id`; 12 tests covering determinism, key substitution, single-bit sensitivity, length-prefix anti-collision, cross-session stability | **done** |
 | 6 | Replay-rule enforcement in `validation.rs` (gated on `tx.v2_extension.is_some()`) | not started |
 | 7 | Wallet rotation UI + `axiom wallet rotate` CLI | stub |
 | 8 | UPnP via `igd-next` in node startup | not started |
