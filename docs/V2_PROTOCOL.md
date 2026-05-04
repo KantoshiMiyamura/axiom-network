@@ -239,25 +239,64 @@ are unchanged in v2.
 
 ## 6. Nonce rules (replay protection)
 
-v2 promotes the existing `tx.nonce: u64` from "advisory ordering hint" to
-**consensus-enforced replay barrier**:
+`tx.nonce: u64` is a **consensus-enforced strict-next replay barrier**
+keyed by the payer's pubkey hash. The rule was already implemented in
+v1 ([`crates/axiom-node/src/validation.rs`](../crates/axiom-node/src/validation.rs)
+lines 247–262); v2 inherits it unchanged and pins the behaviour with the
+tests in
+[`crates/axiom-node/tests/v2_nonce_replay_protection.rs`](../crates/axiom-node/tests/v2_nonce_replay_protection.rs).
 
-- A node MUST reject a transaction whose `(payer_address, nonce)` pair has
-  already been included in the canonical chain.
-- A node MUST reject a transaction whose `nonce` is more than `NONCE_WINDOW`
-  ahead of the highest committed nonce for that payer (default
-  `NONCE_WINDOW = 16`).
-- The mempool indexes by `(payer_address, nonce)` and admits only one
-  pending transaction per pair; a higher-fee replacement is allowed only
-  when fee-rate uplift exceeds `min_replacement_uplift_pct` (default 10).
+### Rule
 
-`payer_address` is the address whose key signed the transaction — i.e. the
-input owner. For multi-input transactions, the payer is the holder of the
-**first** input's UTXO. This is unambiguous in a UTXO model and avoids the
-multi-account ambiguity that motivated Ethereum's ECDSA `from` recovery.
+For every non-coinbase transaction:
 
-Replay protection across networks is already provided by the chain-id
-domain tag in §5.2; the nonce rule defends against intra-network replay.
+```text
+   tx.nonce  must equal  stored_nonce(payer) + 1
+```
+
+A node MUST reject any transaction that does not satisfy this equality.
+Specifically:
+
+- **duplicate** (`tx.nonce == stored_nonce`) → rejected.
+- **lower** (`tx.nonce < stored_nonce + 1`) → rejected.
+- **skipped** (`tx.nonce > stored_nonce + 1`) → rejected.
+
+The error variant is `ValidationError::InvalidNonce { expected, actual }`
+where `expected = stored_nonce + 1`.
+
+### Payer attribution
+
+The payer is the address whose key signed the transaction — concretely,
+the holder of the **first** input's UTXO. v1 already enforces a
+single-signer constraint at validation.rs:233–240: every input's pubkey
+must hash to the same value as the first input's. This is what makes the
+single per-payer nonce check sufficient — there is no way to mix inputs
+from multiple keys and bypass any one address's nonce ledger.
+
+### State
+
+Per-address state lives in `axiom-storage::NonceTracker`, on the on-disk
+LSM database. It is durable across restarts and reorg-safe: every
+non-coinbase tx that lands in a block records a `NonceUndo {
+pubkey_hash, prev_nonce }` so the storage layer can restore the
+pre-block value when the block is rolled back. The reorg path is in
+[`crates/axiom-node/src/reorg.rs`](../crates/axiom-node/src/reorg.rs).
+
+### Replacement / pipelining: not in scope
+
+Earlier drafts of this section described a `NONCE_WINDOW = 16`
+permissive-window rule and a fee-uplift replacement policy. **Both are
+removed.** The implemented rule is strict-next, no window, no
+replacement. Mempool dedup follows from the validator's rule directly:
+a duplicate-nonce transaction can never become valid against the same
+chain state, so the mempool admits at most one pending transaction per
+`(payer_address, nonce)` pair.
+
+### Cross-network replay
+
+Already prevented by the chain-id domain tag in §5.2 — a v2 signed
+transaction cannot replay on v1, and vice versa. The strict-next rule
+above defends against intra-network replay.
 
 ---
 
@@ -301,8 +340,8 @@ Code skeleton: [`crates/axiom-crypto/src/kem_v2.rs`](../crates/axiom-crypto/src/
 | 2 | ML-KEM-768 wrapper (`generate_keypair`, `encapsulate`, `decapsulate` over RustCrypto `ml-kem` 0.2; round-trip + tamper + size + length-validation tests) | done |
 | 3 | Hybrid handshake — transcript hash, HelloV2/HelloAckV2 wire format, hybrid (X25519+ML-KEM) key agreement, HKDF-SHA256 directional session keys, ML-DSA+Ed25519 dual identity proof; 10 round-trip / tamper / downgrade-binding tests | done |
 | 4 | Encrypted transport — XChaCha20-Poly1305 framing with on-wire seq + AEAD; `EncryptedConnectionV2` over any `AsyncRead+AsyncWrite`; strict-monotonic replay rejection; 4-MB frame cap; 11 round-trip / tamper / replay / oversized / truncated / wrong-key tests | done |
-| 5 | Hybrid node-identity (`axiom_guard::fingerprint_v2`) — `PeerId` = SHA-256-tagged hash of (ml_dsa_pk \|\| ed25519_pk) with length-prefix anti-collision; `compute_peer_id` and `verify_announced_peer_id`; 12 tests covering determinism, key substitution, single-bit sensitivity, length-prefix anti-collision, cross-session stability | **done** |
-| 6 | Replay-rule enforcement in `validation.rs` (gated on `tx.v2_extension.is_some()`) | not started |
+| 5 | Hybrid node-identity (`axiom_guard::fingerprint_v2`) — `PeerId` = SHA-256-tagged hash of (ml_dsa_pk \|\| ed25519_pk) with length-prefix anti-collision; `compute_peer_id` and `verify_announced_peer_id`; 12 tests covering determinism, key substitution, single-bit sensitivity, length-prefix anti-collision, cross-session stability | done |
+| 6 | Replay-rule enforcement — strict-next per-address nonce already enforced at validation.rs:247–262 with reorg-safe `NonceUndo` storage; 8 verification tests in `v2_nonce_replay_protection.rs` cover first-tx, duplicate, lower, skipped, independent-address, reorg-undo, and storage persistence; spec §6 corrected to remove `NONCE_WINDOW=16` window | **done** |
 | 7 | Wallet rotation UI + `axiom wallet rotate` CLI | stub |
 | 8 | UPnP via `igd-next` in node startup | not started |
 | 9 | Integration tests + reference vectors | not started |
