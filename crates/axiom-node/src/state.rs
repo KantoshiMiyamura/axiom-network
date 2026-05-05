@@ -212,14 +212,24 @@ impl ChainState {
                 };
                 undo.add_nonce_update(nonce_undo);
 
-                batch.put_nonce(
-                    &pubkey_hash,
-                    tx.nonce.checked_add(1).ok_or_else(|| {
-                        StateError::Consensus(axiom_consensus::Error::InvalidBlock(
-                            "nonce overflow".into(),
-                        ))
-                    })?,
-                );
+                // Store the actual nonce of the just-applied transaction
+                // (the "last used" nonce for this address). The validator
+                // reads this back as `last_used_nonce` and demands the
+                // next transaction's nonce equal `last_used_nonce + 1`,
+                // and the wallet derives its next nonce by adding 1 to
+                // the value it sees through the /nonce RPC. With this
+                // write semantically meaning "last used", every consumer
+                // (validator, wallet, RPC, block explorer) sees the same
+                // on-wire sequence: tx.nonce = i for the i-th transaction
+                // from a given address (i = 1, 2, 3, …).
+                //
+                // Prior to this change the apply side wrote
+                // `tx.nonce + 1`, which produced the same closed-loop
+                // acceptance but on-wire nonces of 1, 3, 5, 7, … (each
+                // applied tx jumped the on-chain counter by 2). See
+                // `tests/v2_nonce_lifecycle_triage.rs` for the diagnostic
+                // that motivated this change.
+                batch.put_nonce(&pubkey_hash, tx.nonce);
             }
 
             for (index, output) in tx.outputs.iter().enumerate() {

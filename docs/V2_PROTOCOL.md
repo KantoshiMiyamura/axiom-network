@@ -276,11 +276,32 @@ from multiple keys and bypass any one address's nonce ledger.
 ### State
 
 Per-address state lives in `axiom-storage::NonceTracker`, on the on-disk
-LSM database. It is durable across restarts and reorg-safe: every
-non-coinbase tx that lands in a block records a `NonceUndo {
-pubkey_hash, prev_nonce }` so the storage layer can restore the
-pre-block value when the block is rolled back. The reorg path is in
+LSM database. The stored value is the **last used nonce** for that
+address — not "next expected", not "last used + 1". When a transaction
+with `tx.nonce = N` is applied to a block, the apply path writes
+exactly `N` into the tracker; the next valid transaction's nonce is
+`N + 1`, which the wallet derives by reading the RPC value (= `N`) and
+adding 1, and which the validator demands as `stored + 1`. Every
+component agrees on the same arithmetic, and the on-wire `tx.nonce`
+field equals the 1-indexed transaction number per address (1, 2, 3, …).
+
+Storage is durable across restarts and reorg-safe: every non-coinbase
+tx that lands in a block records a `NonceUndo { pubkey_hash,
+prev_nonce }` so the storage layer can restore the pre-block value
+when the block is rolled back. The reorg path is in
 [`crates/axiom-node/src/reorg.rs`](../crates/axiom-node/src/reorg.rs).
+
+> **History note (v2-dev only).** A pre-stage-6 version of
+> `ChainState::apply_block` wrote `tx.nonce + 1` to the nonce tracker.
+> Combined with the wallet's `rpc_value + 1` derivation and the
+> validator's `stored + 1` requirement, that produced odd-only on-wire
+> nonces (1, 3, 5, …). The closed loop was internally consistent — every
+> sequential transaction was still accepted — but block explorers and
+> per-account transaction-counters showed surprising values. The fix
+> (one line in [`state.rs:215`](../crates/axiom-node/src/state.rs#L215))
+> writes `tx.nonce` directly. Triage is preserved at
+> [`crates/axiom-node/tests/v2_nonce_lifecycle_triage.rs`](../crates/axiom-node/tests/v2_nonce_lifecycle_triage.rs)
+> as a regression test for the corrected behaviour.
 
 ### Replacement / pipelining: not in scope
 

@@ -291,12 +291,12 @@ fn reorg_undo_restores_nonce_state() {
 
     // Simulate apply_block for a tx with nonce=1: it captures
     // prev_nonce=0 (from unwrap_or) into a NonceUndo, then writes
-    // the post-apply value (the runtime's `tx.nonce + 1 = 2`).
+    // the post-apply value (post-fix runtime: tx.nonce, i.e. 1).
     let captured_prev_nonce: u64 = 0;
     {
         let nt = NonceTracker::new(&db);
-        nt.set_nonce(&addr, 2).unwrap();
-        assert_eq!(nt.get_nonce(&addr).unwrap(), Some(2));
+        nt.set_nonce(&addr, 1).unwrap();
+        assert_eq!(nt.get_nonce(&addr).unwrap(), Some(1));
     }
 
     // Now the chain reorgs and the block is rolled back. The undo
