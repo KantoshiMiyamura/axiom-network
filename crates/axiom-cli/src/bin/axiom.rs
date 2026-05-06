@@ -1441,6 +1441,21 @@ fn cmd_status(rpc: &str) {
         }
     }
 
+    // External (UPnP) mapping — present when the node successfully
+    // negotiated a port-forward with the LAN router at startup.
+    let ext_url = format!("{}/network/external_address", base);
+    let mut external_line: Option<String> = None;
+    if let Ok(resp) = reqwest::blocking::get(&ext_url) {
+        if resp.status().is_success() {
+            if let Ok(body) = resp.json::<serde_json::Value>() {
+                if let Some(addr) = body.get("external_address").and_then(|v| v.as_str()) {
+                    let lease = body.get("lease_secs").and_then(|v| v.as_u64()).unwrap_or(0);
+                    external_line = Some(format!("{addr}  (UPnP, lease {lease}s)"));
+                }
+            }
+        }
+    }
+
     // Metrics
     let metrics_url = format!("{}/metrics", base);
     if let Ok(resp) = reqwest::blocking::get(&metrics_url) {
@@ -1448,6 +1463,13 @@ fn cmd_status(rpc: &str) {
             if let Ok(body) = resp.json::<serde_json::Value>() {
                 println!();
                 println!("[NETWORK]");
+                match &external_line {
+                    Some(addr) => println!("  External:   {}", addr),
+                    None => println!(
+                        "  External:   (none — UPnP unavailable; \
+                         configure a manual port-forward for inbound peers)"
+                    ),
+                }
                 if let Some(v) = body.get("mempool_size") {
                     println!("  Mempool:    {} txs", v);
                 }

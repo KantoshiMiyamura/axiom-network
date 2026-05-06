@@ -10,6 +10,7 @@ use crate::handlers::{
 };
 use crate::rate_limiter::{rate_limit_middleware, RpcRateLimiter};
 use crate::ws::{create_event_bus, ws_handler, EventBus};
+use axiom_node::network::upnp::SharedUpnpMapping;
 use axiom_node::network::{NetworkService, MAX_RPC_REQUEST_SIZE};
 use axum::extract::ConnectInfo;
 use axum::{
@@ -34,6 +35,9 @@ pub struct RpcServer {
     compute_protocol: Option<SharedComputeProtocol>,
     guard: Option<SharedGuardState>,
     monitor_store: Option<SharedMonitorStore>,
+    /// v2-dev stage 8: live UPnP mapping (if discovered). When `None`,
+    /// the `/network/external_address` endpoint reports `null`.
+    upnp_state: Option<SharedUpnpMapping>,
     auth_config: Arc<AuthConfig>,
     rate_limiter: Arc<Mutex<RpcRateLimiter>>,
     event_bus: EventBus,
@@ -51,6 +55,7 @@ impl RpcServer {
             compute_protocol: None,
             guard: None,
             monitor_store: None,
+            upnp_state: None,
             auth_config: Arc::new(AuthConfig::open()),
             rate_limiter: Arc::new(Mutex::new(RpcRateLimiter::new())),
             event_bus: create_event_bus(),
@@ -72,6 +77,7 @@ impl RpcServer {
             compute_protocol: None,
             guard: None,
             monitor_store: None,
+            upnp_state: None,
             auth_config: Arc::new(AuthConfig::open()),
             rate_limiter: Arc::new(Mutex::new(RpcRateLimiter::new())),
             event_bus: create_event_bus(),
@@ -105,6 +111,13 @@ impl RpcServer {
     /// Enables the `/guard/*` endpoints backed by AxiomMind.
     pub fn with_guard(mut self, guard: SharedGuardState) -> Self {
         self.guard = Some(guard);
+        self
+    }
+
+    /// Enables the `/network/external_address` endpoint with live UPnP
+    /// mapping data (`null` when no mapping has been negotiated).
+    pub fn with_upnp_state(mut self, state: SharedUpnpMapping) -> Self {
+        self.upnp_state = Some(state);
         self
     }
 
@@ -228,6 +241,7 @@ impl RpcServer {
             .route("/block/:hash/stats", get(get_block_stats))
             .route("/mempool/stats", get(get_mempool_detail))
             .route("/network/hashrate", get(get_network_hashrate))
+            .route("/network/external_address", get(get_external_address))
             .route("/monitor/report", get(get_monitor_report))
             .route("/monitor/reports", get(get_monitor_reports))
             .route("/monitor/health", get(get_monitor_health))
@@ -265,6 +279,7 @@ impl RpcServer {
             .layer(Extension(self.compute_protocol.clone()))
             .layer(Extension(self.guard.clone()))
             .layer(Extension(self.monitor_store.clone()))
+            .layer(Extension(self.upnp_state.clone()))
             // middleware order: rate-limit (outer) → auth (inner) → handler
             .layer(middleware::from_fn_with_state(
                 self.auth_config.clone(),

@@ -18,6 +18,10 @@ mod transport;
 // `cargo check`; not referenced from any v1 path. See V2_PROTOCOL.md.
 pub mod p2p_v2;
 
+// v2-dev stage 8: best-effort UPnP/IGD port-forward helper. Wired into
+// the runtime listener startup; failure is non-fatal.
+pub mod upnp;
+
 pub use discovery::{
     dedupe_and_filter_self, is_self_addr, resolve_dns_seeds, self_p2p_addrs, PeerAddressBook,
     PeerDiscovery, DEVNET_DNS_SEEDS, MAINNET_DNS_SEEDS, TESTNET_DNS_SEEDS,

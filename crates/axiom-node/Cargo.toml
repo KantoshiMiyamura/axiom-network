@@ -28,6 +28,10 @@ rand_core.workspace = true
 # called and is locked behind the v2 handshake which is not wired into
 # the runtime yet.
 ed25519-dalek = "2"
+# v2-dev: UPnP IGD client for opt-in NAT port-forwarding on node startup.
+# The mapping is best-effort and time-limited; failure does not affect
+# node correctness — the node simply falls back to outbound-only.
+igd-next = { version = "0.17", default-features = false, features = ["aio_tokio"] }
 
 [dev-dependencies]
 tempfile = "3.8"

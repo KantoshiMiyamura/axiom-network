@@ -304,6 +304,35 @@ pub async fn get_peer_count(
     Ok(Json(count))
 }
 
+/// `/network/external_address` — returns the live UPnP mapping if one
+/// has been negotiated since startup. The shape is intentionally small
+/// (`{ "external_address": "ip:port" | null, "lease_secs": N | null }`)
+/// so a CLI can render it without parsing nested objects.
+pub async fn get_external_address(
+    Extension(upnp): Extension<Option<axiom_node::network::upnp::SharedUpnpMapping>>,
+) -> Json<serde_json::Value> {
+    let mapping = match upnp {
+        Some(state) => state.read().await.clone(),
+        None => None,
+    };
+    match mapping {
+        Some(m) => Json(serde_json::json!({
+            "external_address": m.external_address(),
+            "external_ip":      m.external_ip.to_string(),
+            "external_port":    m.external_port,
+            "local_port":       m.local_port,
+            "lease_secs":       m.lease_secs,
+        })),
+        None => Json(serde_json::json!({
+            "external_address": serde_json::Value::Null,
+            "external_ip":      serde_json::Value::Null,
+            "external_port":    serde_json::Value::Null,
+            "local_port":       serde_json::Value::Null,
+            "lease_secs":       serde_json::Value::Null,
+        })),
+    }
+}
+
 /// Dial a peer dynamically. The body is `{"address": "host:port"}`. The
 /// address is validated, then the network service is asked to spawn an
 /// outbound handshake. The call returns immediately — actual connection

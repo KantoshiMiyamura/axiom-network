@@ -93,6 +93,12 @@ struct Args {
     /// Bearer token for RPC auth; omit only on devnet/localhost.
     #[arg(long)]
     rpc_auth_token: Option<String>,
+
+    /// Disable the UPnP/IGD port-forward attempt at startup. The node
+    /// still runs (outbound-only); inbound peers must be configured
+    /// via a manual router port-forward. Default: UPnP enabled.
+    #[arg(long)]
+    no_upnp: bool,
 }
 
 /// Seed node configuration
@@ -360,6 +366,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }));
     let p2p_network = Arc::new(P2PNetwork::new(p2p_bind, peer_manager.clone(), discovery));
     p2p_network.clone().start(network_service.clone()).await?;
+
+    // ── v2-dev stage 8: best-effort UPnP port-forward ──────────────────
+    //
+    // Fire-and-log: spawn a tokio task that probes the LAN for an
+    // IGD-capable router and asks for a TCP port mapping. Success
+    // populates `upnp_state` (read by the RPC server's
+    // `/network/external_address` endpoint). Failure prints a clear
+    // log line plus manual port-forward instructions but does NOT
+    // delay startup or affect node correctness.
+    let upnp_state: axiom_node::network::upnp::SharedUpnpMapping =
+        Arc::new(tokio::sync::RwLock::new(None));
+    if args.no_upnp {
+        info!("UPnP disabled (--no-upnp). Node will run outbound-only unless");
+        info!(
+            "inbound port {} is forwarded manually on the router.",
+            p2p_bind.port()
+        );
+    } else {
+        let upnp_state_for_task = upnp_state.clone();
+        let local_port = p2p_bind.port();
+        tokio::spawn(async move {
+            info!("UPnP: searching for an IGD-capable router on the LAN...");
+            match axiom_node::network::upnp::try_map(
+                local_port,
+                axiom_node::network::upnp::DEFAULT_LEASE_SECS,
+            )
+            .await
+            {
+                Ok(mapping) => {
+                    info!(
+                        "✓ UPnP port forward established: external = {}, lease = {}s",
+                        mapping.external_address(),
+                        mapping.lease_secs
+                    );
+                    *upnp_state_for_task.write().await = Some(mapping);
+                    axiom_node::network::upnp::spawn_renewal_task(
+                        upnp_state_for_task,
+                        local_port,
+                        axiom_node::network::upnp::DEFAULT_LEASE_SECS,
+                    );
+                }
+                Err(e) => {
+                    warn!("UPnP setup failed: {e}");
+                    // Print manual instructions on stderr so an operator
+                    // running the node interactively sees them next to the
+                    // log warning.
+                    eprintln!(
+                        "\n{}\n",
+                        axiom_node::network::upnp::fallback_instructions(local_port)
+                    );
+                }
+            }
+        });
+    }
     info!("Initialising AI model registry...");
     let model_registry = match ModelRegistry::open(&data_path) {
         Ok(r) => {
@@ -444,6 +504,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             base = base.with_guard(g);
         }
         base = base.with_monitor_store(monitor_store.clone());
+        base = base.with_upnp_state(upnp_state.clone());
         if let Some(token) = args.rpc_auth_token.clone() {
             info!("RPC authentication: enabled (Bearer token)");
             base.with_auth_token(token)
