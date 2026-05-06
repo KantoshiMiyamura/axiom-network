@@ -246,6 +246,38 @@ enum WalletAction {
         #[arg(long)]
         yes: bool,
     },
+
+    /// Rotate the wallet identity to a fresh ML-DSA-87 keypair.
+    ///
+    /// Produces a `RotationRecord` signed by the OLD key authorising
+    /// the NEW key as the wallet's current public identity. The old
+    /// keystore is preserved alongside the new one — UTXOs sent to
+    /// the old address remain spendable indefinitely. The signed
+    /// record is appended to a JSON `linkage` file kept next to the
+    /// keystore.
+    ///
+    /// This command does not put any private key on-chain.
+    Rotate {
+        /// Path to the existing wallet keystore. Defaults to the
+        /// platform default wallet.json.
+        #[arg(long)]
+        wallet: Option<PathBuf>,
+
+        /// Path to write the new wallet keystore. Defaults to
+        /// `<wallet>.rotated.<timestamp>.json` next to the input.
+        #[arg(long)]
+        out: Option<PathBuf>,
+
+        /// Path to the rotation linkage JSON file. Defaults to
+        /// `<wallet>.linkage.json` next to the input.
+        #[arg(long)]
+        linkage: Option<PathBuf>,
+
+        /// Advisory chain height at which the rotation takes effect.
+        /// Not enforced by consensus — purely UI metadata.
+        #[arg(long, default_value = "0")]
+        effective_height: u32,
+    },
 }
 
 #[derive(Subcommand)]
@@ -313,6 +345,12 @@ fn main() {
                 rpc,
                 yes,
             } => cmd_wallet_send(to, amount, sat, fee, memo, wallet, &rpc, yes),
+            WalletAction::Rotate {
+                wallet,
+                out,
+                linkage,
+                effective_height,
+            } => cmd_wallet_rotate(wallet, out, linkage, effective_height),
         },
         Commands::Worker { action } => match action {
             WorkerAction::Start { rpc, address } => cmd_worker_start(&rpc, address),
@@ -644,6 +682,204 @@ fn cmd_wallet_address(wallet: Option<PathBuf>) {
     }
     let addr = load_wallet_address(&path);
     println!("{}", addr);
+}
+
+// ── axiom wallet rotate ──────────────────────────────────────────────────────
+
+fn cmd_wallet_rotate(
+    wallet: Option<PathBuf>,
+    out: Option<PathBuf>,
+    linkage: Option<PathBuf>,
+    effective_height: u32,
+) {
+    use axiom_wallet::rotation_v2::{build_rotation_record, Linkage};
+    use axiom_wallet::{create_keystore, export_keystore, import_keystore, unlock_keystore};
+
+    let wallet_path = wallet.unwrap_or_else(default_wallet_path);
+    if !wallet_path.exists() {
+        eprintln!(
+            "error: wallet keystore not found at {}",
+            wallet_path.display()
+        );
+        eprintln!("       Pass --wallet PATH or run `axiom wallet create` first.");
+        std::process::exit(1);
+    }
+
+    // 1. Read + unlock the existing keystore — we need the OLD private key to sign.
+    let json = match fs::read_to_string(&wallet_path) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: cannot read {}: {}", wallet_path.display(), e);
+            std::process::exit(1);
+        }
+    };
+    let keystore = match import_keystore(&json) {
+        Ok(k) => k,
+        Err(e) => {
+            eprintln!("error: cannot parse keystore: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    eprint!("Old wallet password: ");
+    io::stderr().flush().unwrap();
+    let mut old_password = String::new();
+    io::stdin().read_line(&mut old_password).ok();
+    let old_password = old_password.trim().to_string();
+
+    let old_private = match unlock_keystore(&keystore, &old_password) {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("error: cannot unlock keystore: {}", e);
+            std::process::exit(1);
+        }
+    };
+    let old_kp = match axiom_wallet::KeyPair::from_private_key(old_private.to_vec()) {
+        Ok(kp) => kp,
+        Err(e) => {
+            eprintln!("error: cannot reconstruct keypair: {}", e);
+            std::process::exit(1);
+        }
+    };
+    let old_addr = axiom_wallet::Address::from_pubkey_hash(old_kp.public_key_hash());
+
+    // 2. Generate a fresh keypair for the new identity.
+    let new_kp = match axiom_wallet::KeyPair::generate() {
+        Ok(kp) => kp,
+        Err(e) => {
+            eprintln!("error: cannot generate new keypair: {}", e);
+            std::process::exit(1);
+        }
+    };
+    let new_pk = match new_kp.public_key_struct() {
+        Ok(pk) => pk,
+        Err(e) => {
+            eprintln!("error: cannot derive new public key: {}", e);
+            std::process::exit(1);
+        }
+    };
+    let new_addr = axiom_wallet::Address::from_pubkey_hash(new_kp.public_key_hash());
+
+    // 3. Build the rotation record (signed by the old key).
+    let record = match build_rotation_record(
+        &old_kp,
+        &new_pk,
+        old_addr.clone(),
+        new_addr.clone(),
+        effective_height,
+    ) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: cannot build rotation record: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    // 4. Load (or start) the linkage file and append the new record.
+    let linkage_path = linkage.unwrap_or_else(|| {
+        let mut p = wallet_path.clone();
+        p.set_extension("linkage.json");
+        p
+    });
+    let mut chain = if linkage_path.exists() {
+        match fs::read_to_string(&linkage_path)
+            .ok()
+            .and_then(|s| Linkage::from_json_str(&s).ok())
+        {
+            Some(l) => l,
+            None => {
+                eprintln!(
+                    "error: linkage at {} is unreadable or tampered",
+                    linkage_path.display()
+                );
+                std::process::exit(1);
+            }
+        }
+    } else {
+        Linkage::new()
+    };
+    if let Err(e) = chain.apply_record(record) {
+        eprintln!("error: rotation record failed verification: {}", e);
+        std::process::exit(1);
+    }
+
+    // 5. Save the new keystore with a fresh password.
+    eprint!("New wallet password (for the new keystore): ");
+    io::stderr().flush().unwrap();
+    let mut new_password = String::new();
+    io::stdin().read_line(&mut new_password).ok();
+    let new_password = new_password.trim().to_string();
+    if new_password.len() < 8 {
+        eprintln!("error: new password must be at least 8 characters");
+        std::process::exit(1);
+    }
+
+    let new_keystore = match create_keystore(new_kp.export_private_key(), &new_password) {
+        Ok(k) => k,
+        Err(e) => {
+            eprintln!("error: cannot encrypt new keystore: {}", e);
+            std::process::exit(1);
+        }
+    };
+    let new_keystore_json = match export_keystore(&new_keystore) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: cannot serialise new keystore: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let out_path = out.unwrap_or_else(|| {
+        let stem = wallet_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("wallet");
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let mut p = wallet_path.clone();
+        p.set_file_name(format!("{stem}.rotated.{ts}.json"));
+        p
+    });
+
+    if let Err(e) = fs::write(&out_path, &new_keystore_json) {
+        eprintln!(
+            "error: cannot write new keystore to {}: {}",
+            out_path.display(),
+            e
+        );
+        std::process::exit(1);
+    }
+    if let Err(e) = fs::write(&linkage_path, chain.to_json_string()) {
+        eprintln!(
+            "error: cannot write linkage to {}: {}",
+            linkage_path.display(),
+            e
+        );
+        std::process::exit(1);
+    }
+
+    println!();
+    println!("  ╔══════════════════════════════════════════════════════════════╗");
+    println!("  ║              WALLET ROTATED — V2-DEV                         ║");
+    println!("  ╚══════════════════════════════════════════════════════════════╝");
+    println!();
+    println!("  Old address (still spendable for any historical UTXO):");
+    println!("    {}", old_addr);
+    println!("  New address (default for future receives):");
+    println!("    {}", new_addr);
+    println!();
+    println!(
+        "  Old keystore:  {}  (preserved, do NOT delete)",
+        wallet_path.display()
+    );
+    println!("  New keystore:  {}", out_path.display());
+    println!("  Linkage:       {}", linkage_path.display());
+    println!();
+    println!("  This rotation is recorded only in the local linkage file.");
+    println!("  No private key was put on-chain.");
+    println!();
 }
 
 // ── axiom wallet send ────────────────────────────────────────────────────────

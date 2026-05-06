@@ -323,31 +323,78 @@ above defends against intra-network replay.
 
 ## 7. Key rotation
 
-Code skeleton: [`crates/axiom-wallet/src/rotation_v2.rs`](../crates/axiom-wallet/src/rotation_v2.rs).
+Implementation: [`crates/axiom-wallet/src/rotation_v2.rs`](../crates/axiom-wallet/src/rotation_v2.rs).
+CLI: `axiom wallet rotate`.
 
 A wallet can rotate its identity without burning the underlying funds:
 
 1. The wallet generates a fresh ML-DSA-87 keypair `K_new`.
-2. The wallet builds a `RotationRecord`:
+2. The wallet builds a `RotationRecord` signed by the old key:
    ```rust
    pub struct RotationRecord {
        pub from_address: Address,
        pub to_address: Address,
-       pub successor_pubkey: PublicKey,        // K_new public part
-       pub effective_height: u32,              // chain height at which the rotation takes effect
-       pub signature: Signature,               // ML-DSA-87(from_key, body)
+       pub predecessor_pubkey: PublicKey,      // K_old (the signer)
+       pub successor_pubkey: PublicKey,        // K_new (announced)
+       pub effective_height: u32,              // advisory; not consensus-enforced
+       pub signature: Signature,               // ML-DSA-87(K_old, signing_hash)
    }
    ```
-3. The record is published as a special transaction with a single zero-value
-   output and `v2_extension.rotation_pointer = Some(RotationPointer { ... })`.
-4. After `effective_height`, wallets and explorers display the new address as
-   the canonical identity but **UTXOs sent to `from_address` remain
-   spendable by `K_old` indefinitely**. The chain never forces a key rotation
-   on third-party UTXOs; it only records the wallet's stated successor.
 
-Multiple rotations form a chain (`A → B → C → …`) — the wallet retains every
-historical key so any UTXO from any era is spendable. The skeleton's
-`Linkage` type tracks the chain in-memory.
+   The signing hash is `tagged_hash("axiom-rotation-v2", body)` where the
+   body is length-prefixed in every region:
+
+   ```text
+       u32 LE from_addr_len   || from_address.pubkey_hash bytes
+       u32 LE to_addr_len     || to_address.pubkey_hash bytes
+       u32 LE predecessor_len || predecessor_pubkey bytes
+       u32 LE successor_len   || successor_pubkey bytes
+       u32 LE effective_height
+   ```
+
+   Length prefixes rule out boundary-collision attacks of the
+   `("ab","cd") == ("a","bcd")` shape.
+
+3. **The record stays local** to the wallet. Stage 7 does not put the
+   record on chain — there is no new tx type, no `v2_extension`
+   threading, and no consensus rule. The record is persisted alongside
+   the keystore as a JSON `linkage` file.
+
+4. UTXOs sent to `from_address` remain spendable by `K_old`
+   indefinitely. The chain has no concept of "this address can no
+   longer sign"; rotation is a wallet-side identity statement, not a
+   UTXO-level invalidation.
+
+5. Multiple rotations form a chain (`A → B → C → …`) tracked by
+   `Linkage`. `Linkage::apply_record` verifies a candidate record
+   against the current tip:
+
+   - empty linkage → `from_address` is the wallet's seed identity;
+   - non-empty → `from_address == linkage.last().to_address`;
+   - `effective_height` strictly greater than the previous record's;
+   - both pubkey hashes match their respective addresses;
+   - ML-DSA-87 signature verifies against `predecessor_pubkey`.
+
+   Records are appended only after every check passes.
+
+6. The `Linkage::to_json_string` / `from_json_str` helpers persist the
+   chain to a JSON file kept next to the keystore. Loading
+   re-verifies every record on the way in, so a tampered file is
+   refused even if the bit-flip lands on a hex-encoded signature byte.
+
+CLI walkthrough (`axiom wallet rotate`):
+
+  - Reads the existing keystore at the platform default path (override
+    with `--wallet`).
+  - Prompts for the old keystore password and unlocks it.
+  - Generates a fresh ML-DSA-87 keypair.
+  - Builds and verifies a `RotationRecord`.
+  - Prompts for a new password, encrypts the new keystore, writes it
+    to `<wallet>.rotated.<timestamp>.json` (override with `--out`).
+  - Updates the linkage file at `<wallet>.linkage.json` (override with
+    `--linkage`).
+  - Prints both addresses and the file paths. The old keystore is
+    preserved untouched.
 
 ---
 
@@ -362,8 +409,8 @@ Code skeleton: [`crates/axiom-crypto/src/kem_v2.rs`](../crates/axiom-crypto/src/
 | 3 | Hybrid handshake — transcript hash, HelloV2/HelloAckV2 wire format, hybrid (X25519+ML-KEM) key agreement, HKDF-SHA256 directional session keys, ML-DSA+Ed25519 dual identity proof; 10 round-trip / tamper / downgrade-binding tests | done |
 | 4 | Encrypted transport — XChaCha20-Poly1305 framing with on-wire seq + AEAD; `EncryptedConnectionV2` over any `AsyncRead+AsyncWrite`; strict-monotonic replay rejection; 4-MB frame cap; 11 round-trip / tamper / replay / oversized / truncated / wrong-key tests | done |
 | 5 | Hybrid node-identity (`axiom_guard::fingerprint_v2`) — `PeerId` = SHA-256-tagged hash of (ml_dsa_pk \|\| ed25519_pk) with length-prefix anti-collision; `compute_peer_id` and `verify_announced_peer_id`; 12 tests covering determinism, key substitution, single-bit sensitivity, length-prefix anti-collision, cross-session stability | done |
-| 6 | Replay-rule enforcement — strict-next per-address nonce already enforced at validation.rs:247–262 with reorg-safe `NonceUndo` storage; 8 verification tests in `v2_nonce_replay_protection.rs` cover first-tx, duplicate, lower, skipped, independent-address, reorg-undo, and storage persistence; spec §6 corrected to remove `NONCE_WINDOW=16` window | **done** |
-| 7 | Wallet rotation UI + `axiom wallet rotate` CLI | stub |
+| 6 | Replay-rule enforcement — strict-next per-address nonce already enforced at validation.rs:247–262 with reorg-safe `NonceUndo` storage; 8 verification tests in `v2_nonce_replay_protection.rs` cover first-tx, duplicate, lower, skipped, independent-address, reorg-undo, and storage persistence; spec §6 corrected to remove `NONCE_WINDOW=16` window. End-to-end nonce off-by-one diagnosed (apply wrote `tx.nonce + 1`) and fixed in `f141b3f` so on-chain nonces are now consecutive | done |
+| 7 | Wallet rotation — `axiom-wallet::rotation_v2` real impl: `build_rotation_record` (ML-DSA-87 over length-prefixed body, domain `axiom-rotation-v2`); `verify_rotation_record` (address↔key binding both ends, linkage-tip + effective-height checks, signature verify); `Linkage::apply_record` and JSON persistence with re-verification on load. `axiom wallet rotate` CLI command. 12 tests covering happy path, wrong-old-key, tampered signature/pubkey, A→B→C chain, height monotonicity, JSON round-trip, tamper-on-load rejection, and old-key-still-spends invariant | **done** |
 | 8 | UPnP via `igd-next` in node startup | not started |
 | 9 | Integration tests + reference vectors | not started |
 | 10 | v2 release branch off `v2-dev` | future |
