@@ -162,6 +162,14 @@ jobs:
           Post-quantum Layer 1 blockchain — runs on your machine.
 
           ─────────────────────────────────────────────────────────────
+          ⚠️  TESTNET — NOT FOR REAL FUNDS
+          ─────────────────────────────────────────────────────────────
+          Tokens mined or transferred on this network have NO monetary
+          value, ever. Mainnet has not launched. Treat keys, balances,
+          and tokens as disposable. Wait for an explicit mainnet
+          announcement before moving any real money.
+
+          ─────────────────────────────────────────────────────────────
           QUICK START
           ─────────────────────────────────────────────────────────────
 
@@ -226,11 +234,41 @@ jobs:
 
           NETWORKING NOTES
           - Inbound connections require TCP port 9000 to be reachable
-            from the internet. On home networks that means a router
-            port-forward (or UPnP enabled on your router).
+            from the internet.
+          - The node now attempts UPnP port-forward at startup. If
+            your router supports IGD, the mapping is automatic. Watch
+            the log for "✓ UPnP port forward established".
+          - If UPnP is unavailable, the log prints manual port-forward
+            instructions. Pass --no-upnp to disable the attempt.
           - If a friend cannot reach you, flip the roles: they share
             their public address with `axiom myip`, you run
             `axiom connect <their-ip>:9000` from your end.
+
+          ─────────────────────────────────────────────────────────────
+          WALLET KEY ROTATION (NEW IN V2)
+          ─────────────────────────────────────────────────────────────
+
+              axiom wallet rotate
+
+          Generates a fresh ML-DSA-87 keypair, writes a new keystore,
+          and appends a signed rotation record to a local linkage file.
+          The OLD keystore is preserved untouched so historical UTXOs
+          remain spendable. See axiom wallet rotate --help.
+
+          ─────────────────────────────────────────────────────────────
+          SECURITY MODEL (V2)
+          ─────────────────────────────────────────────────────────────
+
+          - Transaction signatures: ML-DSA-87 (FIPS 204, NIST Cat 5).
+          - P2P transport: hybrid X25519 + ML-KEM-768 (FIPS 203)
+            handshake, XChaCha20-Poly1305 framing.
+          - Node identity: ML-DSA-87 + Ed25519 dual signature; both
+            must verify for the handshake to succeed.
+          - Replay protection: strict-next per-address nonce at the
+            consensus validation layer, reorg-safe undo.
+          - Wallet keys never leave the local machine.
+          - RPC binds to 127.0.0.1 by default. Do not expose
+            publicly without authentication.
 
           ─────────────────────────────────────────────────────────────
           ADVANCED

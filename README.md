@@ -1,23 +1,30 @@
-# Axiom Network — `v2-dev` (experimental)
+# Axiom Network — v2 Testnet
 
-> ⚠️ **You are on the `v2-dev` branch. This is an experimental development line
-> and is *not* compatible with the v1 release series (master).**
+> ⚠️ **TESTNET — not for real funds.** Tokens mined or transferred on this
+> network have **no monetary value, ever**. Do not move real money through
+> this chain. Wait for an explicit mainnet announcement.
 >
-> - Network identifier: `axiom-test-v2` (separate from v1's `axiom-test-1`).
-> - Wire-level handshakes between a `v2-dev` node and a v1 node are **rejected
->   on purpose** — the chains do not converge and tokens do not cross.
-> - No `v2-dev` build is published as a signed release. Releases continue to
->   ship from `master`. To get a stable testnet binary, switch back to
->   `master` and follow [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md).
-> - Everything below describes intended behaviour. Treat anything specific to
->   v2 (post-quantum transport, hybrid signatures, replay protection, key
->   rotation, UPnP) as in-flight design unless this banner is removed.
+> - **Network identifier:** `axiom-test-v2` (separate from the v1 testnet,
+>   `axiom-test-1`). v1 and v2 nodes refuse each other at the version-message
+>   exchange — chains do not converge, tokens do not cross.
+> - **Branch:** `v2-testnet-release`. Tagged signed releases ship from this
+>   branch as `v2.0.0-testnet.x`.
+> - **What's new in v2:** post-quantum hybrid P2P handshake (X25519 + ML-KEM-768),
+>   AEAD-framed encrypted transport (XChaCha20-Poly1305), hybrid node identity
+>   (ML-DSA-87 + Ed25519), strict-next replay protection, wallet key rotation,
+>   best-effort UPnP port-forward, `axiom connect` / `axiom myip` /
+>   `axiom wallet rotate` CLI commands. Full design at
+>   [docs/V2_PROTOCOL.md](docs/V2_PROTOCOL.md).
+> - **Verify before running:** every release binary is hashed in `SHA256SUMS`
+>   and signed with `SHA256SUMS.minisig`. The signing public key is
+>   [docs/minisign.pub](docs/minisign.pub). Instructions:
+>   [docs/VERIFYING_RELEASES.md](docs/VERIFYING_RELEASES.md).
 
 ---
 
-**Status:** Public testnet (v1 line) — `v1.0.1-testnet.8` — **not yet mainnet**
+**Status:** v2 Testnet — `v2.0.0-testnet.1` — **not mainnet**
 **License:** MIT
-**Source:** <https://github.com/Ayano-X-Tech/axiom-network>
+**Source:** <https://github.com/KantoshiMiyamura/axiom-network>
 
 Axiom Network is a post-quantum blockchain implementing Proof of Useful Compute
 (PoUC). Transactions are signed with ML-DSA-87 (FIPS 204). The chain-local
@@ -34,7 +41,7 @@ throwaway test tokens, not an asset.
 
 This repository contains two layers of code with **different maturity levels**:
 
-- **Stable (testnet):** the blockchain core — node, RPC, wallet library, CLI, consensus, networking. This is what `v1.0.1-testnet.8` ships and what the release pipeline builds.
+- **Stable (testnet):** the blockchain core — node, RPC, wallet library, CLI, consensus, networking. This is what `v2.0.0-testnet.1` ships and what the release pipeline builds.
 - **Experimental (in development):** the desktop wallet, the off-chain community platform, and the AxiomMind guardian daemon. These live in this repo for development convenience but are **not part of the released testnet binaries**. See [docs/MODULES.md](docs/MODULES.md) for status, scope, and what's missing per module.
 
 ### Stable — blockchain core
