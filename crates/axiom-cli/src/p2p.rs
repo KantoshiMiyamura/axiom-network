@@ -400,34 +400,16 @@ impl P2PNetwork {
                                     let _ =
                                         peer_manager.send_to_peer(peer_id, Message::GetPeers).await;
 
-                                    let peer_height = peer_manager
-                                        .get_peer(peer_id)
-                                        .await
-                                        .and_then(|p| p.best_height)
-                                        .unwrap_or(0);
-                                    let our_height = {
-                                        let svc = network_service.read().await;
-                                        svc.get_tip().await.1
-                                    };
-                                    if our_height > peer_height {
-                                        let blocks = {
-                                            let svc = network_service.read().await;
-                                            svc.get_canonical_blocks_since(peer_height).await
-                                        };
-                                        tracing::info!(
-                                            "IBD_PUSH: peer={}, sending {} blocks \
-                                             (peer_height={} our_height={})",
-                                            addr,
-                                            blocks.len(),
-                                            peer_height,
-                                            our_height
-                                        );
-                                        for block in blocks {
-                                            let _ = peer_manager
-                                                .send_to_peer(peer_id, Message::Block(block))
-                                                .await;
-                                        }
-                                    }
+                                    // Pull-based IBD trigger.
+                                    //
+                                    // Always exchange tips on connect: ask the peer for theirs,
+                                    // and the existing Tip handler (NetworkService::sync_with_peer)
+                                    // decides whether to request headers + blocks. This replaces
+                                    // the older asymmetric IBD_PUSH path that flooded a fresh
+                                    // peer with raw Block messages — the push raced against
+                                    // per-message task spawning and overflowed the orphan pool.
+                                    let _ =
+                                        peer_manager.send_to_peer(peer_id, Message::GetTip).await;
                                 }
                             }
                             Err(e) => {
@@ -467,31 +449,35 @@ impl P2PNetwork {
                         }
                         tracing::info!("PEERS_RECEIVED: peer={}, count={}", addr, new_count);
                     } else {
-                        let service = network_service.clone();
-                        let writer = connection.clone_writer();
-                        let peer_addr = addr;
-
-                        tokio::spawn(async move {
-                            match service.read().await.handle_message(peer_id, message).await {
-                                Ok(Some(resp)) => {
-                                    if let Err(e) = writer.send(&resp).await {
-                                        tracing::error!(
-                                            "RESPONSE_SEND_ERROR: peer={}, error={}",
-                                            peer_addr,
-                                            e
-                                        );
-                                    }
-                                }
-                                Ok(None) => {}
-                                Err(e) => {
+                        // Handle inline (NOT tokio::spawn) so messages from the same
+                        // peer are applied in the order they arrived on the wire.
+                        // Spawning let 1000+ blocks from initial-sync race each other
+                        // through `apply_block` — out-of-order parents → orphan pool
+                        // overflow → ORPHAN_REJECTED peer_limit_exceeded.
+                        let result = {
+                            let service = network_service.read().await;
+                            service.handle_message(peer_id, message).await
+                        };
+                        match result {
+                            Ok(Some(resp)) => {
+                                let writer = connection.clone_writer();
+                                if let Err(e) = writer.send(&resp).await {
                                     tracing::error!(
-                                        "MESSAGE_HANDLER_ERROR: peer={}, error={}",
-                                        peer_addr,
+                                        "RESPONSE_SEND_ERROR: peer={}, error={}",
+                                        addr,
                                         e
                                     );
                                 }
                             }
-                        });
+                            Ok(None) => {}
+                            Err(e) => {
+                                tracing::error!(
+                                    "MESSAGE_HANDLER_ERROR: peer={}, error={}",
+                                    addr,
+                                    e
+                                );
+                            }
+                        }
                     }
                 }
                 Err(e) => {
