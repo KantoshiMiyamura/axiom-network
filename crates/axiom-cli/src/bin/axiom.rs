@@ -53,7 +53,7 @@ enum Commands {
     /// Start the Axiom node
     Start {
         /// Network (mainnet, testnet, devnet)
-        #[arg(long, default_value = "mainnet")]
+        #[arg(long, default_value = "test")]
         network: String,
 
         /// Data directory
@@ -1924,7 +1924,7 @@ fn cmd_mine(peers: Vec<String>, data_dir: Option<String>, log_level: String) {
         // Save wallet.dat with metadata (address, keystore, creation time)
         let wallet_data = serde_json::json!({
             "version": 1,
-            "network": "axiom-mainnet-v1",
+            "network": "axiom-test-v2",
             "address": addr_str,
             "created_at": chrono_timestamp(),
             "encryption": "argon2id+xchacha20poly1305",
@@ -1987,7 +1987,7 @@ fn cmd_mine(peers: Vec<String>, data_dir: Option<String>, log_level: String) {
     };
 
     // Step 3: Start mining
-    println!("  Network: axiom-mainnet-v1");
+    println!("  Network: axiom-test-v2");
     if peers.is_empty() {
         println!("  Peers:   (standalone — no peers, mining locally)");
     } else {
@@ -2019,7 +2019,7 @@ fn cmd_mine(peers: Vec<String>, data_dir: Option<String>, log_level: String) {
     println!();
 
     cmd_start(
-        "mainnet".to_string(),
+        "test".to_string(),
         data_dir,
         "127.0.0.1:8332".to_string(),
         "0.0.0.0:9000".to_string(),

@@ -38,7 +38,7 @@ use tracing::{debug, error, info, warn};
 #[command(version)]
 struct Args {
     /// Network to connect to (mainnet, testnet, devnet)
-    #[arg(long, default_value = "mainnet")]
+    #[arg(long, default_value = "test")]
     network: String,
 
     /// Data directory path
