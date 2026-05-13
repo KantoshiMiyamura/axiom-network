@@ -82,10 +82,22 @@ impl NetworkService {
         }
     }
 
-    pub fn with_shared_node(node: Arc<RwLock<Node>>, peer_manager: PeerManager) -> Self {
+    /// Build a NetworkService that shares both the Node state and the
+    /// PeerManager with the caller (typically the binary's P2P layer).
+    ///
+    /// Sharing the **same** `Arc<PeerManager>` is load-bearing: every
+    /// `self.peer_manager.send_to_peer(...)` call in this file (sync_with_peer,
+    /// handle_inv, handle_headers, handle_received_block, handle_get_data,
+    /// dispatch_pending_blocks) needs to reach the peer entries that the P2P
+    /// layer registered via `add_peer`. Wrapping a fresh PeerManager in a
+    /// private Arc here would create a second, empty peer map and every
+    /// back-channel send would fail with `PeerNotFound`. That mismatch was the
+    /// root cause of the v2.0.0-testnet.3 lifecycle race that landed every
+    /// fresh node in an infinite reconnect loop after handshake.
+    pub fn with_shared_node(node: Arc<RwLock<Node>>, peer_manager: Arc<PeerManager>) -> Self {
         NetworkService {
             node,
-            peer_manager: Arc::new(peer_manager),
+            peer_manager,
             seen_txs: Arc::new(RwLock::new(HashSet::new())),
             seen_blocks: Arc::new(RwLock::new(HashSet::new())),
             seen_inv: Arc::new(RwLock::new(HashMap::new())),

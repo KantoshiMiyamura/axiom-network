@@ -413,7 +413,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "axiom-ai"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-crypto",
  "axiom-primitives",
@@ -430,7 +430,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-cli"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-ai",
  "axiom-consensus",
@@ -457,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-community-client"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -488,7 +488,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-community-server"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -527,7 +527,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-community-shared"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -552,7 +552,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-consensus"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-crypto",
  "axiom-primitives",
@@ -563,7 +563,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-crypto"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-primitives",
  "ml-dsa",
@@ -577,7 +577,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-ct"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "bincode",
  "bulletproofs",
@@ -623,7 +623,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-guard"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-consensus",
  "axiom-crypto",
@@ -640,7 +640,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-monitor"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-consensus",
  "axiom-guard",
@@ -658,7 +658,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-node"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-consensus",
  "axiom-crypto",
@@ -685,7 +685,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-primitives"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "serde",
  "serde_bytes",
@@ -695,7 +695,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-protocol"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-crypto",
  "axiom-ct",
@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-rpc"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-ai",
  "axiom-consensus",
@@ -738,7 +738,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-signer"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-primitives",
  "axiom-protocol",
@@ -750,7 +750,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-storage"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "axiom-consensus",
  "axiom-crypto",
@@ -766,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "axiom-wallet"
-version = "2.0.0-testnet.3"
+version = "2.0.0-testnet.4"
 dependencies = [
  "argon2",
  "axiom-crypto",

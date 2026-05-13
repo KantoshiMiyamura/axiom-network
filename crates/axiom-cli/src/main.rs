@@ -231,10 +231,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &node_identity,
     ));
     let network_service = {
-        let mut svc = NetworkService::with_shared_node(
-            node_state.clone(),
-            PeerManager::with_identity(args.network.clone(), &node_identity),
-        );
+        // Pass the SAME Arc<PeerManager> that P2PNetwork uses. NetworkService
+        // dispatches back-channel sends (GetHeaders during sync, GetData when
+        // handling Inv/Headers, Inv when relaying accepted blocks, Block when
+        // serving GetData) through `self.peer_manager.send_to_peer`. Those
+        // calls have to reach the peer entries the P2P layer registered via
+        // `add_peer`. Constructing a second PeerManager here would silently
+        // produce `PeerNotFound` on every back-channel send.
+        let mut svc = NetworkService::with_shared_node(node_state.clone(), peer_manager.clone());
         // Hook AxiomMind into peer-received blocks so non-mining nodes
         // also benefit from threat detection.
         if let Some(g) = guard.clone() {
