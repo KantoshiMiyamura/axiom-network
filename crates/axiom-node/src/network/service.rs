@@ -20,6 +20,16 @@ const INV_SEEN_TTL: Duration = Duration::from_secs(5 * 60);
 const MAX_PARALLEL_BLOCK_REQUESTS: usize = 16;
 const BLOCK_REQUEST_TIMEOUT: Duration = Duration::from_secs(120);
 
+/// Hysteresis band for the IBD-vs-Synced transition. While the header-walk
+/// is still chasing a peer's tip, the local node is considered to be in
+/// IBD when `local_height + IBD_SYNC_THRESHOLD < ibd_target_height`. The
+/// band keeps the state from flapping every time a single live block
+/// arrives during the final stretch of catch-up. Set deliberately wider
+/// than the per-batch header response (`MAX_HEADERS_PER_MESSAGE = 2000`)
+/// would suggest — 8 blocks is enough to absorb routine tip jitter without
+/// letting the live broadcasts fill the orphan pool.
+const IBD_SYNC_THRESHOLD: u32 = 8;
+
 /// CRITICAL FIX: Maximum size for seen_txs and seen_blocks sets.
 /// Without a bound, these grow forever and eventually exhaust memory.
 /// 50,000 hashes × 32 bytes ≈ 1.6 MB — acceptable for dedup.
@@ -57,6 +67,11 @@ pub struct NetworkService {
     peer_fee_filters: Arc<RwLock<HashMap<PeerId, u64>>>,
     in_flight: Arc<tokio::sync::Mutex<HashMap<Hash256, (PeerId, Instant)>>>,
     pending_blocks: Arc<tokio::sync::Mutex<Vec<Hash256>>>,
+    /// Highest tip height any peer has claimed since startup. Together with
+    /// the current local height this drives `is_in_ibd()`, which gates
+    /// Inv-driven block fetches and unsolicited block applies. 0 means
+    /// "no peer has claimed a taller chain yet" — equivalent to Synced.
+    ibd_target_height: Arc<RwLock<u32>>,
     network: Network,
     /// Optional hook called on every successfully accepted peer block.
     block_accepted_hook: Option<BlockAcceptedHook>,
@@ -76,6 +91,7 @@ impl NetworkService {
             peer_fee_filters: Arc::new(RwLock::new(HashMap::new())),
             in_flight: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             pending_blocks: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            ibd_target_height: Arc::new(RwLock::new(0)),
             network,
             block_accepted_hook: None,
             community: CommunityService::new(),
@@ -104,10 +120,43 @@ impl NetworkService {
             peer_fee_filters: Arc::new(RwLock::new(HashMap::new())),
             in_flight: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             pending_blocks: Arc::new(tokio::sync::Mutex::new(Vec::new())),
+            ibd_target_height: Arc::new(RwLock::new(0)),
             network: Network::Dev,
             block_accepted_hook: None,
             community: CommunityService::new(),
         }
+    }
+
+    /// Raise the recorded IBD target so far as `height` if it's an upgrade.
+    /// Called from `sync_with_peer` when a peer's Tip is taller than ours,
+    /// and from `handle_headers` as each batch reveals more of the chain.
+    async fn raise_ibd_target(&self, height: u32) {
+        let mut target = self.ibd_target_height.write().await;
+        if height > *target {
+            tracing::debug!("IBD_TARGET_RAISED: {} -> {}", *target, height,);
+            *target = height;
+        }
+    }
+
+    /// True while a known peer's tip is materially taller than ours, with
+    /// hysteresis to avoid flapping on the last few blocks. While in IBD,
+    /// the node refuses to chase Inv-broadcast blocks or accept unsolicited
+    /// orphan-pool entries — the header-driven pull is the only sanctioned
+    /// path for blocks until catch-up completes.
+    pub async fn is_in_ibd(&self) -> bool {
+        let target = *self.ibd_target_height.read().await;
+        if target == 0 {
+            return false;
+        }
+        let node = self.node.read().await;
+        let local = node.best_height().unwrap_or(0);
+        local + IBD_SYNC_THRESHOLD < target
+    }
+
+    /// Current IBD target height (highest peer tip we've ever been told
+    /// about). Exposed for tests and observability.
+    pub async fn ibd_target(&self) -> u32 {
+        *self.ibd_target_height.read().await
     }
 
     /// Register a callback that fires on every peer block accepted into the chain.
@@ -309,9 +358,25 @@ impl NetworkService {
     async fn handle_inv(&self, peer_id: PeerId, items: Vec<InvItem>) -> Result<(), ServiceError> {
         let mut want: Vec<InvItem> = Vec::new();
 
+        // Skip Inv-driven Block fetches while we are catching up via the
+        // header-driven IBD path. Tip-broadcast blocks at height >>
+        // local_height arrive faster than we can fill in their parents;
+        // chasing them lands every one in the orphan pool until the per-peer
+        // cap (MAX_ORPHANS_PER_PEER) trips and the peer gets shunned.
+        // The header walk will pull these same blocks in order anyway.
+        let suppress_block_inv = self.is_in_ibd().await;
+
         for item in items {
             match item.item_type {
                 InvItemType::Block => {
+                    if suppress_block_inv {
+                        tracing::debug!(
+                            "INV_SKIP_DURING_IBD: peer={:?}, hash={}",
+                            peer_id,
+                            hex::encode(&item.hash.as_bytes()[..8])
+                        );
+                        continue;
+                    }
                     let node = self.node.read().await;
                     let have =
                         node.has_block(&item.hash).unwrap_or(false) || node.is_orphan(&item.hash);
@@ -671,6 +736,10 @@ impl NetworkService {
             let pct = (our_height as f64 / peer_height as f64 * 100.0) as u32;
             tracing::info!(our_height, peer_height, pct, "[IBD] sync progress {}%", pct);
         }
+        // Each header batch reveals more of the peer's chain. Keep the IBD
+        // target up to date so the Inv-suppression gate doesn't open while
+        // we're still walking toward a tip we already know is taller.
+        self.raise_ibd_target(peer_height).await;
 
         // If we got a full batch, the peer likely has more headers.
         // Request the next batch starting from the last header we received.
@@ -865,10 +934,16 @@ impl NetworkService {
     ) -> Result<(), ServiceError> {
         let block_hash = block.hash();
 
-        {
+        // Solicited = we previously sent a GetData for this hash (the
+        // header-driven IBD path or a deliberate explicit fetch). Anything
+        // else is a live broadcast — almost certainly a tip block. We need
+        // this distinction below to decide whether to drop an unsolicited
+        // orphan during IBD instead of letting it fill the per-peer
+        // orphan pool.
+        let solicited = {
             let mut in_flight = self.in_flight.lock().await;
-            in_flight.remove(&block_hash);
-        }
+            in_flight.remove(&block_hash).is_some()
+        };
         let _ = self.dispatch_pending_blocks(peer_id).await;
         let height = block.height().unwrap_or(0);
         let tx_count = block.transactions.len();
@@ -888,6 +963,33 @@ impl NetworkService {
                     "BLOCK_ALREADY_SEEN: hash={}, height={}",
                     hex::encode(&block_hash.as_bytes()[..8]),
                     height
+                );
+                return Ok(());
+            }
+        }
+
+        // IBD gate: drop unsolicited orphans while we're catching up.
+        //
+        // An unsolicited block (peer pushed it via Inv→GetData→Block at
+        // their initiative — almost always a freshly-mined tip block)
+        // whose parent we don't have yet would otherwise land in the
+        // orphan pool. During IBD the live tip is hundreds or thousands
+        // of blocks ahead of us; every tip broadcast adds an orphan, and
+        // MAX_ORPHANS_PER_PEER trips long before the header walk catches
+        // up. Drop the block silently — when the header walk reaches its
+        // height we'll fetch it through the sanctioned path.
+        if !solicited && self.is_in_ibd().await {
+            let parent_exists = {
+                let node = self.node.read().await;
+                let parent = block.header.prev_block_hash;
+                parent == Hash256::zero() || node.has_block(&parent).unwrap_or(false)
+            };
+            if !parent_exists {
+                tracing::debug!(
+                    "BLOCK_SKIP_UNSOLICITED_DURING_IBD: hash={}, height={}, peer={:?}",
+                    hex::encode(&block_hash.as_bytes()[..8]),
+                    height,
+                    peer_id
                 );
                 return Ok(());
             }
@@ -1207,6 +1309,10 @@ impl NetworkService {
             );
             let our_tip = local_hash;
             drop(node);
+            // Record what we're chasing — gates Inv-driven block fetches and
+            // unsolicited block applies until we catch up to within
+            // IBD_SYNC_THRESHOLD of this height.
+            self.raise_ibd_target(peer_tip.best_height).await;
             self.peer_manager
                 .send_to_peer(
                     peer_id,
