@@ -3,7 +3,7 @@
 Axiom Network ships as a blockchain core (the `crates/axiom-*` set under
 `crates/`) plus a set of **experimental modules** that live in this repo
 for development convenience. The experimental modules are **not** part of
-the `v2.0.0-testnet.5` release: they are not built by the release
+the `v2.0.0-testnet.6` release: they are not built by the release
 pipeline, not signed, not packaged, and not advertised on the downloads
 page.
 

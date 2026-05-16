@@ -49,7 +49,7 @@
     <!-- Page Header -->
     <div class="page-header">
       <h1>Downloads</h1>
-      <p>Axiom Network v2.0.0-testnet.5 — Pre-built node binaries for Windows (x86_64) and Linux (x86_64). macOS builds are temporarily disabled for this release while we work through hosted-runner queue and Apple Silicon toolchain issues; macOS binaries will return in a later testnet release. Desktop wallet installers are not part of this release.</p>
+      <p>Axiom Network v2.0.0-testnet.6 — Pre-built node binaries for Windows (x86_64) and Linux (x86_64). macOS builds are temporarily disabled for this release while we work through hosted-runner queue and Apple Silicon toolchain issues; macOS binaries will return in a later testnet release. Desktop wallet installers are not part of this release.</p>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -70,13 +70,13 @@
                 <div class="arch">x86_64</div>
               </div>
             </div>
-            <div class="size">v2.0.0-testnet.5</div>
+            <div class="size">v2.0.0-testnet.6</div>
           </div>
           <div class="dl-meta">
             <div class="label">Filename</div>
-            <div class="val">axiom-v2.0.0-testnet.5-x86_64-pc-windows-msvc.zip</div>
+            <div class="val">axiom-v2.0.0-testnet.6-x86_64-pc-windows-msvc.zip</div>
           </div>
-          <a href="downloads/v2.0.0-testnet.5/axiom-v2.0.0-testnet.5-x86_64-pc-windows-msvc.zip" class="btn btn-primary" style="width:100%;justify-content:center" download>&#11015; Download .zip</a>
+          <a href="downloads/v2.0.0-testnet.6/axiom-v2.0.0-testnet.6-x86_64-pc-windows-msvc.zip" class="btn btn-primary" style="width:100%;justify-content:center" download>&#11015; Download .zip</a>
         </div>
 
         <div class="dl-card">
@@ -88,11 +88,11 @@
                 <div class="arch">x86_64</div>
               </div>
             </div>
-            <div class="size">v2.0.0-testnet.5</div>
+            <div class="size">v2.0.0-testnet.6</div>
           </div>
           <div class="dl-meta">
             <div class="label">Filename</div>
-            <div class="val">axiom-v2.0.0-testnet.5-x86_64-unknown-linux-gnu.tar.gz</div>
+            <div class="val">axiom-v2.0.0-testnet.6-x86_64-unknown-linux-gnu.tar.gz</div>
           </div>
           <button class="btn" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed" disabled>Building &mdash; not yet available</button>
         </div>
@@ -112,7 +112,7 @@
             <div class="label">Status</div>
             <div class="val">Temporarily disabled in CI for this release. Build from source with <code>cargo build --release -p axiom-cli</code> until macOS binaries return in a later testnet release.</div>
           </div>
-          <button class="btn" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed" disabled>Not available in v2.0.0-testnet.5</button>
+          <button class="btn" style="width:100%;justify-content:center;opacity:0.5;cursor:not-allowed" disabled>Not available in v2.0.0-testnet.6</button>
         </div>
       </div>
     </section>
@@ -135,7 +135,7 @@
                 <div class="arch">x86_64 &middot; .msi installer</div>
               </div>
             </div>
-            <div class="size">v2.0.0-testnet.5</div>
+            <div class="size">v2.0.0-testnet.6</div>
           </div>
           <div class="dl-meta">
             <div class="label">Filename</div>
@@ -157,7 +157,7 @@
                 <div class="arch">x86_64 &middot; AppImage</div>
               </div>
             </div>
-            <div class="size">v2.0.0-testnet.5</div>
+            <div class="size">v2.0.0-testnet.6</div>
           </div>
           <div class="dl-meta">
             <div class="label">Filename</div>
@@ -179,7 +179,7 @@
                 <div class="arch">x86_64 &middot; .deb package</div>
               </div>
             </div>
-            <div class="size">v2.0.0-testnet.5</div>
+            <div class="size">v2.0.0-testnet.6</div>
           </div>
           <div class="dl-meta">
             <div class="label">Filename</div>
@@ -254,13 +254,13 @@
 
       <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem;">Linux</h3>
       <div class="code-block mb-3">
-        <pre><code>sha256sum axiom-v2.0.0-testnet.5-*.tar.gz</code></pre>
+        <pre><code>sha256sum axiom-v2.0.0-testnet.6-*.tar.gz</code></pre>
         <button class="copy-btn">copy</button>
       </div>
 
       <h3 style="font-size:0.875rem;font-weight:500;margin-bottom:0.75rem;">Windows PowerShell</h3>
       <div class="code-block">
-        <pre><code>Get-FileHash axiom-v2.0.0-testnet.5-*.zip -Algorithm SHA256 | Format-List</code></pre>
+        <pre><code>Get-FileHash axiom-v2.0.0-testnet.6-*.zip -Algorithm SHA256 | Format-List</code></pre>
         <button class="copy-btn">copy</button>
       </div>
     </section>
@@ -275,8 +275,8 @@
           <div class="step-body">
             <h3>Extract the archive</h3>
             <div class="code-block"><pre><code># Linux
-tar xzf axiom-v2.0.0-testnet.5-*.tar.gz
-cd axiom-v2.0.0-testnet.5-*
+tar xzf axiom-v2.0.0-testnet.6-*.tar.gz
+cd axiom-v2.0.0-testnet.6-*
 
 # Windows: right-click the .zip and select "Extract All"</code></pre><button class="copy-btn">copy</button></div>
           </div>
@@ -343,7 +343,7 @@ cargo build --release -p axiom-cli
       <div class="footer-brand">
         <div class="logo"><div class="logo-icon">A</div><span class="logo-text">Axiom Network</span></div>
         <p>Post-quantum Layer 1 blockchain. Built in Rust with ML-DSA-87 signatures.</p>
-        <div class="footer-version">v2.0.0-testnet.5</div>
+        <div class="footer-version">v2.0.0-testnet.6</div>
       </div>
       <div>
         <h4>Product</h4>

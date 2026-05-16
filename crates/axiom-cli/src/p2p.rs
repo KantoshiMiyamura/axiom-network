@@ -356,15 +356,42 @@ impl P2PNetwork {
         let writer = connection.clone_writer();
         let outbound_handle = tokio::spawn(async move {
             while let Some(message) = outbound_rx.recv().await {
-                if let Message::Block(ref block) = message {
-                    let bh = block.hash();
-                    let ht = block.height().unwrap_or(0);
-                    tracing::info!(
-                        "OUTBOUND_BLOCK: peer={}, hash={}, height={}",
-                        addr,
-                        hex::encode(&bh.as_bytes()[..8]),
-                        ht
-                    );
+                // Wire-trace each message kind that matters for IBD diagnosis.
+                // Field reports of "SYNC_NEEDED logs but no HEADERS_RECEIVED"
+                // are unanswerable without seeing which side of the
+                // GetHeaders/Headers/GetData/Tip dance went silent.
+                match &message {
+                    Message::Block(block) => {
+                        let bh = block.hash();
+                        let ht = block.height().unwrap_or(0);
+                        tracing::info!(
+                            "OUTBOUND_BLOCK: peer={}, hash={}, height={}",
+                            addr,
+                            hex::encode(&bh.as_bytes()[..8]),
+                            ht
+                        );
+                    }
+                    Message::GetHeaders(from, count) => {
+                        tracing::info!(
+                            "OUTBOUND_GETHEADERS: peer={}, from={}, max={}",
+                            addr,
+                            hex::encode(&from.as_bytes()[..8]),
+                            count
+                        );
+                    }
+                    Message::Headers(headers) => {
+                        tracing::info!("OUTBOUND_HEADERS: peer={}, count={}", addr, headers.len());
+                    }
+                    Message::GetData(items) => {
+                        tracing::info!("OUTBOUND_GETDATA: peer={}, count={}", addr, items.len());
+                    }
+                    Message::GetTip => {
+                        tracing::info!("OUTBOUND_GETTIP: peer={}", addr);
+                    }
+                    Message::Tip(t) => {
+                        tracing::info!("OUTBOUND_TIP: peer={}, height={}", addr, t.best_height);
+                    }
+                    _ => {}
                 }
                 if let Err(e) = writer.send(&message).await {
                     tracing::error!("OUTBOUND_SEND_ERROR: peer={}, error={}", addr, e);
@@ -376,17 +403,44 @@ impl P2PNetwork {
         loop {
             match connection.receive().await {
                 Ok(message) => {
-                    if let Message::Block(ref block) = message {
-                        let bh = block.hash();
-                        let ht = block.height().unwrap_or(0);
-                        tracing::info!(
-                            "INBOUND_BLOCK: peer={}, hash={}, height={}",
-                            addr,
-                            hex::encode(&bh.as_bytes()[..8]),
-                            ht
-                        );
-                    } else {
-                        tracing::debug!("INBOUND_MSG: peer={}, type={:?}", addr, message);
+                    match &message {
+                        Message::Block(block) => {
+                            let bh = block.hash();
+                            let ht = block.height().unwrap_or(0);
+                            tracing::info!(
+                                "INBOUND_BLOCK: peer={}, hash={}, height={}",
+                                addr,
+                                hex::encode(&bh.as_bytes()[..8]),
+                                ht
+                            );
+                        }
+                        Message::GetHeaders(from, count) => {
+                            tracing::info!(
+                                "INBOUND_GETHEADERS: peer={}, from={}, max={}",
+                                addr,
+                                hex::encode(&from.as_bytes()[..8]),
+                                count
+                            );
+                        }
+                        Message::Headers(headers) => {
+                            tracing::info!(
+                                "INBOUND_HEADERS: peer={}, count={}",
+                                addr,
+                                headers.len()
+                            );
+                        }
+                        Message::GetData(items) => {
+                            tracing::info!("INBOUND_GETDATA: peer={}, count={}", addr, items.len());
+                        }
+                        Message::GetTip => {
+                            tracing::info!("INBOUND_GETTIP: peer={}", addr);
+                        }
+                        Message::Tip(t) => {
+                            tracing::info!("INBOUND_TIP: peer={}, height={}", addr, t.best_height);
+                        }
+                        _ => {
+                            tracing::debug!("INBOUND_MSG: peer={}, type={:?}", addr, message);
+                        }
                     }
 
                     if matches!(message, Message::Version(_) | Message::VerAck) {
@@ -460,6 +514,32 @@ impl P2PNetwork {
                         };
                         match result {
                             Ok(Some(resp)) => {
+                                // Mirror the outbound wire-trace for inline
+                                // responses (Tip, Headers, etc.) — these
+                                // bypass the per-peer outbound channel and
+                                // would otherwise be invisible in the log.
+                                match &resp {
+                                    Message::Tip(t) => tracing::info!(
+                                        "OUTBOUND_TIP: peer={}, height={}",
+                                        addr,
+                                        t.best_height
+                                    ),
+                                    Message::Headers(h) => tracing::info!(
+                                        "OUTBOUND_HEADERS: peer={}, count={}",
+                                        addr,
+                                        h.len()
+                                    ),
+                                    Message::Block(b) => {
+                                        let bh = b.hash();
+                                        tracing::info!(
+                                            "OUTBOUND_BLOCK: peer={}, hash={}, height={}",
+                                            addr,
+                                            hex::encode(&bh.as_bytes()[..8]),
+                                            b.height().unwrap_or(0)
+                                        );
+                                    }
+                                    _ => {}
+                                }
                                 let writer = connection.clone_writer();
                                 if let Err(e) = writer.send(&resp).await {
                                     tracing::error!(
